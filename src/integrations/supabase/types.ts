@@ -14,7 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      jobs: {
+        Row: {
+          cantidad: number
+          ciudad: string | null
+          cliente: string
+          codigo_postal: string | null
+          created_at: string
+          direccion: string
+          estado: Database["public"]["Enums"]["job_status"]
+          fecha: string
+          finalizado_at: string | null
+          foto_final: string | null
+          foto_inicio: string | null
+          hora: string | null
+          id: string
+          importe: number
+          motivo_cancelacion: string | null
+          observaciones: string | null
+          piso: string | null
+          puerta: string | null
+          servicio: string | null
+          telefono: string | null
+          telegram_final_msg_id: string | null
+          telegram_inicio_msg_id: string | null
+          total: number | null
+          user_id: string
+        }
+        Insert: {
+          cantidad?: number
+          ciudad?: string | null
+          cliente: string
+          codigo_postal?: string | null
+          created_at?: string
+          direccion: string
+          estado?: Database["public"]["Enums"]["job_status"]
+          fecha?: string
+          finalizado_at?: string | null
+          foto_final?: string | null
+          foto_inicio?: string | null
+          hora?: string | null
+          id?: string
+          importe?: number
+          motivo_cancelacion?: string | null
+          observaciones?: string | null
+          piso?: string | null
+          puerta?: string | null
+          servicio?: string | null
+          telefono?: string | null
+          telegram_final_msg_id?: string | null
+          telegram_inicio_msg_id?: string | null
+          total?: number | null
+          user_id: string
+        }
+        Update: {
+          cantidad?: number
+          ciudad?: string | null
+          cliente?: string
+          codigo_postal?: string | null
+          created_at?: string
+          direccion?: string
+          estado?: Database["public"]["Enums"]["job_status"]
+          fecha?: string
+          finalizado_at?: string | null
+          foto_final?: string | null
+          foto_inicio?: string | null
+          hora?: string | null
+          id?: string
+          importe?: number
+          motivo_cancelacion?: string | null
+          observaciones?: string | null
+          piso?: string | null
+          puerta?: string | null
+          servicio?: string | null
+          telefono?: string | null
+          telegram_final_msg_id?: string | null
+          telegram_inicio_msg_id?: string | null
+          total?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          telegram_chat_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          telegram_chat_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          telegram_chat_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +121,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      job_status:
+        | "pendiente"
+        | "en_proceso"
+        | "realizado"
+        | "cancelado_cliente"
+        | "cancelado_no_estaba"
+        | "cancelado_direccion"
+        | "cancelado_otro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +255,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      job_status: [
+        "pendiente",
+        "en_proceso",
+        "realizado",
+        "cancelado_cliente",
+        "cancelado_no_estaba",
+        "cancelado_direccion",
+        "cancelado_otro",
+      ],
+    },
   },
 } as const
