@@ -15,8 +15,11 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedRealizadosRouteImport } from './routes/_authenticated/realizados'
 import { Route as AuthenticatedPendientesRouteImport } from './routes/_authenticated/pendientes'
 import { Route as AuthenticatedHoyRouteImport } from './routes/_authenticated/hoy'
+import { Route as AuthenticatedHistorialRouteImport } from './routes/_authenticated/historial'
 import { Route as AuthenticatedGananciasRouteImport } from './routes/_authenticated/ganancias'
 import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authenticated/cancelados'
+import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticated/ajustes'
+import { Route as AuthenticatedTrabajoNuevoRouteImport } from './routes/_authenticated/trabajo.nuevo'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -47,6 +50,11 @@ const AuthenticatedHoyRoute = AuthenticatedHoyRouteImport.update({
   path: '/hoy',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHistorialRoute = AuthenticatedHistorialRouteImport.update({
+  id: '/historial',
+  path: '/historial',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedGananciasRoute = AuthenticatedGananciasRouteImport.update({
   id: '/ganancias',
   path: '/ganancias',
@@ -57,65 +65,94 @@ const AuthenticatedCanceladosRoute = AuthenticatedCanceladosRouteImport.update({
   path: '/cancelados',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAjustesRoute = AuthenticatedAjustesRouteImport.update({
+  id: '/ajustes',
+  path: '/ajustes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTrabajoNuevoRoute =
+  AuthenticatedTrabajoNuevoRouteImport.update({
+    id: '/trabajo/nuevo',
+    path: '/trabajo/nuevo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/ajustes': typeof AuthenticatedAjustesRoute
   '/cancelados': typeof AuthenticatedCanceladosRoute
   '/ganancias': typeof AuthenticatedGananciasRoute
+  '/historial': typeof AuthenticatedHistorialRoute
   '/hoy': typeof AuthenticatedHoyRoute
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
+  '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/ajustes': typeof AuthenticatedAjustesRoute
   '/cancelados': typeof AuthenticatedCanceladosRoute
   '/ganancias': typeof AuthenticatedGananciasRoute
+  '/historial': typeof AuthenticatedHistorialRoute
   '/hoy': typeof AuthenticatedHoyRoute
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
   '/': typeof AuthenticatedIndexRoute
+  '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/ajustes': typeof AuthenticatedAjustesRoute
   '/_authenticated/cancelados': typeof AuthenticatedCanceladosRoute
   '/_authenticated/ganancias': typeof AuthenticatedGananciasRoute
+  '/_authenticated/historial': typeof AuthenticatedHistorialRoute
   '/_authenticated/hoy': typeof AuthenticatedHoyRoute
   '/_authenticated/pendientes': typeof AuthenticatedPendientesRoute
   '/_authenticated/realizados': typeof AuthenticatedRealizadosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/ajustes'
     | '/cancelados'
     | '/ganancias'
+    | '/historial'
     | '/hoy'
     | '/pendientes'
     | '/realizados'
+    | '/trabajo/nuevo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/ajustes'
     | '/cancelados'
     | '/ganancias'
+    | '/historial'
     | '/hoy'
     | '/pendientes'
     | '/realizados'
     | '/'
+    | '/trabajo/nuevo'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/ajustes'
     | '/_authenticated/cancelados'
     | '/_authenticated/ganancias'
+    | '/_authenticated/historial'
     | '/_authenticated/hoy'
     | '/_authenticated/pendientes'
     | '/_authenticated/realizados'
     | '/_authenticated/'
+    | '/_authenticated/trabajo/nuevo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -167,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHoyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/historial': {
+      id: '/_authenticated/historial'
+      path: '/historial'
+      fullPath: '/historial'
+      preLoaderRoute: typeof AuthenticatedHistorialRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ganancias': {
       id: '/_authenticated/ganancias'
       path: '/ganancias'
@@ -181,25 +225,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCanceladosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ajustes': {
+      id: '/_authenticated/ajustes'
+      path: '/ajustes'
+      fullPath: '/ajustes'
+      preLoaderRoute: typeof AuthenticatedAjustesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/trabajo/nuevo': {
+      id: '/_authenticated/trabajo/nuevo'
+      path: '/trabajo/nuevo'
+      fullPath: '/trabajo/nuevo'
+      preLoaderRoute: typeof AuthenticatedTrabajoNuevoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAjustesRoute: typeof AuthenticatedAjustesRoute
   AuthenticatedCanceladosRoute: typeof AuthenticatedCanceladosRoute
   AuthenticatedGananciasRoute: typeof AuthenticatedGananciasRoute
+  AuthenticatedHistorialRoute: typeof AuthenticatedHistorialRoute
   AuthenticatedHoyRoute: typeof AuthenticatedHoyRoute
   AuthenticatedPendientesRoute: typeof AuthenticatedPendientesRoute
   AuthenticatedRealizadosRoute: typeof AuthenticatedRealizadosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedTrabajoNuevoRoute: typeof AuthenticatedTrabajoNuevoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAjustesRoute: AuthenticatedAjustesRoute,
   AuthenticatedCanceladosRoute: AuthenticatedCanceladosRoute,
   AuthenticatedGananciasRoute: AuthenticatedGananciasRoute,
+  AuthenticatedHistorialRoute: AuthenticatedHistorialRoute,
   AuthenticatedHoyRoute: AuthenticatedHoyRoute,
   AuthenticatedPendientesRoute: AuthenticatedPendientesRoute,
   AuthenticatedRealizadosRoute: AuthenticatedRealizadosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedTrabajoNuevoRoute: AuthenticatedTrabajoNuevoRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
