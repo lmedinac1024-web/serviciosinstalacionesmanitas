@@ -20,6 +20,7 @@ import { Route as AuthenticatedGananciasRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authenticated/cancelados'
 import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticated/ajustes'
 import { Route as AuthenticatedTrabajoNuevoRouteImport } from './routes/_authenticated/trabajo.nuevo'
+import { Route as AuthenticatedTrabajoIdRouteImport } from './routes/_authenticated/trabajo.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -76,6 +77,11 @@ const AuthenticatedTrabajoNuevoRoute =
     path: '/trabajo/nuevo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTrabajoIdRoute = AuthenticatedTrabajoIdRouteImport.update({
+  id: '/trabajo/$id',
+  path: '/trabajo/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/hoy': typeof AuthenticatedHoyRoute
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
+  '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
 export interface FileRoutesByTo {
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
   '/': typeof AuthenticatedIndexRoute
+  '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
 export interface FileRoutesById {
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/pendientes': typeof AuthenticatedPendientesRoute
   '/_authenticated/realizados': typeof AuthenticatedRealizadosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/_authenticated/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
 export interface FileRouteTypes {
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/hoy'
     | '/pendientes'
     | '/realizados'
+    | '/trabajo/$id'
     | '/trabajo/nuevo'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/pendientes'
     | '/realizados'
     | '/'
+    | '/trabajo/$id'
     | '/trabajo/nuevo'
   id:
     | '__root__'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pendientes'
     | '/_authenticated/realizados'
     | '/_authenticated/'
+    | '/_authenticated/trabajo/$id'
     | '/_authenticated/trabajo/nuevo'
   fileRoutesById: FileRoutesById
 }
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTrabajoNuevoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/trabajo/$id': {
+      id: '/_authenticated/trabajo/$id'
+      path: '/trabajo/$id'
+      fullPath: '/trabajo/$id'
+      preLoaderRoute: typeof AuthenticatedTrabajoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -251,6 +270,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPendientesRoute: typeof AuthenticatedPendientesRoute
   AuthenticatedRealizadosRoute: typeof AuthenticatedRealizadosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedTrabajoIdRoute: typeof AuthenticatedTrabajoIdRoute
   AuthenticatedTrabajoNuevoRoute: typeof AuthenticatedTrabajoNuevoRoute
 }
 
@@ -263,6 +283,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPendientesRoute: AuthenticatedPendientesRoute,
   AuthenticatedRealizadosRoute: AuthenticatedRealizadosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedTrabajoIdRoute: AuthenticatedTrabajoIdRoute,
   AuthenticatedTrabajoNuevoRoute: AuthenticatedTrabajoNuevoRoute,
 }
 
