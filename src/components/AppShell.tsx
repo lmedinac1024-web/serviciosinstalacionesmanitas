@@ -11,13 +11,20 @@ import {
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
-const NAV = [
+type NavItem = {
+  to: "/" | "/pendientes" | "/hoy" | "/ganancias" | "/historial";
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+};
+
+const NAV: NavItem[] = [
   { to: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
   { to: "/pendientes", label: "Pendientes", icon: ListChecks },
   { to: "/hoy", label: "Hoy", icon: CalendarDays },
   { to: "/ganancias", label: "Ganancias", icon: Wallet },
   { to: "/historial", label: "Historial", icon: History },
-] as const;
+];
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
