@@ -11,6 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedRealizadosRouteImport } from './routes/_authenticated/realizados'
+import { Route as AuthenticatedPendientesRouteImport } from './routes/_authenticated/pendientes'
+import { Route as AuthenticatedHoyRouteImport } from './routes/_authenticated/hoy'
+import { Route as AuthenticatedGananciasRouteImport } from './routes/_authenticated/ganancias'
+import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authenticated/cancelados'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -21,30 +27,99 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRealizadosRoute = AuthenticatedRealizadosRouteImport.update({
+  id: '/realizados',
+  path: '/realizados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPendientesRoute = AuthenticatedPendientesRouteImport.update({
+  id: '/pendientes',
+  path: '/pendientes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHoyRoute = AuthenticatedHoyRouteImport.update({
+  id: '/hoy',
+  path: '/hoy',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGananciasRoute = AuthenticatedGananciasRouteImport.update({
+  id: '/ganancias',
+  path: '/ganancias',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCanceladosRoute = AuthenticatedCanceladosRouteImport.update({
+  id: '/cancelados',
+  path: '/cancelados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedRouteRoute
+  '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/cancelados': typeof AuthenticatedCanceladosRoute
+  '/ganancias': typeof AuthenticatedGananciasRoute
+  '/hoy': typeof AuthenticatedHoyRoute
+  '/pendientes': typeof AuthenticatedPendientesRoute
+  '/realizados': typeof AuthenticatedRealizadosRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof AuthenticatedRouteRoute
   '/auth': typeof AuthRoute
+  '/cancelados': typeof AuthenticatedCanceladosRoute
+  '/ganancias': typeof AuthenticatedGananciasRoute
+  '/hoy': typeof AuthenticatedHoyRoute
+  '/pendientes': typeof AuthenticatedPendientesRoute
+  '/realizados': typeof AuthenticatedRealizadosRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_authenticated': typeof AuthenticatedRouteRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/cancelados': typeof AuthenticatedCanceladosRoute
+  '/_authenticated/ganancias': typeof AuthenticatedGananciasRoute
+  '/_authenticated/hoy': typeof AuthenticatedHoyRoute
+  '/_authenticated/pendientes': typeof AuthenticatedPendientesRoute
+  '/_authenticated/realizados': typeof AuthenticatedRealizadosRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/cancelados'
+    | '/ganancias'
+    | '/hoy'
+    | '/pendientes'
+    | '/realizados'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth'
-  id: '__root__' | '/_authenticated' | '/auth'
+  to:
+    | '/auth'
+    | '/cancelados'
+    | '/ganancias'
+    | '/hoy'
+    | '/pendientes'
+    | '/realizados'
+    | '/'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/cancelados'
+    | '/_authenticated/ganancias'
+    | '/_authenticated/hoy'
+    | '/_authenticated/pendientes'
+    | '/_authenticated/realizados'
+    | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
 }
 
@@ -64,11 +139,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/realizados': {
+      id: '/_authenticated/realizados'
+      path: '/realizados'
+      fullPath: '/realizados'
+      preLoaderRoute: typeof AuthenticatedRealizadosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pendientes': {
+      id: '/_authenticated/pendientes'
+      path: '/pendientes'
+      fullPath: '/pendientes'
+      preLoaderRoute: typeof AuthenticatedPendientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hoy': {
+      id: '/_authenticated/hoy'
+      path: '/hoy'
+      fullPath: '/hoy'
+      preLoaderRoute: typeof AuthenticatedHoyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ganancias': {
+      id: '/_authenticated/ganancias'
+      path: '/ganancias'
+      fullPath: '/ganancias'
+      preLoaderRoute: typeof AuthenticatedGananciasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cancelados': {
+      id: '/_authenticated/cancelados'
+      path: '/cancelados'
+      fullPath: '/cancelados'
+      preLoaderRoute: typeof AuthenticatedCanceladosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCanceladosRoute: typeof AuthenticatedCanceladosRoute
+  AuthenticatedGananciasRoute: typeof AuthenticatedGananciasRoute
+  AuthenticatedHoyRoute: typeof AuthenticatedHoyRoute
+  AuthenticatedPendientesRoute: typeof AuthenticatedPendientesRoute
+  AuthenticatedRealizadosRoute: typeof AuthenticatedRealizadosRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCanceladosRoute: AuthenticatedCanceladosRoute,
+  AuthenticatedGananciasRoute: AuthenticatedGananciasRoute,
+  AuthenticatedHoyRoute: AuthenticatedHoyRoute,
+  AuthenticatedPendientesRoute: AuthenticatedPendientesRoute,
+  AuthenticatedRealizadosRoute: AuthenticatedRealizadosRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  AuthenticatedRouteRoute: AuthenticatedRouteRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
