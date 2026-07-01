@@ -115,7 +115,7 @@ function ClienteDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
   }));
 
   // reset when editing changes
-  useState(() => {
+  useEffect(() => {
     setForm({
       nombre: editing?.nombre ?? "",
       telefono: editing?.telefono ?? "",
@@ -126,7 +126,7 @@ function ClienteDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
       ciudad: editing?.ciudad ?? "",
       notas: editing?.notas ?? "",
     });
-  });
+  }, [editing]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
