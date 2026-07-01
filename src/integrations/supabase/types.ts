@@ -14,14 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          ciudad: string | null
+          codigo_postal: string | null
+          created_at: string
+          created_by: string | null
+          direccion: string
+          id: string
+          nombre: string
+          notas: string | null
+          piso: string | null
+          puerta: string | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          ciudad?: string | null
+          codigo_postal?: string | null
+          created_at?: string
+          created_by?: string | null
+          direccion: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          piso?: string | null
+          puerta?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ciudad?: string | null
+          codigo_postal?: string | null
+          created_at?: string
+          created_by?: string | null
+          direccion?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          piso?: string | null
+          puerta?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
+          assigned_by: string | null
           cantidad: number
           ciudad: string | null
           cliente: string
+          cliente_id: string | null
           codigo_postal: string | null
           created_at: string
           direccion: string
+          empleado_id: string | null
           estado: Database["public"]["Enums"]["job_status"]
           fecha: string
           finalizado_at: string | null
@@ -35,6 +83,7 @@ export type Database = {
           piso: string | null
           puerta: string | null
           servicio: string | null
+          servicio_id: string | null
           telefono: string | null
           telegram_final_msg_id: string | null
           telegram_inicio_msg_id: string | null
@@ -42,12 +91,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_by?: string | null
           cantidad?: number
           ciudad?: string | null
           cliente: string
+          cliente_id?: string | null
           codigo_postal?: string | null
           created_at?: string
           direccion: string
+          empleado_id?: string | null
           estado?: Database["public"]["Enums"]["job_status"]
           fecha?: string
           finalizado_at?: string | null
@@ -61,6 +113,7 @@ export type Database = {
           piso?: string | null
           puerta?: string | null
           servicio?: string | null
+          servicio_id?: string | null
           telefono?: string | null
           telegram_final_msg_id?: string | null
           telegram_inicio_msg_id?: string | null
@@ -68,12 +121,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_by?: string | null
           cantidad?: number
           ciudad?: string | null
           cliente?: string
+          cliente_id?: string | null
           codigo_postal?: string | null
           created_at?: string
           direccion?: string
+          empleado_id?: string | null
           estado?: Database["public"]["Enums"]["job_status"]
           fecha?: string
           finalizado_at?: string | null
@@ -87,10 +143,157 @@ export type Database = {
           piso?: string | null
           puerta?: string | null
           servicio?: string | null
+          servicio_id?: string | null
           telefono?: string | null
           telegram_final_msg_id?: string | null
           telegram_inicio_msg_id?: string | null
           total?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          activo: boolean
+          created_at: string
+          display_name: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          display_name?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          display_name?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      servicios: {
+        Row: {
+          activo: boolean
+          created_at: string
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      tarifas_empleado: {
+        Row: {
+          created_at: string
+          empleado_id: string
+          id: string
+          precio: number
+          servicio_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empleado_id: string
+          id?: string
+          precio?: number
+          servicio_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empleado_id?: string
+          id?: string
+          precio?: number
+          servicio_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarifas_empleado_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_destinos: {
+        Row: {
+          activo: boolean
+          chat_id: string
+          created_at: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          chat_id: string
+          created_at?: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          chat_id?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -98,29 +301,50 @@ export type Database = {
       user_settings: {
         Row: {
           telegram_chat_id: string | null
+          telegram_destino_default_id: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           telegram_chat_id?: string | null
+          telegram_destino_default_id?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           telegram_chat_id?: string | null
+          telegram_destino_default_id?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_telegram_destino_default_id_fkey"
+            columns: ["telegram_destino_default_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_destinos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "empleado"
       job_status:
         | "pendiente"
         | "en_proceso"
@@ -256,6 +480,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "empleado"],
       job_status: [
         "pendiente",
         "en_proceso",

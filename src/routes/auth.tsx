@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { usernameToEmail } from "@/lib/auth-helpers";
+import { Briefcase } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -16,8 +18,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -26,45 +27,43 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("Cuenta creada. Revisa tu email si se solicita confirmación.");
+      const email = usernameToEmail(username);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        // fallback: puede que el usuario haya creado la cuenta con email real
+        const { error: e2 } = await supabase.auth.signInWithPassword({ email: username.trim(), password });
+        if (e2) throw error;
       }
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error de autenticación");
+      toast.error(err instanceof Error ? err.message : "Usuario o contraseña incorrectos");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border bg-card p-6 shadow-sm">
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold">Mis Trabajos</h1>
-          <p className="text-sm text-muted-foreground">
-            {mode === "signin" ? "Entra para gestionar tus trabajos" : "Crea tu cuenta"}
-          </p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-7 shadow-lg">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Briefcase className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Mis Trabajos</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Entra con tu usuario</p>
+          </div>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Usuario</Label>
             <Input
-              id="email"
-              type="email"
-              autoComplete="email"
+              id="username"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user1"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
@@ -72,24 +71,19 @@ function AuthPage() {
             <Input
               id="password"
               type="password"
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              autoComplete="current-password"
               required
-              minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "..." : mode === "signin" ? "Entrar" : "Crear cuenta"}
+          <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="block w-full text-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          {mode === "signin" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Entra"}
-        </button>
+        <p className="text-center text-xs text-muted-foreground">
+          Las cuentas las crea el administrador.
+        </p>
       </div>
     </div>
   );

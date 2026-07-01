@@ -21,6 +21,10 @@ import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticated/ajustes'
 import { Route as AuthenticatedTrabajoNuevoRouteImport } from './routes/_authenticated/trabajo.nuevo'
 import { Route as AuthenticatedTrabajoIdRouteImport } from './routes/_authenticated/trabajo.$id'
+import { Route as AuthenticatedAdminTelegramRouteImport } from './routes/_authenticated/admin.telegram'
+import { Route as AuthenticatedAdminServiciosRouteImport } from './routes/_authenticated/admin.servicios'
+import { Route as AuthenticatedAdminEmpleadosRouteImport } from './routes/_authenticated/admin.empleados'
+import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -82,6 +86,30 @@ const AuthenticatedTrabajoIdRoute = AuthenticatedTrabajoIdRouteImport.update({
   path: '/trabajo/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminTelegramRoute =
+  AuthenticatedAdminTelegramRouteImport.update({
+    id: '/admin/telegram',
+    path: '/admin/telegram',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminServiciosRoute =
+  AuthenticatedAdminServiciosRouteImport.update({
+    id: '/admin/servicios',
+    path: '/admin/servicios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminEmpleadosRoute =
+  AuthenticatedAdminEmpleadosRouteImport.update({
+    id: '/admin/empleados',
+    path: '/admin/empleados',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminClientesRoute =
+  AuthenticatedAdminClientesRouteImport.update({
+    id: '/admin/clientes',
+    path: '/admin/clientes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -93,6 +121,10 @@ export interface FileRoutesByFullPath {
   '/hoy': typeof AuthenticatedHoyRoute
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
+  '/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
+  '/admin/servicios': typeof AuthenticatedAdminServiciosRoute
+  '/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
@@ -106,6 +138,10 @@ export interface FileRoutesByTo {
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
+  '/admin/servicios': typeof AuthenticatedAdminServiciosRoute
+  '/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
@@ -121,6 +157,10 @@ export interface FileRoutesById {
   '/_authenticated/pendientes': typeof AuthenticatedPendientesRoute
   '/_authenticated/realizados': typeof AuthenticatedRealizadosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/_authenticated/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
+  '/_authenticated/admin/servicios': typeof AuthenticatedAdminServiciosRoute
+  '/_authenticated/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/_authenticated/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/_authenticated/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
 }
@@ -136,6 +176,10 @@ export interface FileRouteTypes {
     | '/hoy'
     | '/pendientes'
     | '/realizados'
+    | '/admin/clientes'
+    | '/admin/empleados'
+    | '/admin/servicios'
+    | '/admin/telegram'
     | '/trabajo/$id'
     | '/trabajo/nuevo'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +193,10 @@ export interface FileRouteTypes {
     | '/pendientes'
     | '/realizados'
     | '/'
+    | '/admin/clientes'
+    | '/admin/empleados'
+    | '/admin/servicios'
+    | '/admin/telegram'
     | '/trabajo/$id'
     | '/trabajo/nuevo'
   id:
@@ -163,6 +211,10 @@ export interface FileRouteTypes {
     | '/_authenticated/pendientes'
     | '/_authenticated/realizados'
     | '/_authenticated/'
+    | '/_authenticated/admin/clientes'
+    | '/_authenticated/admin/empleados'
+    | '/_authenticated/admin/servicios'
+    | '/_authenticated/admin/telegram'
     | '/_authenticated/trabajo/$id'
     | '/_authenticated/trabajo/nuevo'
   fileRoutesById: FileRoutesById
@@ -258,6 +310,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTrabajoIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/telegram': {
+      id: '/_authenticated/admin/telegram'
+      path: '/admin/telegram'
+      fullPath: '/admin/telegram'
+      preLoaderRoute: typeof AuthenticatedAdminTelegramRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/servicios': {
+      id: '/_authenticated/admin/servicios'
+      path: '/admin/servicios'
+      fullPath: '/admin/servicios'
+      preLoaderRoute: typeof AuthenticatedAdminServiciosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/empleados': {
+      id: '/_authenticated/admin/empleados'
+      path: '/admin/empleados'
+      fullPath: '/admin/empleados'
+      preLoaderRoute: typeof AuthenticatedAdminEmpleadosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/clientes': {
+      id: '/_authenticated/admin/clientes'
+      path: '/admin/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AuthenticatedAdminClientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -270,6 +350,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPendientesRoute: typeof AuthenticatedPendientesRoute
   AuthenticatedRealizadosRoute: typeof AuthenticatedRealizadosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
+  AuthenticatedAdminEmpleadosRoute: typeof AuthenticatedAdminEmpleadosRoute
+  AuthenticatedAdminServiciosRoute: typeof AuthenticatedAdminServiciosRoute
+  AuthenticatedAdminTelegramRoute: typeof AuthenticatedAdminTelegramRoute
   AuthenticatedTrabajoIdRoute: typeof AuthenticatedTrabajoIdRoute
   AuthenticatedTrabajoNuevoRoute: typeof AuthenticatedTrabajoNuevoRoute
 }
@@ -283,6 +367,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPendientesRoute: AuthenticatedPendientesRoute,
   AuthenticatedRealizadosRoute: AuthenticatedRealizadosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
+  AuthenticatedAdminEmpleadosRoute: AuthenticatedAdminEmpleadosRoute,
+  AuthenticatedAdminServiciosRoute: AuthenticatedAdminServiciosRoute,
+  AuthenticatedAdminTelegramRoute: AuthenticatedAdminTelegramRoute,
   AuthenticatedTrabajoIdRoute: AuthenticatedTrabajoIdRoute,
   AuthenticatedTrabajoNuevoRoute: AuthenticatedTrabajoNuevoRoute,
 }
