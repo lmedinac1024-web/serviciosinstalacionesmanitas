@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   ListChecks,
@@ -7,18 +7,33 @@ import {
   History,
   Settings,
   Plus,
+  Users,
+  Briefcase,
+  UserCircle2,
+  LogOut,
+  Send,
+  UserSquare2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 
-type NavItem = {
-  to: "/" | "/pendientes" | "/hoy" | "/ganancias" | "/historial";
-  label: string;
-  icon: typeof LayoutDashboard;
-  exact?: boolean;
-};
+type NavPath =
+  | "/"
+  | "/pendientes"
+  | "/hoy"
+  | "/ganancias"
+  | "/historial"
+  | "/ajustes"
+  | "/admin/clientes"
+  | "/admin/servicios"
+  | "/admin/empleados"
+  | "/admin/telegram";
 
-const NAV: NavItem[] = [
+type NavItem = { to: NavPath; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+
+const NAV_EMPLEADO: NavItem[] = [
   { to: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
   { to: "/pendientes", label: "Pendientes", icon: ListChecks },
   { to: "/hoy", label: "Hoy", icon: CalendarDays },
@@ -26,70 +41,112 @@ const NAV: NavItem[] = [
   { to: "/historial", label: "Historial", icon: History },
 ];
 
+const NAV_ADMIN: NavItem[] = [
+  { to: "/", label: "Panel", icon: LayoutDashboard, exact: true },
+  { to: "/pendientes", label: "Trabajos", icon: ListChecks },
+  { to: "/ganancias", label: "Ganancias", icon: Wallet },
+  { to: "/historial", label: "Historial", icon: History },
+];
+
+const ADMIN_LINKS: NavItem[] = [
+  { to: "/admin/empleados", label: "Empleados", icon: UserSquare2 },
+  { to: "/admin/clientes", label: "Clientes", icon: Users },
+  { to: "/admin/servicios", label: "Servicios", icon: Briefcase },
+  { to: "/admin/telegram", label: "Telegram", icon: Send },
+];
+
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { data: me } = useUserRole();
+  const navigate = useNavigate();
+  const isAdmin = me?.role === "admin";
+  const NAV = isAdmin ? NAV_ADMIN : NAV_EMPLEADO;
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar - desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-card md:flex">
-        <div className="px-5 py-5">
-          <div className="text-lg font-bold tracking-tight">Mis Trabajos</div>
-          <div className="text-xs text-muted-foreground">Panel de control</div>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-card md:flex">
+        <div className="border-b px-5 py-5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Briefcase className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-sm font-bold leading-none">Mis Trabajos</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                {isAdmin ? "Panel admin" : "Empleado"}
+              </div>
+            </div>
+          </div>
         </div>
-        <nav className="flex-1 space-y-1 px-3">
-          {NAV.map((item) => {
-            const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/80 hover:bg-accent",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-          <Link
-            to="/ajustes"
-            className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              pathname.startsWith("/ajustes")
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground/80 hover:bg-accent",
-            )}
-          >
-            <Settings className="h-4 w-4" /> Ajustes
-          </Link>
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
+          {NAV.map((item) => (
+            <NavLink key={item.to} item={item} pathname={pathname} />
+          ))}
+
+          {isAdmin && (
+            <>
+              <div className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Administración
+              </div>
+              {ADMIN_LINKS.map((item) => (
+                <NavLink key={item.to} item={item} pathname={pathname} />
+              ))}
+            </>
+          )}
+
+          <div className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Cuenta
+          </div>
+          <NavLink item={{ to: "/ajustes", label: "Ajustes", icon: Settings }} pathname={pathname} />
         </nav>
-        <div className="p-3">
-          <Link
-            to="/trabajo/nuevo"
-            className="flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" /> Nuevo trabajo
-          </Link>
+
+        <div className="border-t p-3">
+          {isAdmin && (
+            <Link
+              to="/trabajo/nuevo"
+              className="mb-2 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" /> Nuevo trabajo
+            </Link>
+          )}
+          <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs">
+            <div className="flex items-center gap-2 truncate">
+              <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">{me?.displayName || me?.username || "—"}</span>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Salir"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main */}
-      <main className="md:pl-60">
+      <main className="md:pl-64">
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-3 md:px-6">
-            <h1 className="text-base font-semibold md:text-lg">{title ?? "Mis Trabajos"}</h1>
-            <Link
-              to="/trabajo/nuevo"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground md:hidden"
-            >
-              <Plus className="h-4 w-4" /> Nuevo
-            </Link>
+            <div>
+              <h1 className="text-base font-semibold md:text-lg">{title ?? "Mis Trabajos"}</h1>
+              {isAdmin && <div className="text-[10px] uppercase tracking-wider text-primary">Admin</div>}
+            </div>
+            {isAdmin && (
+              <Link
+                to="/trabajo/nuevo"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground md:hidden"
+              >
+                <Plus className="h-4 w-4" /> Nuevo
+              </Link>
+            )}
           </div>
         </header>
         <div className="px-4 pb-24 pt-4 md:px-6 md:pb-8">{children}</div>
@@ -97,7 +154,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
       {/* Bottom nav - mobile */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-card md:hidden">
-        <div className="grid grid-cols-5">
+        <div className={cn("grid", NAV.length === 5 ? "grid-cols-5" : "grid-cols-4")}>
           {NAV.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             const Icon = item.icon;
@@ -118,5 +175,22 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </div>
       </nav>
     </div>
+  );
+}
+
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+  const Icon = item.icon;
+  return (
+    <Link
+      to={item.to}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        active ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/80 hover:bg-accent",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {item.label}
+    </Link>
   );
 }
