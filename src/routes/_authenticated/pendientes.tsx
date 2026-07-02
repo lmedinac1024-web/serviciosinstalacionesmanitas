@@ -18,7 +18,7 @@ function Pendientes() {
         .select("*")
         .in("estado", ["pendiente", "en_proceso"])
         .order("fecha", { ascending: true })
-        .order("hora", { ascending: true });
+        .order("hora_programada", { ascending: true });
       if (error) throw error;
       return data as Job[];
     },

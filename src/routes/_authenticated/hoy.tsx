@@ -22,7 +22,7 @@ function Hoy() {
         .from('servicios')
         .select("*")
         .eq("fecha", today)
-        .order("hora", { ascending: true });
+        .order("hora_programada", { ascending: true });
       if (error) throw error;
       return data as Job[];
     },

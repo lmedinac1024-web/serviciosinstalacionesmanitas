@@ -50,7 +50,7 @@ function Historial() {
         .from('servicios')
         .select("*")
         .order("fecha", { ascending: false })
-        .order("hora", { ascending: false });
+        .order("hora_programada", { ascending: false });
       if (error) throw error;
       return data as Job[];
     },

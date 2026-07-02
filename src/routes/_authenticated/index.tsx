@@ -34,7 +34,7 @@ function Dashboard() {
     queryKey: ["jobs", "all"],
     queryFn: async () => {
       const { data, error } = await supabase.from('servicios').select("*")
-        .order("fecha", { ascending: false }).order("hora", { ascending: true });
+        .order("fecha", { ascending: false }).order("hora_programada", { ascending: true });
       if (error) throw error;
       return data as Job[];
     },
