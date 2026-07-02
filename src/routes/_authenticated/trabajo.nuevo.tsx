@@ -171,6 +171,7 @@ function NuevoServicio() {
             <Field label="Nombre *"><Input required value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Juan Pérez" /></Field>
             <Field label="Teléfono"><Input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+34 600 000 000" /></Field>
           </div>
+          <Field label="Referencia (opcional)"><Input value={form.referencia} onChange={(e) => set("referencia", e.target.value)} placeholder="Nº pedido o interno" /></Field>
           <Field label="Dirección *"><Input required value={form.direccion} onChange={(e) => set("direccion", e.target.value)} placeholder="Calle Mayor 12" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Código postal"><Input value={form.codigo_postal} onChange={(e) => set("codigo_postal", e.target.value)} placeholder="28001" /></Field>
