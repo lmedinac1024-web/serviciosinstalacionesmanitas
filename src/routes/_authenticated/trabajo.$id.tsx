@@ -835,6 +835,54 @@ function AdminOverride({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
+          <label className="text-xs font-medium">Hora programada</label>
+          <input type="time" value={hora} onChange={(e) => setHora(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Empleado</label>
+          <select value={empleadoId} onChange={(e) => setEmpleadoId(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm">
+            {empleados.map((emp) => (
+              <option key={emp.user_id} value={emp.user_id}>{emp.display_name || emp.username}</option>
+            ))}
+            {!empleados.some((e) => e.user_id === empleadoId) && empleadoId && (
+              <option value={empleadoId}>(actual)</option>
+            )}
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">Tipo de servicio</label>
+        <select value={tipoServicio} onChange={(e) => setTipoServicio(e.target.value)}
+          className="w-full rounded-md border bg-background px-2 py-1.5 text-sm">
+          <option value="">—</option>
+          {TIPO_SERVICIO_OPCIONES.map((s) => (<option key={s} value={s}>{s}</option>))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Cliente</label>
+          <input type="text" value={cliente} onChange={(e) => setCliente(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Teléfono</label>
+          <input type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">Dirección</label>
+        <input type="text" value={direccion} onChange={(e) => setDireccion(e.target.value)}
+          className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
           <label className="text-xs font-medium">Piso</label>
           <input type="text" value={piso} onChange={(e) => setPiso(e.target.value)}
             placeholder="3º" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
@@ -844,6 +892,24 @@ function AdminOverride({
           <input type="text" value={puerta} onChange={(e) => setPuerta(e.target.value)}
             placeholder="B" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Código postal</label>
+          <input type="text" value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)}
+            placeholder="08001" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Ciudad</label>
+          <input type="text" value={ciudad} onChange={(e) => setCiudad(e.target.value)}
+            placeholder="Barcelona" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">Observaciones</label>
+        <Textarea rows={2} value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
       </div>
 
       <label className="flex items-start gap-2 rounded-md border bg-background p-3 text-sm cursor-pointer">
