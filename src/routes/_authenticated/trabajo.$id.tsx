@@ -604,6 +604,8 @@ function AdminOverride({
         precio_llegada: Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
+        piso: piso.trim() || null,
+        puerta: puerta.trim() || null,
         hora_fin: estado === "realizado" && !job.hora_fin ? new Date().toISOString() : job.hora_fin,
       };
       const { error } = await supabase.from('servicios').update(patch).eq("id", job.id);
