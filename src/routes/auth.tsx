@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { usernameToEmail } from "@/lib/auth-helpers";
 import { Briefcase, HelpCircle, UserPlus, Users, Send, ShieldCheck } from "lucide-react";
+import logoAsset from "@/assets/logo-manitas.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
