@@ -324,7 +324,8 @@ function Detalle() {
   const canFinish = job.estado === "en_proceso";
   const isDone = job.estado === "realizado" || isCancelled(job.estado);
 
-  const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${[job.direccion, job.codigo_postal, job.ciudad].filter(Boolean).join(", ")}.`;
+  const direccionCompleta = [job.direccion, [job.piso && `Piso ${job.piso}`, job.puerta && `Puerta ${job.puerta}`].filter(Boolean).join(" "), job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+  const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${direccionCompleta}.`;
 
   return (
     <AppShell title="Servicio">
