@@ -46,6 +46,7 @@ function AdminTelegram() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Destino | null>(null);
   const [form, setForm] = useState({ nombre: "", chat_id: "" });
+  const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
 
   const { data: destinos = [] } = useQuery({
@@ -57,35 +58,69 @@ function AdminTelegram() {
     },
   });
 
+  const chatIdsExistentes = useMemo(
+    () =>
+      new Map(
+        destinos.map((d) => [d.chat_id.trim().toLowerCase(), d.id] as const),
+      ),
+    [destinos],
+  );
+
   if (isLoading) return <AppShell title="Telegram"><div>…</div></AppShell>;
   if (me?.role !== "admin") return <Navigate to="/" />;
 
   function abrirNuevo() {
     setEditing(null);
     setForm({ nombre: "", chat_id: "" });
+    setErrors({});
     setOpen(true);
   }
 
   function abrirEditar(d: Destino) {
     setEditing(d);
     setForm({ nombre: d.nombre, chat_id: d.chat_id });
+    setErrors({});
     setOpen(true);
+  }
+
+  function validar(): { ok: true; data: { nombre: string; chat_id: string } } | { ok: false } {
+    const parsed = destinoSchema.safeParse(form);
+    if (!parsed.success) {
+      const next: FormErrors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof FormErrors;
+        if (key && !next[key]) next[key] = issue.message;
+      }
+      setErrors(next);
+      toast.error("Revisa los campos marcados");
+      return { ok: false };
+    }
+    // Duplicado
+    const dup = chatIdsExistentes.get(parsed.data.chat_id.toLowerCase());
+    if (dup && dup !== editing?.id) {
+      setErrors({ chat_id: "Ya existe un destino con este Chat ID" });
+      toast.error("Chat ID duplicado");
+      return { ok: false };
+    }
+    setErrors({});
+    return { ok: true, data: parsed.data };
   }
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nombre.trim() || !form.chat_id.trim()) return;
+    const res = validar();
+    if (!res.ok) return;
     setSaving(true);
-    const payload = { nombre: form.nombre.trim(), chat_id: form.chat_id.trim() };
     const { error } = editing
-      ? await supabase.from("telegram_destinos").update(payload).eq("id", editing.id)
-      : await supabase.from("telegram_destinos").insert(payload);
+      ? await supabase.from("telegram_destinos").update(res.data).eq("id", editing.id)
+      : await supabase.from("telegram_destinos").insert(res.data);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(editing ? "Destino actualizado" : "Destino añadido");
     setOpen(false);
     setEditing(null);
     setForm({ nombre: "", chat_id: "" });
+    setErrors({});
     qc.invalidateQueries({ queryKey: ["telegram-destinos"] });
   }
 
