@@ -334,7 +334,7 @@ function Detalle() {
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });
         toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
-        void notifyTelegram(job!.id, fase, destinoIds);
+        void destinoIds;
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error subiendo foto");
