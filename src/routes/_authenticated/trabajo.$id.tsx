@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -27,7 +27,9 @@ import { getCurrentPosition, haversineMeters } from "@/lib/geo";
 
 const ARRIVAL_RADIUS_M = 100;
 
-interface ArrivalMeta {
+type Fase = "inicio" | "final" | "cancel";
+
+interface GpsMeta {
   lat: number;
   lng: number;
   distanceM: number | null;
@@ -36,7 +38,7 @@ interface ArrivalMeta {
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
-async function uploadPhoto(jobId: string, fase: "inicio" | "final", file: File) {
+async function uploadPhoto(jobId: string, fase: Fase, file: File) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("No autenticado");
   const path = `${userData.user.id}/${jobId}/${fase}-${Date.now()}.jpg`;
@@ -63,12 +65,15 @@ function Detalle() {
   const sendTg = useServerFn(sendJobUpdateToTelegram);
   const startInput = useRef<HTMLInputElement>(null);
   const finalInput = useRef<HTMLInputElement>(null);
+  const cancelInput = useRef<HTMLInputElement>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelMotivoStatus, setCancelMotivoStatus] = useState<JobStatus | null>(null);
+  const [cancelMotivoText, setCancelMotivoText] = useState("");
   const [working, setWorking] = useState(false);
-  const [destOpen, setDestOpen] = useState<"inicio" | "final" | null>(null);
+  const [destOpen, setDestOpen] = useState<Fase | null>(null);
   const [selectedDest, setSelectedDest] = useState<string[]>([]);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [arrivalMeta, setArrivalMeta] = useState<ArrivalMeta | null>(null);
+  const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
   const [checkingGps, setCheckingGps] = useState(false);
 
   const { data: job, isLoading } = useQuery({
@@ -121,12 +126,16 @@ function Detalle() {
     queryKey: ["photo", job?.foto_final], enabled: !!job?.foto_final,
     queryFn: () => signedUrl(job?.foto_final ?? null),
   });
+  const { data: fotoCancelUrl } = useQuery({
+    queryKey: ["photo", job?.foto_cancelacion], enabled: !!job?.foto_cancelacion,
+    queryFn: () => signedUrl(job?.foto_cancelacion ?? null),
+  });
 
   if (isLoading || !job) {
-    return <AppShell title="Trabajo"><div className="text-sm text-muted-foreground">Cargando...</div></AppShell>;
+    return <AppShell title="Servicio"><div className="text-sm text-muted-foreground">Cargando...</div></AppShell>;
   }
 
-  async function notifyTelegram(jobId: string, fase: "inicio" | "final", destinoIds: string[]) {
+  async function notifyTelegram(jobId: string, fase: Fase, destinoIds: string[]) {
     try {
       const res = await sendTg({ data: { jobId, fase, destinoIds } });
       if (res.ok) toast.success("Enviado a Telegram");
@@ -137,55 +146,81 @@ function Detalle() {
     } catch (e) { toast.error(e instanceof Error ? e.message : "Error Telegram"); }
   }
 
-  function pickPhoto(fase: "inicio" | "final") {
+  function pickPhoto(fase: Fase) {
     if (fase === "inicio") startInput.current?.click();
-    else finalInput.current?.click();
+    else if (fase === "final") finalInput.current?.click();
+    else cancelInput.current?.click();
+  }
+
+  async function captureGps(validateAgainstJob: boolean): Promise<GpsMeta | null> {
+    try {
+      const pos = await getCurrentPosition();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      if (validateAgainstJob && job?.direccion_lat != null && job?.direccion_lng != null) {
+        const dist = haversineMeters(
+          { lat, lng },
+          { lat: Number(job.direccion_lat), lng: Number(job.direccion_lng) },
+        );
+        return { lat, lng, distanceM: dist, validated: dist <= ARRIVAL_RADIUS_M };
+      }
+      return { lat, lng, distanceM: null, validated: false };
+    } catch {
+      return null;
+    }
   }
 
   async function handleArrivalTap() {
     setCheckingGps(true);
     try {
-      let meta: ArrivalMeta | null = null;
-      try {
-        const pos = await getCurrentPosition();
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        if (job?.lat != null && job?.lng != null) {
-          const dist = haversineMeters({ lat, lng }, { lat: Number(job.lat), lng: Number(job.lng) });
-          const validated = dist <= ARRIVAL_RADIUS_M;
-          meta = { lat, lng, distanceM: dist, validated };
-          if (!validated) {
-            const ok = window.confirm(
-              `Estás a ${dist} m del cliente (fuera del radio de ${ARRIVAL_RADIUS_M} m). ` +
-              `Se registrará SIN validación (no cobrarás precio por llegada). ¿Continuar?`,
-            );
-            if (!ok) return;
-          } else {
-            toast.success(`Llegada validada (${dist} m)`);
-          }
+      const meta = await captureGps(true);
+      if (meta && meta.distanceM != null) {
+        if (!meta.validated) {
+          const ok = window.confirm(
+            `Estás a ${Math.round(meta.distanceM)} m de la dirección (fuera del radio de ${ARRIVAL_RADIUS_M} m). ` +
+            `Se registrará SIN validación. ¿Continuar?`,
+          );
+          if (!ok) return;
         } else {
-          meta = { lat, lng, distanceM: null, validated: false };
-          toast.info("Servicio sin coordenadas — no se puede validar el radio 100 m");
+          toast.success(`Llegada validada (${Math.round(meta.distanceM)} m)`);
         }
-      } catch (e) {
-        const ok = window.confirm(
-          `No se pudo obtener el GPS (${e instanceof Error ? e.message : "error"}). ` +
-          `Continuar sin validar la llegada?`,
-        );
+      } else if (!meta) {
+        const ok = window.confirm(`No se pudo obtener el GPS. ¿Continuar sin validar?`);
         if (!ok) return;
-        meta = null;
+      } else {
+        toast.info("Servicio sin coordenadas — no se puede validar el radio");
       }
-      setArrivalMeta(meta);
+      setGpsMeta(meta);
       pickPhoto("inicio");
     } finally {
       setCheckingGps(false);
     }
   }
 
-  async function onPhotoSelected(fase: "inicio" | "final", file: File) {
-    // Siempre mostrar selector con checkboxes (favoritos premarcados)
+  async function handleFinishTap() {
+    setCheckingGps(true);
+    try {
+      const meta = await captureGps(false);
+      setGpsMeta(meta);
+      pickPhoto("final");
+    } finally { setCheckingGps(false); }
+  }
+
+  async function handleCancelConfirm() {
+    if (!cancelMotivoStatus) { toast.error("Selecciona un motivo"); return; }
+    const texto = cancelMotivoText.trim() || STATUS_LABELS[cancelMotivoStatus];
+    if (!texto) { toast.error("Escribe un motivo"); return; }
+    setCheckingGps(true);
+    try {
+      const meta = await captureGps(false);
+      setGpsMeta(meta);
+      setCancelOpen(false);
+      pickPhoto("cancel");
+    } finally { setCheckingGps(false); }
+  }
+
+  async function onPhotoSelected(fase: Fase, file: File) {
     setPendingFile(file);
-    // Preseleccionar favoritos que estén disponibles; si no hay, default_id; si tampoco, vacío
     const pre = favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id));
     const fallbackDefault = userSettings?.telegram_destino_default_id;
     setSelectedDest(
@@ -198,13 +233,22 @@ function Detalle() {
     setDestOpen(fase);
   }
 
-
-  async function savePhotoAndNotify(fase: "inicio" | "final", file: File, destinoIds: string[]) {
+  async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
     setWorking(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) throw new Error("No autenticado");
+
+      const now = new Date().toISOString();
+      const motivoFinal =
+        fase === "cancel"
+          ? (cancelMotivoText.trim() || (cancelMotivoStatus ? STATUS_LABELS[cancelMotivoStatus] : "Cancelado"))
+          : null;
+      const nextEstado: JobStatus =
+        fase === "inicio" ? "en_proceso"
+        : fase === "final" ? "realizado"
+        : (cancelMotivoStatus ?? "cancelado_otro");
 
       if (!online) {
         await enqueueOffline({
@@ -214,37 +258,56 @@ function Detalle() {
           destinoIds,
           photo: file,
           photoName: file.name,
-          arrivalLat: fase === "inicio" ? arrivalMeta?.lat : undefined,
-          arrivalLng: fase === "inicio" ? arrivalMeta?.lng : undefined,
-          arrivalDistanceM: fase === "inicio" ? arrivalMeta?.distanceM ?? null : undefined,
-          arrivalValidated: fase === "inicio" ? arrivalMeta?.validated ?? false : undefined,
+          arrivalLat: gpsMeta?.lat,
+          arrivalLng: gpsMeta?.lng,
+          arrivalDistanceM: gpsMeta?.distanceM ?? null,
+          arrivalValidated: gpsMeta?.validated ?? false,
+          motivo: fase === "cancel" && cancelMotivoStatus ? `${cancelMotivoStatus}|${motivoFinal}` : undefined,
         });
         qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
           old ? {
             ...old,
-            estado: fase === "inicio" ? "en_proceso" : "realizado",
-            hora_fin: fase === "final" ? new Date().toISOString() : old.hora_fin,
+            estado: nextEstado,
+            hora_fin: fase !== "inicio" ? now : old.hora_fin,
+            motivo_cancelacion: fase === "cancel" ? motivoFinal : old.motivo_cancelacion,
           } : old,
         );
-        toast.success(fase === "inicio"
-          ? "Guardado offline — se subirá al recuperar conexión"
-          : "Finalización guardada offline — se subirá al recuperar conexión");
+        toast.success("Guardado offline — se enviará al recuperar conexión");
       } else {
         const path = await uploadPhoto(job!.id, fase, file);
-        const patch = fase === "inicio"
-          ? {
-              foto_inicio: path,
-              estado: "en_proceso" as const,
-              gps_llegada_lat: arrivalMeta?.lat ?? null,
-              gps_llegada_lng: arrivalMeta?.lng ?? null,
-              distancia_llegada_metros: arrivalMeta?.distanceM ?? null,
-              direccion_validada_llegada: arrivalMeta?.validated ?? false,
-            }
-          : { foto_final: path, estado: "realizado" as const, hora_fin: new Date().toISOString() };
+        let patch: Record<string, unknown> = {};
+        if (fase === "inicio") {
+          patch = {
+            foto_inicio: path,
+            estado: "en_proceso",
+            hora_llegada: now,
+            gps_llegada_lat: gpsMeta?.lat ?? null,
+            gps_llegada_lng: gpsMeta?.lng ?? null,
+            distancia_llegada_metros: gpsMeta?.distanceM ?? null,
+            direccion_validada_llegada: gpsMeta?.validated ?? false,
+          };
+        } else if (fase === "final") {
+          patch = {
+            foto_final: path,
+            estado: "realizado",
+            hora_fin: now,
+            gps_final_lat: gpsMeta?.lat ?? null,
+            gps_final_lng: gpsMeta?.lng ?? null,
+          };
+        } else {
+          patch = {
+            foto_cancelacion: path,
+            estado: nextEstado,
+            hora_fin: now,
+            motivo_cancelacion: motivoFinal,
+            gps_cancelacion_lat: gpsMeta?.lat ?? null,
+            gps_cancelacion_lng: gpsMeta?.lng ?? null,
+          };
+        }
         const { error } = await supabase.from('servicios').update(patch).eq("id", job!.id);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });
-        toast.success(fase === "inicio" ? "Trabajo iniciado" : "Trabajo finalizado");
+        toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
         void notifyTelegram(job!.id, fase, destinoIds);
       }
     } catch (e) {
@@ -253,52 +316,29 @@ function Detalle() {
       setWorking(false);
       setPendingFile(null);
       setDestOpen(null);
-      if (fase === "inicio") setArrivalMeta(null);
+      setGpsMeta(null);
+      if (fase === "cancel") { setCancelMotivoStatus(null); setCancelMotivoText(""); }
     }
   }
 
-  async function cancelar(motivo: JobStatus) {
-    setWorking(true);
-    try {
-      if (!online) {
-        await enqueueOffline({
-          jobId: job!.id,
-          userId: (await supabase.auth.getUser()).data.user?.id ?? "",
-          kind: "cancelar",
-          motivo: `${motivo}|${STATUS_LABELS[motivo]}`,
-        });
-        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-          old ? { ...old, estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] } : old,
-        );
-        toast.success("Cancelación guardada offline");
-      } else {
-        const { error } = await supabase.from('servicios')
-          .update({ estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] }).eq("id", job!.id);
-        if (error) throw error;
-        await qc.invalidateQueries({ queryKey: ["jobs"] });
-        toast.success("Trabajo cancelado");
-        // por si había algo encolado
-        void processQueue();
-      }
-      setCancelOpen(false);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
-    finally { setWorking(false); }
-  }
-
   const canStart = job.estado === "pendiente";
-  const canFinish = job.estado === "en_proceso" || job.estado === "pendiente";
+  const canFinish = job.estado === "en_proceso";
   const isDone = job.estado === "realizado" || isCancelled(job.estado);
 
+  const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${[job.direccion, job.codigo_postal, job.ciudad].filter(Boolean).join(", ")}.`;
+
   return (
-    <AppShell title="Trabajo">
+    <AppShell title="Servicio">
       <div className="mx-auto max-w-2xl space-y-4">
-        {/* Header */}
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-xs text-muted-foreground">{job.fecha}{job.hora && ` · ${job.hora}`}</div>
+              <div className="text-xs text-muted-foreground">
+                {job.fecha}{job.hora_programada && ` · ${job.hora_programada}`}
+              </div>
               <h2 className="mt-1 text-xl font-bold">{job.cliente}</h2>
-              {job.servicio && <div className="text-sm text-muted-foreground">{job.servicio}</div>}
+              {job.tipo_servicio && <div className="text-sm text-muted-foreground">{job.tipo_servicio}</div>}
+              {job.referencia && <div className="text-xs text-muted-foreground">Ref: {job.referencia}</div>}
               {me?.role === "admin" && empleado && (
                 <div className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
                   <User className="h-3 w-3" /> {empleado.display_name || empleado.username}
@@ -313,13 +353,12 @@ function Detalle() {
               <div className="text-lg font-semibold">{formatEUR(job.importe)}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase text-muted-foreground">Total (× {job.cantidad})</div>
+              <div className="text-[11px] uppercase text-muted-foreground">Ganancia</div>
               <div className="text-lg font-bold text-primary">{formatEUR(jobTotal(job))}</div>
             </div>
           </div>
         </div>
 
-        {/* Address & contact */}
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex items-start gap-2">
             <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
@@ -331,22 +370,27 @@ function Detalle() {
                 </div>
               )}
               <div className="text-muted-foreground">{[job.codigo_postal, job.ciudad].filter(Boolean).join(" ")}</div>
+              {job.direccion_validada_llegada && (
+                <div className="mt-1 text-xs text-success">✅ Llegada validada por GPS</div>
+              )}
+              {job.distancia_llegada_metros != null && (
+                <div className="text-xs text-muted-foreground">Distancia registrada: {Math.round(Number(job.distancia_llegada_metros))} m</div>
+              )}
             </div>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2">
             <a href={googleMapsUrl(job)} target="_blank" rel="noreferrer">
               <Button variant="outline" className="w-full"><MapPin className="mr-1.5 h-4 w-4" /> Mapa</Button>
             </a>
-            <a href={telUrl(job.telefono)}>
-              <Button variant="outline" className="w-full" disabled={!job.telefono}><Phone className="mr-1.5 h-4 w-4" /> Llamar</Button>
+            <a href={telUrl(job.telefono_cliente)}>
+              <Button variant="outline" className="w-full" disabled={!job.telefono_cliente}><Phone className="mr-1.5 h-4 w-4" /> Llamar</Button>
             </a>
-            <a href={whatsappUrl(job.telefono)} target="_blank" rel="noreferrer">
-              <Button variant="outline" className="w-full" disabled={!job.telefono}><MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp</Button>
+            <a href={whatsappUrl(job.telefono_cliente, waMsg)} target="_blank" rel="noreferrer">
+              <Button variant="outline" className="w-full" disabled={!job.telefono_cliente}><MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp</Button>
             </a>
           </div>
         </div>
 
-        {/* Actions */}
         {!isDone && (
           <div className="space-y-2">
             {canStart && (
@@ -355,7 +399,6 @@ function Detalle() {
                 className="h-14 w-full text-base"
                 onClick={handleArrivalTap}
                 disabled={working || checkingGps}
-                title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
                 {checkingGps ? (
                   <><Navigation className="mr-2 h-5 w-5 animate-pulse" /> Comprobando ubicación...</>
@@ -369,30 +412,57 @@ function Detalle() {
               <Button
                 size="lg"
                 className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                onClick={() => pickPhoto("final")}
-                disabled={working}
-                title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
+                onClick={handleFinishTap}
+                disabled={working || checkingGps}
               >
                 <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
-            <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+            <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (!v) { setCancelMotivoStatus(null); setCancelMotivoText(""); } }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-12 w-full text-destructive" disabled={working}>
                   <XCircle className="mr-2 h-4 w-4" /> Cancelar trabajo
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Motivo de cancelación</DialogTitle></DialogHeader>
-                <div className="space-y-2">
-                  {CANCEL_REASONS.map((r) => (
-                    <Button key={r.value} variant="outline" className="h-12 w-full justify-start"
-                      onClick={() => cancelar(r.value)} disabled={working}>
-                      {r.label}
-                    </Button>
-                  ))}
+                <DialogHeader><DialogTitle>Cancelar servicio</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <div className="mb-1.5 text-xs font-medium">Motivo *</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {CANCEL_REASONS.map((r) => (
+                        <Button key={r.value}
+                          variant={cancelMotivoStatus === r.value ? "default" : "outline"}
+                          className="h-10 justify-start text-xs"
+                          onClick={() => setCancelMotivoStatus(r.value)}>
+                          {r.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1.5 text-xs font-medium">Comentario adicional</div>
+                    <Textarea
+                      value={cancelMotivoText}
+                      onChange={(e) => setCancelMotivoText(e.target.value)}
+                      placeholder="Detalles (opcional)"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                    Al continuar te pediremos una <b>foto obligatoria</b> y se guardará tu <b>ubicación GPS</b>.
+                  </div>
                 </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCancelOpen(false)}>Volver</Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleCancelConfirm}
+                    disabled={!cancelMotivoStatus || checkingGps}>
+                    {checkingGps ? "Ubicación..." : "Continuar y tomar foto"}
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
@@ -402,13 +472,16 @@ function Detalle() {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("inicio", f); e.target.value = ""; }} />
         <input ref={finalInput} type="file" accept="image/*" capture="environment" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("final", f); e.target.value = ""; }} />
+        <input ref={cancelInput} type="file" accept="image/*" capture="environment" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("cancel", f); e.target.value = ""; }} />
 
-        {/* Destino Telegram picker */}
         <Dialog open={!!destOpen} onOpenChange={(v) => { if (!v) { setDestOpen(null); setPendingFile(null); } }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {destOpen === "inicio" ? "Enviar foto de inicio" : "Enviar foto final"}
+                {destOpen === "inicio" ? "Enviar foto de inicio"
+                  : destOpen === "final" ? "Enviar foto final"
+                  : "Enviar foto de cancelación"}
               </DialogTitle>
             </DialogHeader>
             {destinosDisponibles.length === 0 ? (
@@ -464,7 +537,6 @@ function Detalle() {
           </DialogContent>
         </Dialog>
 
-
         {job.observaciones && (
           <div className="rounded-xl border bg-card p-5">
             <div className="text-[11px] uppercase text-muted-foreground">Observaciones</div>
@@ -479,9 +551,10 @@ function Detalle() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <PhotoBox title="Foto inicio" url={fotoInicioUrl} />
           <PhotoBox title="Foto final" url={fotoFinalUrl} />
+          <PhotoBox title="Foto cancel." url={fotoCancelUrl} />
         </div>
 
         {me?.role === "admin" && (
@@ -519,7 +592,7 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
       };
       const { error } = await supabase.from('servicios').update(patch).eq("id", job.id);
       if (error) throw error;
-      toast.success("Trabajo actualizado");
+      toast.success("Servicio actualizado");
       onSaved();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al guardar");
@@ -530,12 +603,10 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
 
   return (
     <div className="rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] uppercase tracking-wider text-primary font-semibold">Admin — Actualizar trabajo</div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            Edita trabajos pasados sin GPS ni foto. Marca la llegada como validada para que el empleado cobre.
-          </div>
+      <div>
+        <div className="text-[11px] uppercase tracking-wider text-primary font-semibold">Admin — Actualizar servicio</div>
+        <div className="text-xs text-muted-foreground mt-0.5">
+          Edita servicios pasados sin GPS ni foto. Marca la llegada como validada para que el empleado cobre.
         </div>
       </div>
 
@@ -574,7 +645,7 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
         <div>
           <div className="font-medium">Llegada validada (sin GPS)</div>
           <div className="text-xs text-muted-foreground">
-            Marca esto para aprobar manualmente la llegada del empleado. Necesario para que cobre el precio por llegada si el trabajo se canceló.
+            Aprobar manualmente la llegada. Necesario para que cobre el precio por llegada si el trabajo se canceló.
           </div>
         </div>
       </label>
