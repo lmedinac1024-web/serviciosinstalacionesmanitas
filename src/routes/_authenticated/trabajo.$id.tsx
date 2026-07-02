@@ -665,9 +665,29 @@ function AdminOverride({
   const [precioLlegada, setPrecioLlegada] = useState<string>(String(job.precio_llegada ?? 0));
   const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
   const [fecha, setFecha] = useState<string>(job.fecha);
+  const [hora, setHora] = useState<string>(job.hora_programada ?? "");
+  const [cliente, setCliente] = useState<string>(job.cliente ?? "");
+  const [telefono, setTelefono] = useState<string>(job.telefono_cliente ?? "");
+  const [tipoServicio, setTipoServicio] = useState<string>(job.tipo_servicio ?? "");
+  const [empleadoId, setEmpleadoId] = useState<string>(job.empleado_id ?? job.user_id ?? "");
+  const [direccion, setDireccion] = useState<string>(job.direccion ?? "");
   const [piso, setPiso] = useState<string>(job.piso ?? "");
   const [puerta, setPuerta] = useState<string>(job.puerta ?? "");
+  const [codigoPostal, setCodigoPostal] = useState<string>(job.codigo_postal ?? "");
+  const [ciudad, setCiudad] = useState<string>(job.ciudad ?? "Barcelona");
+  const [observaciones, setObservaciones] = useState<string>(job.observaciones ?? "");
   const [saving, setSaving] = useState(false);
+
+  const { data: empleados = [] } = useQuery({
+    queryKey: ["empleados-list"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "empleado");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (ids.length === 0) return [] as { user_id: string; display_name: string | null; username: string | null }[];
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").in("user_id", ids);
+      return (data ?? []) as { user_id: string; display_name: string | null; username: string | null }[];
+    },
+  });
 
   // Anular
   const [anularOpen, setAnularOpen] = useState(false);
@@ -687,8 +707,18 @@ function AdminOverride({
         precio_llegada: Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
+        hora_programada: hora || null,
+        cliente: cliente.trim() || job.cliente,
+        telefono_cliente: telefono.trim() || null,
+        tipo_servicio: tipoServicio || null,
+        empleado_id: empleadoId || job.empleado_id,
+        user_id: empleadoId || job.user_id,
+        direccion: direccion.trim() || job.direccion,
         piso: piso.trim() || null,
         puerta: puerta.trim() || null,
+        codigo_postal: codigoPostal.trim() || null,
+        ciudad: ciudad.trim() || null,
+        observaciones: observaciones.trim() || null,
         hora_fin: estado === "realizado" && !job.hora_fin ? new Date().toISOString() : job.hora_fin,
       };
       const { error } = await supabase.from('servicios').update(patch).eq("id", job.id);
