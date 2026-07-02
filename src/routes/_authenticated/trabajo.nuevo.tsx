@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useServerFn } from "@tanstack/react-start";
 import { geocodeAddress } from "@/lib/geocode.functions";
+import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
+import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
 import { MapPin, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
