@@ -175,7 +175,9 @@ function NuevoServicio() {
             <Field label="Nombre *"><Input required value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Juan Pérez" /></Field>
             <Field label="Teléfono"><Input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+34 600 000 000" /></Field>
           </div>
-          <Field label="Referencia (opcional)"><Input value={form.referencia} onChange={(e) => set("referencia", e.target.value)} placeholder="Nº pedido o interno" /></Field>
+          <div className="rounded border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            La referencia se genera automáticamente al crear el servicio (formato <b>SVH-YYYYMMDD-XXXXXX</b>).
+          </div>
           <Field label="Dirección *"><Input required value={form.direccion} onChange={(e) => set("direccion", e.target.value)} placeholder="Calle Mayor 12" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Piso"><Input value={form.piso} onChange={(e) => setForm((f) => ({ ...f, piso: e.target.value }))} placeholder="3º" /></Field>
