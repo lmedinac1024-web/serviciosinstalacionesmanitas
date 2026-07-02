@@ -111,7 +111,7 @@ function notifyListeners() {
 // --- Processor ---
 let syncing = false;
 
-async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final", blob: Blob): Promise<string> {
+async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final" | "cancel", blob: Blob): Promise<string> {
   const path = `${userId}/${jobId}/${fase}-${Date.now()}.jpg`;
   const { error } = await supabase.storage
     .from("job-photos")
