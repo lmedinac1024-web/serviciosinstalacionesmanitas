@@ -124,8 +124,9 @@ async function processOne(action: PendingAction): Promise<void> {
   if (action.kind === "cancelar") {
     const [estado, ...labelParts] = (action.motivo ?? "cancelado_otro|Cancelado").split("|");
     const label = labelParts.join("|") || "Cancelado";
+    type EstadoCancel = "cancelado_cliente" | "cancelado_direccion" | "cancelado_no_estaba" | "cancelado_otro";
     const patch = {
-      estado: estado as "cancelado_cliente" | "cancelado_empleado" | "cancelado_otro",
+      estado: estado as EstadoCancel,
       motivo_cancelacion: label,
       hora_fin: new Date().toISOString(),
       gps_cancelacion_lat: action.arrivalLat ?? null,
