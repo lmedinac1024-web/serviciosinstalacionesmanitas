@@ -8,27 +8,48 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   pendiente: "Pendiente",
   en_proceso: "En curso",
   realizado: "Realizado",
-  cancelado_cliente: "Cancelado por cliente",
-  cancelado_no_estaba: "No estaba en casa",
-  cancelado_direccion: "Dirección incorrecta",
+  cancelado_cliente: "Cancelado",
+  cancelado_no_estaba: "Cancelado",
+  cancelado_direccion: "Cancelado",
   cancelado_otro: "Cancelado",
 };
 
-export const CANCEL_REASONS: { value: JobStatus; label: string }[] = [
-  { value: "cancelado_cliente", label: "Cliente cancela" },
-  { value: "cancelado_no_estaba", label: "No estaba en casa" },
-  { value: "cancelado_direccion", label: "Dirección incorrecta" },
-  { value: "cancelado_otro", label: "Otro motivo" },
+/**
+ * Motivos de cancelación (todos guardan `estado = cancelado_*` y suman ganancia).
+ * El detalle enumerado se guarda en `motivo_cancelacion` como texto.
+ */
+export const CANCEL_REASONS: { status: JobStatus; label: string }[] = [
+  { status: "cancelado_no_estaba", label: "Cliente no está en casa" },
+  { status: "cancelado_direccion", label: "Dirección incorrecta" },
+  { status: "cancelado_otro", label: "No se puede acceder" },
+  { status: "cancelado_otro", label: "Material no disponible" },
+  { status: "cancelado_otro", label: "No cubre" },
+  { status: "cancelado_otro", label: "Error en el servicio" },
+  { status: "cancelado_cliente", label: "Cliente cancela" },
+  { status: "cancelado_otro", label: "Otro motivo" },
 ];
 
 export const TIPO_SERVICIO_OPCIONES = [
   "Manitas",
   "Fontanería",
   "Instalación de Ventilador",
+  "Peritaje",
+  "Apoyo a otros",
 ] as const;
 
-export function statusColorClass(status: JobStatus): string {
-  switch (status) {
+/** Un servicio anulado por admin (soft delete). */
+export function isVoided(j: Pick<Job, "eliminado_logico">): boolean {
+  return !!j.eliminado_logico;
+}
+
+export function displayStatus(j: Pick<Job, "estado" | "eliminado_logico">): string {
+  if (isVoided(j)) return "Anulado";
+  return STATUS_LABELS[j.estado];
+}
+
+export function statusColorClass(j: Pick<Job, "estado" | "eliminado_logico">): string {
+  if (isVoided(j)) return "bg-muted text-muted-foreground border-border line-through";
+  switch (j.estado) {
     case "pendiente": return "bg-warning/15 text-warning-foreground border-warning/30";
     case "en_proceso": return "bg-info/15 text-info border-info/30";
     case "realizado": return "bg-success/15 text-success border-success/30";
@@ -38,6 +59,12 @@ export function statusColorClass(status: JobStatus): string {
 
 export function isCancelled(status: JobStatus): boolean {
   return status.startsWith("cancelado");
+}
+
+/** Un servicio "paga" si está realizado o cancelado por el trabajador (y no anulado). */
+export function isPaid(j: Pick<Job, "estado" | "eliminado_logico">): boolean {
+  if (isVoided(j)) return false;
+  return j.estado === "realizado" || isCancelled(j.estado);
 }
 
 export function googleMapsUrl(j: Pick<Job, "direccion" | "codigo_postal" | "ciudad">): string {
@@ -65,7 +92,10 @@ export function formatEUR(n: number | string | null | undefined): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(v ?? 0);
 }
 
-export function jobTotal(j: Pick<Job, "ganancia" | "importe" | "precio_llegada">): number {
+export function jobTotal(j: Pick<Job, "ganancia" | "importe" | "precio_llegada" | "estado" | "eliminado_logico">): number {
+  if (isVoided(j)) return 0;
   if (j.ganancia != null) return Number(j.ganancia);
-  return Number(j.importe ?? 0) + Number(j.precio_llegada ?? 0);
+  if (j.estado === "realizado") return Number(j.importe ?? 0) + Number(j.precio_llegada ?? 0);
+  if (isCancelled(j.estado)) return Number(j.precio_llegada ?? 0);
+  return 0;
 }

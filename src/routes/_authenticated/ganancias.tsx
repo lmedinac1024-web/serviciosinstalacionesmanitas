@@ -2,96 +2,248 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { formatEUR, jobTotal, type Job } from "@/lib/jobs";
+import { formatEUR, jobTotal, isPaid, type Job } from "@/lib/jobs";
+import { StatusBadge } from "@/components/StatusBadge";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/ganancias")({
   component: Ganancias,
 });
 
-function todayStr() {
-  const d = new Date();
+function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+function addDays(d: Date, n: number) {
+  const c = new Date(d);
+  c.setDate(c.getDate() + n);
+  return c;
+}
+function startOfWeek(d: Date) {
+  const c = new Date(d);
+  const day = (c.getDay() + 6) % 7;
+  c.setDate(c.getDate() - day);
+  c.setHours(0, 0, 0, 0);
+  return c;
+}
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
+type Rango = "dia" | "semana" | "mes" | "custom";
 
 function Ganancias() {
-  const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs", "realizados", "all"],
+  const { data: allJobs = [], isLoading } = useQuery({
+    queryKey: ["jobs", "pagables"],
     queryFn: async () => {
+      // Traer realizados + cancelados por trabajador. Excluye anulados.
       const { data, error } = await supabase
-        .from('servicios')
+        .from("servicios")
         .select("*")
-        .eq("estado", "realizado")
-        .order("hora_fin", { ascending: false });
+        .eq("eliminado_logico", false)
+        .in("estado", ["realizado", "cancelado_cliente", "cancelado_no_estaba", "cancelado_direccion", "cancelado_otro"])
+        .order("fecha", { ascending: false });
       if (error) throw error;
       return data as Job[];
     },
   });
 
-  const today = todayStr();
-  const weekStart = (() => {
-    const d = new Date();
-    const day = (d.getDay() + 6) % 7;
-    d.setDate(d.getDate() - day);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  })();
-  const monthStart = (() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
-  })();
+  // Solo servicios que "pagan" (por si acaso).
+  const jobs = useMemo(() => allJobs.filter(isPaid), [allJobs]);
 
-  const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
+  const [rango, setRango] = useState<Rango>("dia");
+  const [dia, setDia] = useState<string>(toISODate(new Date()));
+  const [desde, setDesde] = useState<string>(toISODate(startOfMonth(new Date())));
+  const [hasta, setHasta] = useState<string>(toISODate(endOfMonth(new Date())));
 
-  const hoy = jobs.filter((j) => j.hora_fin?.slice(0, 10) === today);
-  const semana = jobs.filter((j) => j.hora_fin && j.hora_fin >= weekStart);
-  const mes = jobs.filter((j) => j.hora_fin && j.hora_fin >= monthStart);
+  // Rango efectivo en formato YYYY-MM-DD
+  const { from, to } = useMemo(() => {
+    if (rango === "dia") return { from: dia, to: dia };
+    if (rango === "semana") {
+      const base = new Date(dia + "T00:00:00");
+      const start = startOfWeek(base);
+      const end = addDays(start, 6);
+      return { from: toISODate(start), to: toISODate(end) };
+    }
+    if (rango === "mes") {
+      const base = new Date(dia + "T00:00:00");
+      return { from: toISODate(startOfMonth(base)), to: toISODate(endOfMonth(base)) };
+    }
+    return { from: desde, to: hasta };
+  }, [rango, dia, desde, hasta]);
+
+  function fechaOf(j: Job): string {
+    return (j.hora_fin?.slice(0, 10)) || j.fecha;
+  }
+
+  const filtrados = useMemo(
+    () => jobs.filter((j) => {
+      const f = fechaOf(j);
+      return f >= from && f <= to;
+    }),
+    [jobs, from, to],
+  );
+
+  const totalRango = filtrados.reduce((a, j) => a + jobTotal(j), 0);
+
+  // Desglose día a día del rango
+  const porDia = useMemo(() => {
+    const map = new Map<string, { ganado: number; count: number }>();
+    for (const j of filtrados) {
+      const f = fechaOf(j);
+      const entry = map.get(f) ?? { ganado: 0, count: 0 };
+      entry.ganado += jobTotal(j);
+      entry.count += 1;
+      map.set(f, entry);
+    }
+    return [...map.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [filtrados]);
+
+  const hoy = toISODate(new Date());
+  const ganadoHoy = jobs.filter((j) => fechaOf(j) === hoy).reduce((a, j) => a + jobTotal(j), 0);
 
   return (
     <AppShell title="Ganancias">
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Box label="Hoy" amount={formatEUR(sum(hoy))} count={hoy.length} />
-            <Box label="Esta semana" amount={formatEUR(sum(semana))} count={semana.length} />
-            <Box label="Este mes" amount={formatEUR(sum(mes))} count={mes.length} />
-            <Box label="Total" amount={formatEUR(sum(jobs))} count={jobs.length} accent />
+        <div className="space-y-5">
+          {/* Ganado hoy siempre visible */}
+          <div className="rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 to-transparent p-5">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Ganado hoy
+            </div>
+            <div className="mt-1 text-3xl font-bold text-success">{formatEUR(ganadoHoy)}</div>
           </div>
 
+          {/* Selector de rango */}
+          <div className="rounded-xl border bg-card p-4 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {(["dia", "semana", "mes", "custom"] as Rango[]).map((r) => (
+                <Button
+                  key={r}
+                  size="sm"
+                  variant={rango === r ? "default" : "outline"}
+                  onClick={() => setRango(r)}
+                >
+                  {r === "dia" ? "Día" : r === "semana" ? "Semana" : r === "mes" ? "Mes" : "Personalizado"}
+                </Button>
+              ))}
+            </div>
+
+            {rango !== "custom" ? (
+              <div className="flex items-center gap-2">
+                <Button size="icon" variant="outline"
+                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "mes" ? -30 : rango === "semana" ? -7 : -1)))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <input
+                  type="date"
+                  value={dia}
+                  onChange={(e) => setDia(e.target.value)}
+                  className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <Button size="icon" variant="outline"
+                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "mes" ? 30 : rango === "semana" ? 7 : 1)))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setDia(toISODate(new Date()))}>Hoy</Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">Desde</label>
+                  <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Hasta</label>
+                  <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+                </div>
+              </div>
+            )}
+
+            <div className="text-xs text-muted-foreground">
+              Rango: <b>{from}</b> → <b>{to}</b>
+            </div>
+          </div>
+
+          {/* Total del rango */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border bg-card p-4">
+              <div className="text-[11px] uppercase text-muted-foreground">Total del rango</div>
+              <div className="mt-1 text-2xl font-bold text-primary">{formatEUR(totalRango)}</div>
+            </div>
+            <div className="rounded-xl border bg-card p-4">
+              <div className="text-[11px] uppercase text-muted-foreground">Trabajos pagados</div>
+              <div className="mt-1 text-2xl font-bold">{filtrados.length}</div>
+            </div>
+          </div>
+
+          {/* Desglose por día */}
           <div>
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Últimos trabajos cobrados
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Desglose diario
             </h2>
-            <div className="overflow-hidden rounded-lg border bg-card">
+            <div className="overflow-hidden rounded-xl border bg-card">
+              {porDia.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  Sin trabajos en este rango.
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {porDia.map(([fecha, v]) => (
+                    <div key={fecha} className="flex items-center justify-between px-4 py-3">
+                      <div>
+                        <div className="font-medium">{fecha}</div>
+                        <div className="text-xs text-muted-foreground">{v.count} trabajo{v.count === 1 ? "" : "s"}</div>
+                      </div>
+                      <div className="text-lg font-bold text-primary">{formatEUR(v.ganado)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Detalle */}
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Detalle de trabajos
+            </h2>
+            <div className="overflow-hidden rounded-xl border bg-card">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 text-left">Fecha</th>
                     <th className="px-3 py-2 text-left">Cliente</th>
+                    <th className="px-3 py-2 text-left">Estado</th>
                     <th className="px-3 py-2 text-right">Importe</th>
                     <th className="px-3 py-2 text-right">Llegada</th>
                     <th className="px-3 py-2 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {jobs.slice(0, 30).map((j) => (
-                    <tr key={j.id} className="border-t">
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {j.hora_fin?.slice(0, 10) ?? j.fecha}
-                      </td>
+                  {filtrados.map((j) => (
+                    <tr key={j.id} className={cn("border-t", j.estado.startsWith("cancelado") && "bg-destructive/5")}>
+                      <td className="px-3 py-2 text-muted-foreground">{fechaOf(j)}</td>
                       <td className="px-3 py-2">{j.cliente}</td>
+                      <td className="px-3 py-2"><StatusBadge status={j.estado} /></td>
                       <td className="px-3 py-2 text-right">{formatEUR(j.importe)}</td>
                       <td className="px-3 py-2 text-right">{formatEUR(j.precio_llegada)}</td>
-                      <td className="px-3 py-2 text-right font-semibold">
-                        {formatEUR(jobTotal(j))}
-                      </td>
+                      <td className="px-3 py-2 text-right font-semibold">{formatEUR(jobTotal(j))}</td>
                     </tr>
                   ))}
-                  {jobs.length === 0 && (
+                  {filtrados.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
-                        Sin trabajos cobrados aún.
+                      <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                        Sin trabajos en el rango seleccionado.
                       </td>
                     </tr>
                   )}
@@ -102,29 +254,5 @@ function Ganancias() {
         </div>
       )}
     </AppShell>
-  );
-}
-
-function Box({
-  label,
-  amount,
-  count,
-  accent,
-}: {
-  label: string;
-  amount: string;
-  count: number;
-  accent?: boolean;
-}) {
-  return (
-    <div className={`rounded-lg border p-4 ${accent ? "bg-primary text-primary-foreground" : "bg-card"}`}>
-      <div className={`text-xs font-medium uppercase tracking-wide ${accent ? "opacity-80" : "text-muted-foreground"}`}>
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-bold">{amount}</div>
-      <div className={`text-xs ${accent ? "opacity-80" : "text-muted-foreground"}`}>
-        {count} trabajo{count === 1 ? "" : "s"}
-      </div>
-    </div>
   );
 }

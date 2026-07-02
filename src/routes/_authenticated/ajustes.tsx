@@ -115,7 +115,7 @@ function Ajustes() {
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Perfil</div>
           <div className="mt-1 text-lg font-semibold">{me?.displayName || me?.username}</div>
           <div className="text-sm text-muted-foreground">
-            @{me?.username} · {me?.role === "admin" ? "Administrador" : "Empleado"}
+            @{me?.username} · {me?.isAdmin ? "Administrador" : "Empleado"}
           </div>
         </section>
 
@@ -132,7 +132,7 @@ function Ajustes() {
           ) : destinos.length === 0 ? (
             <div className="mt-4 rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
               Aún no hay destinos configurados.{" "}
-              {me?.role === "admin"
+              {me?.isAdmin
                 ? "Añádelos en el menú Telegram."
                 : "Pide al admin que configure destinos."}
             </div>

@@ -89,6 +89,7 @@ export type Database = {
       servicios: {
         Row: {
           actualizado_en: string
+          anulado_por: string | null
           assigned_by: string | null
           ciudad: string | null
           cliente: string
@@ -100,9 +101,11 @@ export type Database = {
           direccion_lng: number | null
           direccion_validada_llegada: boolean
           distancia_llegada_metros: number | null
+          eliminado_logico: boolean
           empleado_id: string | null
           estado: Database["public"]["Enums"]["job_status"]
           fecha: string
+          fecha_anulacion: string | null
           foto_cancelacion: string | null
           foto_final: string | null
           foto_inicio: string | null
@@ -118,6 +121,7 @@ export type Database = {
           hora_programada: string | null
           id: string
           importe: number
+          motivo_anulacion: string | null
           motivo_cancelacion: string | null
           observaciones: string | null
           piso: string | null
@@ -133,6 +137,7 @@ export type Database = {
         }
         Insert: {
           actualizado_en?: string
+          anulado_por?: string | null
           assigned_by?: string | null
           ciudad?: string | null
           cliente: string
@@ -144,9 +149,11 @@ export type Database = {
           direccion_lng?: number | null
           direccion_validada_llegada?: boolean
           distancia_llegada_metros?: number | null
+          eliminado_logico?: boolean
           empleado_id?: string | null
           estado?: Database["public"]["Enums"]["job_status"]
           fecha?: string
+          fecha_anulacion?: string | null
           foto_cancelacion?: string | null
           foto_final?: string | null
           foto_inicio?: string | null
@@ -162,6 +169,7 @@ export type Database = {
           hora_programada?: string | null
           id?: string
           importe?: number
+          motivo_anulacion?: string | null
           motivo_cancelacion?: string | null
           observaciones?: string | null
           piso?: string | null
@@ -177,6 +185,7 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
+          anulado_por?: string | null
           assigned_by?: string | null
           ciudad?: string | null
           cliente?: string
@@ -188,9 +197,11 @@ export type Database = {
           direccion_lng?: number | null
           direccion_validada_llegada?: boolean
           distancia_llegada_metros?: number | null
+          eliminado_logico?: boolean
           empleado_id?: string | null
           estado?: Database["public"]["Enums"]["job_status"]
           fecha?: string
+          fecha_anulacion?: string | null
           foto_cancelacion?: string | null
           foto_final?: string | null
           foto_inicio?: string | null
@@ -206,6 +217,7 @@ export type Database = {
           hora_programada?: string | null
           id?: string
           importe?: number
+          motivo_anulacion?: string | null
           motivo_cancelacion?: string | null
           observaciones?: string | null
           piso?: string | null
@@ -353,7 +365,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "empleado"
+      app_role: "admin" | "empleado" | "super_admin"
       job_status:
         | "pendiente"
         | "en_proceso"
@@ -489,7 +501,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "empleado"],
+      app_role: ["admin", "empleado", "super_admin"],
       job_status: [
         "pendiente",
         "en_proceso",
