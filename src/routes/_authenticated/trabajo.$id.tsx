@@ -18,8 +18,7 @@ import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
   jobTotal, telUrl, whatsappUrl, type Job, type JobStatus,
 } from "@/lib/jobs";
-import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
-import { useServerFn } from "@tanstack/react-start";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
 import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
