@@ -275,7 +275,7 @@ function Detalle() {
         toast.success("Guardado offline — se enviará al recuperar conexión");
       } else {
         const path = await uploadPhoto(job!.id, fase, file);
-        let patch: Record<string, unknown> = {};
+        let patch: Partial<Job> = {};
         if (fase === "inicio") {
           patch = {
             foto_inicio: path,
