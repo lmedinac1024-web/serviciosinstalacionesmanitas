@@ -195,6 +195,24 @@ function AdminTelegram() {
                   <div className="font-mono text-xs text-muted-foreground truncate">{d.chat_id}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      setTesting(true);
+                      try {
+                        const res = await sendTest({ data: { chatId: d.chat_id, nombre: d.nombre } });
+                        if (res.ok) toast.success(`Prueba enviada a ${d.nombre}`);
+                        else if ("skipped" in res && res.skipped) toast.info("Telegram no conectado.");
+                        else toast.error(`Error: ${"error" in res ? res.error : "desconocido"}`);
+                      } finally { setTesting(false); }
+                    }}
+                    disabled={testing || !d.activo}
+                    aria-label="Probar envío"
+                    title={d.activo ? "Enviar mensaje de prueba" : "Activa el destino para probar"}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                   <Button variant={d.activo ? "outline" : "secondary"} size="sm" onClick={() => toggle(d)}>
                     {d.activo ? "Desactivar" : "Activar"}
                   </Button>
