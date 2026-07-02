@@ -254,7 +254,7 @@ function Detalle() {
         await enqueueOffline({
           jobId: job!.id,
           userId,
-          kind: fase,
+          kind: fase === "cancel" ? "cancelar" : fase,
           destinoIds,
           photo: file,
           photoName: file.name,
