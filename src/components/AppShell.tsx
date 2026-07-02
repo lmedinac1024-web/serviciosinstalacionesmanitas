@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import logoAsset from "@/assets/logo-manitas.png.asset.json";
 
 type NavPath =
   | "/"
@@ -73,9 +74,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <div className="border-b px-5 py-4">
           <div className="flex items-center gap-2.5">
             <img
-              src="/logo-servihogar.png"
-              alt="ServiHogar"
-              className="h-9 w-auto rounded-md"
+              src={logoAsset.url}
+              alt="Servicios de Manitas"
+              className="h-10 w-auto"
             />
             <div>
               <div className="text-sm font-bold leading-none">ServiHogar</div>
