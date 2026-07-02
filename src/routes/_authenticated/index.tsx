@@ -33,8 +33,8 @@ function Dashboard() {
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("jobs").select("*")
-        .order("fecha", { ascending: false }).order("hora", { ascending: true });
+      const { data, error } = await supabase.from('servicios').select("*")
+        .order("fecha", { ascending: false }).order("hora_programada", { ascending: true });
       if (error) throw error;
       return data as Job[];
     },
@@ -55,14 +55,14 @@ function Dashboard() {
 
   const realizados = jobs.filter((j) => j.estado === "realizado");
   const pendientesHoy = jobs.filter((j) => j.fecha === today && j.estado === "pendiente");
-  const realizadosHoy = realizados.filter((j) => j.finalizado_at && j.finalizado_at.slice(0, 10) === today);
+  const realizadosHoy = realizados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
   const canceladosHoy = jobs.filter((j) => j.fecha === today && j.estado.startsWith("cancelado"));
   const enProcesoHoy = jobs.filter((j) => j.fecha === today && j.estado === "en_proceso");
 
   const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
   const ganadoHoy = sum(realizadosHoy);
-  const ganadoSemana = sum(realizados.filter((j) => j.finalizado_at && j.finalizado_at >= weekStart));
-  const ganadoMes = sum(realizados.filter((j) => j.finalizado_at && j.finalizado_at >= monthStart));
+  const ganadoSemana = sum(realizados.filter((j) => j.hora_fin && j.hora_fin >= weekStart));
+  const ganadoMes = sum(realizados.filter((j) => j.hora_fin && j.hora_fin >= monthStart));
   const totalAcumulado = sum(realizados);
 
   const proximos = jobs.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").slice(0, 5);

@@ -10,11 +10,11 @@ export interface PendingAction {
   jobId: string;
   userId: string;
   kind: PendingKind;
-  motivo?: string;             // for cancelar
-  destinoIds?: string[];       // telegram destinos (may be empty)
-  photo?: Blob;                // required for inicio / final
+  motivo?: string;             // for cancelar: `${estado}|${label}`
+  destinoIds?: string[];
+  photo?: Blob;                // required for inicio / final / cancelar (con foto)
   photoName?: string;
-  arrivalLat?: number;         // for kind='inicio': coords captured on tap
+  arrivalLat?: number;
   arrivalLng?: number;
   arrivalDistanceM?: number | null;
   arrivalValidated?: boolean;
@@ -111,7 +111,7 @@ function notifyListeners() {
 // --- Processor ---
 let syncing = false;
 
-async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final", blob: Blob): Promise<string> {
+async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final" | "cancel", blob: Blob): Promise<string> {
   const path = `${userId}/${jobId}/${fase}-${Date.now()}.jpg`;
   const { error } = await supabase.storage
     .from("job-photos")
@@ -122,12 +122,26 @@ async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "fina
 
 async function processOne(action: PendingAction): Promise<void> {
   if (action.kind === "cancelar") {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ estado: "no_paga" as never, motivo_cancelacion: action.motivo ?? "Cancelado" })
-      .eq("id", action.jobId);
+    const [estado, ...labelParts] = (action.motivo ?? "cancelado_otro|Cancelado").split("|");
+    const label = labelParts.join("|") || "Cancelado";
+    type EstadoCancel = "cancelado_cliente" | "cancelado_direccion" | "cancelado_no_estaba" | "cancelado_otro";
+    const patch = {
+      estado: estado as EstadoCancel,
+      motivo_cancelacion: label,
+      hora_fin: new Date().toISOString(),
+      gps_cancelacion_lat: action.arrivalLat ?? null,
+      gps_cancelacion_lng: action.arrivalLng ?? null,
+      foto_cancelacion: null as string | null,
+    };
+    if (action.photo) {
+      patch.foto_cancelacion = await uploadPhoto(action.userId, action.jobId, "cancel", action.photo);
+    }
+    const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
     if (error) throw error;
-    // For cancel we use whatever motivo enum the caller enqueued as "estado". Handled by caller instead.
+    try {
+      const { sendJobUpdateToTelegram } = await import("@/lib/telegram.functions");
+      await sendJobUpdateToTelegram({ data: { jobId: action.jobId, fase: "cancel", destinoIds: action.destinoIds ?? [] } });
+    } catch { /* noop */ }
     return;
   }
 
@@ -137,37 +151,28 @@ async function processOne(action: PendingAction): Promise<void> {
     ? {
         foto_inicio: path,
         estado: "en_proceso" as const,
-        llegada_lat: action.arrivalLat ?? null,
-        llegada_lng: action.arrivalLng ?? null,
-        llegada_distancia_m: action.arrivalDistanceM ?? null,
-        llegada_validada: action.arrivalValidated ?? false,
+        hora_llegada: new Date().toISOString(),
+        gps_llegada_lat: action.arrivalLat ?? null,
+        gps_llegada_lng: action.arrivalLng ?? null,
+        distancia_llegada_metros: action.arrivalDistanceM ?? null,
+        direccion_validada_llegada: action.arrivalValidated ?? false,
       }
-    : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
-  const { error } = await supabase.from("jobs").update(patch).eq("id", action.jobId);
+    : {
+        foto_final: path,
+        estado: "realizado" as const,
+        hora_fin: new Date().toISOString(),
+        gps_final_lat: action.arrivalLat ?? null,
+        gps_final_lng: action.arrivalLng ?? null,
+      };
+  const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
   if (error) throw error;
 
-  // Fire-and-forget Telegram (server fn). We import lazily to avoid circular deps.
   try {
     const { sendJobUpdateToTelegram } = await import("@/lib/telegram.functions");
     await sendJobUpdateToTelegram({
       data: { jobId: action.jobId, fase: action.kind, destinoIds: action.destinoIds ?? [] },
     });
-  } catch {
-    // Telegram failure should not block sync
-  }
-}
-
-// Handle cancelar separately so we can pass the exact estado enum without changing PendingAction shape.
-// The caller stores the estado value in `motivo` when kind==='cancelar' via a small convention:
-// motivo = `${estado}|${label}` e.g. "no_paga|No paga"
-async function processCancel(action: PendingAction): Promise<void> {
-  const [estado, ...labelParts] = (action.motivo ?? "no_paga|Cancelado").split("|");
-  const label = labelParts.join("|") || "Cancelado";
-  const { error } = await supabase
-    .from("jobs")
-    .update({ estado: estado as never, motivo_cancelacion: label })
-    .eq("id", action.jobId);
-  if (error) throw error;
+  } catch { /* noop */ }
 }
 
 export async function processQueue(): Promise<{ ok: number; failed: number }> {
@@ -180,8 +185,7 @@ export async function processQueue(): Promise<{ ok: number; failed: number }> {
     const items = (await listAll()).sort((a, b) => a.createdAt - b.createdAt);
     for (const item of items) {
       try {
-        if (item.kind === "cancelar") await processCancel(item);
-        else await processOne(item);
+        await processOne(item);
         await remove(item.id);
         ok++;
       } catch (e) {

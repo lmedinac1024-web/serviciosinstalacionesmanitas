@@ -59,135 +59,6 @@ export type Database = {
         }
         Relationships: []
       }
-      jobs: {
-        Row: {
-          assigned_by: string | null
-          cantidad: number
-          ciudad: string | null
-          cliente: string
-          cliente_id: string | null
-          codigo_postal: string | null
-          created_at: string
-          direccion: string
-          empleado_id: string | null
-          estado: Database["public"]["Enums"]["job_status"]
-          fecha: string
-          finalizado_at: string | null
-          foto_final: string | null
-          foto_inicio: string | null
-          hora: string | null
-          id: string
-          importe: number
-          lat: number | null
-          llegada_distancia_m: number | null
-          llegada_lat: number | null
-          llegada_lng: number | null
-          llegada_validada: boolean
-          lng: number | null
-          motivo_cancelacion: string | null
-          observaciones: string | null
-          piso: string | null
-          precio_llegada: number
-          puerta: string | null
-          servicio: string | null
-          servicio_id: string | null
-          telefono: string | null
-          telegram_final_msg_id: string | null
-          telegram_inicio_msg_id: string | null
-          total: number | null
-          user_id: string
-        }
-        Insert: {
-          assigned_by?: string | null
-          cantidad?: number
-          ciudad?: string | null
-          cliente: string
-          cliente_id?: string | null
-          codigo_postal?: string | null
-          created_at?: string
-          direccion: string
-          empleado_id?: string | null
-          estado?: Database["public"]["Enums"]["job_status"]
-          fecha?: string
-          finalizado_at?: string | null
-          foto_final?: string | null
-          foto_inicio?: string | null
-          hora?: string | null
-          id?: string
-          importe?: number
-          lat?: number | null
-          llegada_distancia_m?: number | null
-          llegada_lat?: number | null
-          llegada_lng?: number | null
-          llegada_validada?: boolean
-          lng?: number | null
-          motivo_cancelacion?: string | null
-          observaciones?: string | null
-          piso?: string | null
-          precio_llegada?: number
-          puerta?: string | null
-          servicio?: string | null
-          servicio_id?: string | null
-          telefono?: string | null
-          telegram_final_msg_id?: string | null
-          telegram_inicio_msg_id?: string | null
-          total?: number | null
-          user_id: string
-        }
-        Update: {
-          assigned_by?: string | null
-          cantidad?: number
-          ciudad?: string | null
-          cliente?: string
-          cliente_id?: string | null
-          codigo_postal?: string | null
-          created_at?: string
-          direccion?: string
-          empleado_id?: string | null
-          estado?: Database["public"]["Enums"]["job_status"]
-          fecha?: string
-          finalizado_at?: string | null
-          foto_final?: string | null
-          foto_inicio?: string | null
-          hora?: string | null
-          id?: string
-          importe?: number
-          lat?: number | null
-          llegada_distancia_m?: number | null
-          llegada_lat?: number | null
-          llegada_lng?: number | null
-          llegada_validada?: boolean
-          lng?: number | null
-          motivo_cancelacion?: string | null
-          observaciones?: string | null
-          piso?: string | null
-          precio_llegada?: number
-          puerta?: string | null
-          servicio?: string | null
-          servicio_id?: string | null
-          telefono?: string | null
-          telegram_final_msg_id?: string | null
-          telegram_inicio_msg_id?: string | null
-          total?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "jobs_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "jobs_servicio_id_fkey"
-            columns: ["servicio_id"]
-            isOneToOne: false
-            referencedRelation: "servicios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           activo: boolean
@@ -217,27 +88,146 @@ export type Database = {
       }
       servicios: {
         Row: {
-          activo: boolean
-          created_at: string
-          descripcion: string | null
+          actualizado_en: string
+          assigned_by: string | null
+          ciudad: string | null
+          cliente: string
+          cliente_id: string | null
+          codigo_postal: string | null
+          creado_en: string
+          direccion: string
+          direccion_lat: number | null
+          direccion_lng: number | null
+          direccion_validada_llegada: boolean
+          distancia_llegada_metros: number | null
+          empleado_id: string | null
+          estado: Database["public"]["Enums"]["job_status"]
+          fecha: string
+          foto_cancelacion: string | null
+          foto_final: string | null
+          foto_inicio: string | null
+          ganancia: number | null
+          gps_cancelacion_lat: number | null
+          gps_cancelacion_lng: number | null
+          gps_final_lat: number | null
+          gps_final_lng: number | null
+          gps_llegada_lat: number | null
+          gps_llegada_lng: number | null
+          hora_fin: string | null
+          hora_llegada: string | null
+          hora_programada: string | null
           id: string
-          nombre: string
+          importe: number
+          motivo_cancelacion: string | null
+          observaciones: string | null
+          piso: string | null
+          precio_llegada: number
+          puerta: string | null
+          referencia: string | null
+          telefono_cliente: string | null
+          telegram_cancel_msg_id: string | null
+          telegram_final_msg_id: string | null
+          telegram_inicio_msg_id: string | null
+          tipo_servicio: string | null
+          user_id: string
         }
         Insert: {
-          activo?: boolean
-          created_at?: string
-          descripcion?: string | null
+          actualizado_en?: string
+          assigned_by?: string | null
+          ciudad?: string | null
+          cliente: string
+          cliente_id?: string | null
+          codigo_postal?: string | null
+          creado_en?: string
+          direccion: string
+          direccion_lat?: number | null
+          direccion_lng?: number | null
+          direccion_validada_llegada?: boolean
+          distancia_llegada_metros?: number | null
+          empleado_id?: string | null
+          estado?: Database["public"]["Enums"]["job_status"]
+          fecha?: string
+          foto_cancelacion?: string | null
+          foto_final?: string | null
+          foto_inicio?: string | null
+          ganancia?: number | null
+          gps_cancelacion_lat?: number | null
+          gps_cancelacion_lng?: number | null
+          gps_final_lat?: number | null
+          gps_final_lng?: number | null
+          gps_llegada_lat?: number | null
+          gps_llegada_lng?: number | null
+          hora_fin?: string | null
+          hora_llegada?: string | null
+          hora_programada?: string | null
           id?: string
-          nombre: string
+          importe?: number
+          motivo_cancelacion?: string | null
+          observaciones?: string | null
+          piso?: string | null
+          precio_llegada?: number
+          puerta?: string | null
+          referencia?: string | null
+          telefono_cliente?: string | null
+          telegram_cancel_msg_id?: string | null
+          telegram_final_msg_id?: string | null
+          telegram_inicio_msg_id?: string | null
+          tipo_servicio?: string | null
+          user_id: string
         }
         Update: {
-          activo?: boolean
-          created_at?: string
-          descripcion?: string | null
+          actualizado_en?: string
+          assigned_by?: string | null
+          ciudad?: string | null
+          cliente?: string
+          cliente_id?: string | null
+          codigo_postal?: string | null
+          creado_en?: string
+          direccion?: string
+          direccion_lat?: number | null
+          direccion_lng?: number | null
+          direccion_validada_llegada?: boolean
+          distancia_llegada_metros?: number | null
+          empleado_id?: string | null
+          estado?: Database["public"]["Enums"]["job_status"]
+          fecha?: string
+          foto_cancelacion?: string | null
+          foto_final?: string | null
+          foto_inicio?: string | null
+          ganancia?: number | null
+          gps_cancelacion_lat?: number | null
+          gps_cancelacion_lng?: number | null
+          gps_final_lat?: number | null
+          gps_final_lng?: number | null
+          gps_llegada_lat?: number | null
+          gps_llegada_lng?: number | null
+          hora_fin?: string | null
+          hora_llegada?: string | null
+          hora_programada?: string | null
           id?: string
-          nombre?: string
+          importe?: number
+          motivo_cancelacion?: string | null
+          observaciones?: string | null
+          piso?: string | null
+          precio_llegada?: number
+          puerta?: string | null
+          referencia?: string | null
+          telefono_cliente?: string | null
+          telegram_cancel_msg_id?: string | null
+          telegram_final_msg_id?: string | null
+          telegram_inicio_msg_id?: string | null
+          tipo_servicio?: string | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "servicios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tarifas_empleado: {
         Row: {
@@ -264,15 +254,7 @@ export type Database = {
           servicio_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tarifas_empleado_servicio_id_fkey"
-            columns: ["servicio_id"]
-            isOneToOne: false
-            referencedRelation: "servicios"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       telegram_destinos: {
         Row: {

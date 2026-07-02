@@ -14,11 +14,13 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useServerFn } from "@tanstack/react-start";
 import { geocodeAddress } from "@/lib/geocode.functions";
+import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
+import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
 import { MapPin, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
 
-type Servicio = { id: string; nombre: string };
+
 type Empleado = { user_id: string; username: string; display_name: string | null };
 
 function NuevoServicio() {
@@ -33,9 +35,10 @@ function NuevoServicio() {
     fecha: new Date().toISOString().slice(0, 10),
     hora: "",
     empleado_id: "",
-    servicio_id: "",
+    tipo_servicio: "",
     cliente: "",
     telefono: "",
+    referencia: "",
     direccion: "",
     codigo_postal: "",
     ciudad: "",
@@ -44,10 +47,8 @@ function NuevoServicio() {
     precio_llegada: "",
   });
 
-  const { data: servicios = [] } = useQuery({
-    queryKey: ["servicios"],
-    queryFn: async () => (await supabase.from("servicios").select("id,nombre").eq("activo", true).order("nombre")).data as Servicio[] ?? [],
-  });
+  const sendTg = useServerFn(sendJobUpdateToTelegram);
+
   const { data: empleados = [] } = useQuery({
     queryKey: ["empleados-list"],
     queryFn: async () => {
@@ -96,32 +97,32 @@ function NuevoServicio() {
       const coords = await tryGeocode();
 
       const { data: userData } = await supabase.auth.getUser();
-      const servicioNombre = servicios.find((s) => s.id === form.servicio_id)?.nombre ?? null;
 
-      const { data, error } = await supabase.from("jobs").insert({
+      const { data, error } = await supabase.from('servicios').insert({
         user_id: form.empleado_id,
         empleado_id: form.empleado_id,
         assigned_by: userData.user?.id ?? null,
         cliente_id: null,
-        servicio_id: form.servicio_id || null,
-        servicio: servicioNombre,
+        tipo_servicio: form.tipo_servicio || null,
         cliente: form.cliente.trim(),
-        telefono: form.telefono.trim() || null,
+        telefono_cliente: form.telefono.trim() || null,
+        referencia: form.referencia.trim() || null,
         direccion: form.direccion.trim(),
         codigo_postal: form.codigo_postal.trim() || null,
         ciudad: form.ciudad.trim() || null,
         fecha: form.fecha,
-        hora: form.hora || null,
+        hora_programada: form.hora || null,
         importe: Number(form.importe) || 0,
-        cantidad: 1,
         precio_llegada: Number(form.precio_llegada) || 0,
         observaciones: form.observaciones.trim() || null,
-        lat: coords?.lat ?? null,
-        lng: coords?.lng ?? null,
-      } as never).select().single();
+        direccion_lat: coords?.lat ?? null,
+        direccion_lng: coords?.lng ?? null,
+      }).select().single();
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["jobs"] });
       toast.success("Servicio creado");
+      // Aviso Telegram (creación) — fire and forget
+      void sendTg({ data: { jobId: data.id, fase: "creado" } }).catch(() => { /* noop */ });
       navigate({ to: "/trabajo/$id", params: { id: data.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al crear");
@@ -155,19 +156,13 @@ function NuevoServicio() {
           )}
         </Field>
 
-        <Field label="Servicio">
-          {servicios.length === 0 ? (
-            <div className="rounded border bg-muted/40 p-3 text-sm text-muted-foreground">
-              Añade categorías en "Categorías" (ej. Manitas, Fontanería, Ventilador).
-            </div>
-          ) : (
-            <Select value={form.servicio_id} onValueChange={(v) => set("servicio_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Selecciona servicio" /></SelectTrigger>
-              <SelectContent>
-                {servicios.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          )}
+        <Field label="Tipo de servicio">
+          <Select value={form.tipo_servicio} onValueChange={(v) => set("tipo_servicio", v)}>
+            <SelectTrigger><SelectValue placeholder="Manitas / Fontanería / Ventilador…" /></SelectTrigger>
+            <SelectContent>
+              {TIPO_SERVICIO_OPCIONES.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+            </SelectContent>
+          </Select>
         </Field>
 
         <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
@@ -176,6 +171,7 @@ function NuevoServicio() {
             <Field label="Nombre *"><Input required value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Juan Pérez" /></Field>
             <Field label="Teléfono"><Input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+34 600 000 000" /></Field>
           </div>
+          <Field label="Referencia (opcional)"><Input value={form.referencia} onChange={(e) => set("referencia", e.target.value)} placeholder="Nº pedido o interno" /></Field>
           <Field label="Dirección *"><Input required value={form.direccion} onChange={(e) => set("direccion", e.target.value)} placeholder="Calle Mayor 12" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Código postal"><Input value={form.codigo_postal} onChange={(e) => set("codigo_postal", e.target.value)} placeholder="28001" /></Field>

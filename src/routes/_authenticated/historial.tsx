@@ -47,10 +47,10 @@ function Historial() {
     queryKey: ["jobs", "historial"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .order("fecha", { ascending: false })
-        .order("hora", { ascending: false });
+        .order("hora_programada", { ascending: false });
       if (error) throw error;
       return data as Job[];
     },
@@ -64,7 +64,7 @@ function Historial() {
       if (estado !== "todos" && j.estado !== estado) return false;
       if (cliente && !j.cliente.toLowerCase().includes(cliente.toLowerCase())) return false;
       if (ciudad && !(j.ciudad ?? "").toLowerCase().includes(ciudad.toLowerCase())) return false;
-      if (tipo && !(j.servicio ?? "").toLowerCase().includes(tipo.toLowerCase())) return false;
+      if (tipo && !(j.tipo_servicio ?? "").toLowerCase().includes(tipo.toLowerCase())) return false;
       return true;
     });
   }, [data, range, estado, cliente, ciudad, tipo]);

@@ -18,10 +18,10 @@ function Ganancias() {
     queryKey: ["jobs", "realizados", "all"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .eq("estado", "realizado")
-        .order("finalizado_at", { ascending: false });
+        .order("hora_fin", { ascending: false });
       if (error) throw error;
       return data as Job[];
     },
@@ -42,9 +42,9 @@ function Ganancias() {
 
   const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
 
-  const hoy = jobs.filter((j) => j.finalizado_at?.slice(0, 10) === today);
-  const semana = jobs.filter((j) => j.finalizado_at && j.finalizado_at >= weekStart);
-  const mes = jobs.filter((j) => j.finalizado_at && j.finalizado_at >= monthStart);
+  const hoy = jobs.filter((j) => j.hora_fin?.slice(0, 10) === today);
+  const semana = jobs.filter((j) => j.hora_fin && j.hora_fin >= weekStart);
+  const mes = jobs.filter((j) => j.hora_fin && j.hora_fin >= monthStart);
 
   return (
     <AppShell title="Ganancias">
@@ -70,7 +70,7 @@ function Ganancias() {
                     <th className="px-3 py-2 text-left">Fecha</th>
                     <th className="px-3 py-2 text-left">Cliente</th>
                     <th className="px-3 py-2 text-right">Importe</th>
-                    <th className="px-3 py-2 text-right">Cant.</th>
+                    <th className="px-3 py-2 text-right">Llegada</th>
                     <th className="px-3 py-2 text-right">Total</th>
                   </tr>
                 </thead>
@@ -78,11 +78,11 @@ function Ganancias() {
                   {jobs.slice(0, 30).map((j) => (
                     <tr key={j.id} className="border-t">
                       <td className="px-3 py-2 text-muted-foreground">
-                        {j.finalizado_at?.slice(0, 10) ?? j.fecha}
+                        {j.hora_fin?.slice(0, 10) ?? j.fecha}
                       </td>
                       <td className="px-3 py-2">{j.cliente}</td>
                       <td className="px-3 py-2 text-right">{formatEUR(j.importe)}</td>
-                      <td className="px-3 py-2 text-right">{j.cantidad}</td>
+                      <td className="px-3 py-2 text-right">{formatEUR(j.precio_llegada)}</td>
                       <td className="px-3 py-2 text-right font-semibold">
                         {formatEUR(jobTotal(j))}
                       </td>

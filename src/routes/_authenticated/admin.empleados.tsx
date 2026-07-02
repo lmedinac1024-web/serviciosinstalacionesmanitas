@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Key, Euro } from "lucide-react";
+import { Plus, Trash2, Key } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { adminCreateEmployee, adminResetPassword, adminDeleteEmployee } from "@/lib/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,15 +16,12 @@ import { useServerFn } from "@tanstack/react-start";
 export const Route = createFileRoute("/_authenticated/admin/empleados")({ component: AdminEmpleados });
 
 type Profile = { user_id: string; username: string; display_name: string | null };
-type Servicio = { id: string; nombre: string };
-type Tarifa = { id: string; empleado_id: string; servicio_id: string; precio: number };
 
 function AdminEmpleados() {
   const { data: me, isLoading } = useUserRole();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState<Profile | null>(null);
-  const [tarifasOpen, setTarifasOpen] = useState<Profile | null>(null);
   const createFn = useServerFn(adminCreateEmployee);
   const resetFn = useServerFn(adminResetPassword);
   const deleteFn = useServerFn(adminDeleteEmployee);
@@ -72,9 +69,6 @@ function AdminEmpleados() {
                   <div className="text-xs text-muted-foreground">@{p.username}</div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="outline" size="sm" onClick={() => setTarifasOpen(p)}>
-                    <Euro className="mr-1 h-3.5 w-3.5" /> Tarifas
-                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => setPwOpen(p)}>
                     <Key className="h-4 w-4" />
                   </Button>
@@ -113,7 +107,6 @@ function AdminEmpleados() {
           }}
         />
 
-        <TarifasDialog profile={tarifasOpen} onOpenChange={(v) => !v && setTarifasOpen(null)} />
       </div>
     </AppShell>
   );
@@ -157,79 +150,3 @@ function PasswordDialog({ profile, onOpenChange, onSave }: { profile: Profile | 
   );
 }
 
-function TarifasDialog({ profile, onOpenChange }: { profile: Profile | null; onOpenChange: (v: boolean) => void }) {
-  const qc = useQueryClient();
-  const enabled = !!profile;
-  const { data: servicios = [] } = useQuery({
-    queryKey: ["servicios"],
-    enabled,
-    queryFn: async () => {
-      const { data } = await supabase.from("servicios").select("id, nombre").order("nombre");
-      return (data ?? []) as Servicio[];
-    },
-  });
-  const { data: tarifas = [] } = useQuery({
-    queryKey: ["tarifas", profile?.user_id],
-    enabled,
-    queryFn: async () => {
-      const { data } = await supabase.from("tarifas_empleado").select("*").eq("empleado_id", profile!.user_id);
-      return (data ?? []) as Tarifa[];
-    },
-  });
-
-  const [values, setValues] = useState<Record<string, string>>({});
-
-  async function guardar(servicioId: string) {
-    if (!profile) return;
-    const precio = Number(values[servicioId] ?? "");
-    if (isNaN(precio) || precio < 0) return toast.error("Precio inválido");
-    const existing = tarifas.find((t) => t.servicio_id === servicioId);
-    const { error } = existing
-      ? await supabase.from("tarifas_empleado").update({ precio }).eq("id", existing.id)
-      : await supabase.from("tarifas_empleado").insert({ empleado_id: profile.user_id, servicio_id: servicioId, precio });
-    if (error) return toast.error(error.message);
-    toast.success("Tarifa guardada");
-    qc.invalidateQueries({ queryKey: ["tarifas", profile.user_id] });
-    setValues((v) => ({ ...v, [servicioId]: "" }));
-  }
-
-  return (
-    <Dialog open={!!profile} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Tarifas de {profile?.display_name || profile?.username}</DialogTitle></DialogHeader>
-        {servicios.length === 0 ? (
-          <div className="text-sm text-muted-foreground">Primero crea servicios.</div>
-        ) : (
-          <div className="max-h-96 space-y-2 overflow-y-auto">
-            {servicios.map((s) => {
-              const current = tarifas.find((t) => t.servicio_id === s.id);
-              return (
-                <div key={s.id} className="flex items-center gap-2 rounded border p-2">
-                  <div className="flex-1 text-sm">
-                    <div className="font-medium">{s.nombre}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Actual: {current ? `${Number(current.precio).toFixed(2)} €` : "sin tarifa"}
-                    </div>
-                  </div>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="w-24"
-                    placeholder="€"
-                    value={values[s.id] ?? ""}
-                    onChange={(e) => setValues((v) => ({ ...v, [s.id]: e.target.value }))}
-                  />
-                  <Button size="sm" onClick={() => guardar(s.id)}>OK</Button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

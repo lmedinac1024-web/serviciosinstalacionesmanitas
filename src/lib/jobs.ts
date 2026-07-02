@@ -1,17 +1,17 @@
 import type { Database } from "@/integrations/supabase/types";
 
-export type Job = Database["public"]["Tables"]["jobs"]["Row"];
-export type JobInsert = Database["public"]["Tables"]["jobs"]["Insert"];
+export type Job = Database["public"]["Tables"]["servicios"]["Row"];
+export type JobInsert = Database["public"]["Tables"]["servicios"]["Insert"];
 export type JobStatus = Database["public"]["Enums"]["job_status"];
 
 export const STATUS_LABELS: Record<JobStatus, string> = {
   pendiente: "Pendiente",
-  en_proceso: "En proceso",
+  en_proceso: "En curso",
   realizado: "Realizado",
   cancelado_cliente: "Cancelado por cliente",
   cancelado_no_estaba: "No estaba en casa",
   cancelado_direccion: "Dirección incorrecta",
-  cancelado_otro: "Cancelado (otro motivo)",
+  cancelado_otro: "Cancelado",
 };
 
 export const CANCEL_REASONS: { value: JobStatus; label: string }[] = [
@@ -20,6 +20,12 @@ export const CANCEL_REASONS: { value: JobStatus; label: string }[] = [
   { value: "cancelado_direccion", label: "Dirección incorrecta" },
   { value: "cancelado_otro", label: "Otro motivo" },
 ];
+
+export const TIPO_SERVICIO_OPCIONES = [
+  "Manitas",
+  "Fontanería",
+  "Instalación de Ventilador",
+] as const;
 
 export function statusColorClass(status: JobStatus): string {
   switch (status) {
@@ -43,9 +49,11 @@ export function cleanPhone(phone?: string | null): string {
   return (phone ?? "").replace(/[^\d+]/g, "");
 }
 
-export function whatsappUrl(phone?: string | null): string {
+export function whatsappUrl(phone?: string | null, message?: string): string {
   const p = cleanPhone(phone).replace(/^\+/, "");
-  return `https://wa.me/${p}`;
+  const base = `https://wa.me/${p}`;
+  if (message) return `${base}?text=${encodeURIComponent(message)}`;
+  return base;
 }
 
 export function telUrl(phone?: string | null): string {
@@ -57,7 +65,7 @@ export function formatEUR(n: number | string | null | undefined): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(v ?? 0);
 }
 
-export function jobTotal(j: Pick<Job, "importe" | "cantidad" | "total">): number {
-  if (j.total != null) return Number(j.total);
-  return Number(j.importe ?? 0) * Number(j.cantidad ?? 1);
+export function jobTotal(j: Pick<Job, "ganancia" | "importe" | "precio_llegada">): number {
+  if (j.ganancia != null) return Number(j.ganancia);
+  return Number(j.importe ?? 0) + Number(j.precio_llegada ?? 0);
 }

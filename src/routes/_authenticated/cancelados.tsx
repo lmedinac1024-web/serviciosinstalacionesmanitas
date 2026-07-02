@@ -14,7 +14,7 @@ function Cancelados() {
     queryKey: ["jobs", "cancelados"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .in("estado", [
           "cancelado_cliente",
