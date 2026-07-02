@@ -75,6 +75,7 @@ function Detalle() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
   const [checkingGps, setCheckingGps] = useState(false);
+  const [importeFinal, setImporteFinal] = useState<string>("");
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -293,6 +294,10 @@ function Detalle() {
             gps_final_lat: gpsMeta?.lat ?? null,
             gps_final_lng: gpsMeta?.lng ?? null,
           };
+          if (me?.isAdmin && importeFinal.trim() !== "") {
+            const n = Number(importeFinal);
+            if (!Number.isNaN(n) && n >= 0) patch.importe = n;
+          }
         } else {
           patch = {
             foto_cancelacion: path,
@@ -429,15 +434,30 @@ function Detalle() {
               </Button>
             )}
             {canFinish && (
-              <Button
-                size="lg"
-                className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                onClick={handleFinishTap}
-                disabled={working || checkingGps}
-              >
-                <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
-                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-              </Button>
+              <>
+                {me?.isAdmin && (
+                  <div className="rounded-md border bg-card p-3">
+                    <label className="text-xs font-medium">Importe final (€) — opcional (admin)</label>
+                    <input
+                      type="number" step="0.01" min="0"
+                      value={importeFinal}
+                      onChange={(e) => setImporteFinal(e.target.value)}
+                      placeholder={String(job.importe ?? 0)}
+                      className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    />
+                    <div className="mt-1 text-[11px] text-muted-foreground">Si lo dejas vacío se mantiene el importe actual ({formatEUR(job.importe)}).</div>
+                  </div>
+                )}
+                <Button
+                  size="lg"
+                  className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
+                  onClick={handleFinishTap}
+                  disabled={working || checkingGps}
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
+                  {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+                </Button>
+              </>
             )}
             <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (!v) { setCancelReason(null); setCancelExtra(""); } }}>
               <DialogTrigger asChild>
