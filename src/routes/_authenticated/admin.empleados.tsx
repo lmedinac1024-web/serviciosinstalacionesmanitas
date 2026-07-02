@@ -22,7 +22,6 @@ function AdminEmpleados() {
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState<Profile | null>(null);
-  const [tarifasOpen, setTarifasOpen] = useState<Profile | null>(null);
   const createFn = useServerFn(adminCreateEmployee);
   const resetFn = useServerFn(adminResetPassword);
   const deleteFn = useServerFn(adminDeleteEmployee);
