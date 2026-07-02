@@ -340,31 +340,64 @@ function Detalle() {
         {/* Destino Telegram picker */}
         <Dialog open={!!destOpen} onOpenChange={(v) => { if (!v) { setDestOpen(null); setPendingFile(null); } }}>
           <DialogContent>
-            <DialogHeader><DialogTitle>¿A quién enviar por Telegram?</DialogTitle></DialogHeader>
-            <div className="space-y-2">
-              {destinos.map((d) => (
-                <label key={d.id} className="flex cursor-pointer items-center gap-3 rounded border p-3">
-                  <Checkbox
-                    checked={selectedDest.includes(d.id)}
-                    onCheckedChange={(v) => setSelectedDest((s) => v ? [...s, d.id] : s.filter((x) => x !== d.id))}
-                  />
-                  <span>{d.nombre}</span>
-                </label>
-              ))}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, [])}>
+            <DialogHeader>
+              <DialogTitle>
+                {destOpen === "inicio" ? "Enviar foto de inicio" : "Enviar foto final"}
+              </DialogTitle>
+            </DialogHeader>
+            {destinosDisponibles.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                No tienes destinos Telegram permitidos. Puedes guardar sin enviar o configurarlos en <b>Ajustes</b>.
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{selectedDest.length} de {destinosDisponibles.length} seleccionados</span>
+                  <div className="flex gap-3">
+                    <button type="button" className="underline"
+                      onClick={() => setSelectedDest(destinosDisponibles.map((d) => d.id))}>Todos</button>
+                    <button type="button" className="underline"
+                      onClick={() => setSelectedDest([])}>Ninguno</button>
+                    {favoritosIds.length > 0 && (
+                      <button type="button" className="underline"
+                        onClick={() => setSelectedDest(favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id)))}>
+                        Solo favoritos
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="max-h-72 space-y-2 overflow-y-auto">
+                  {destinosDisponibles.map((d) => {
+                    const isFav = favoritosIds.includes(d.id);
+                    return (
+                      <label key={d.id} className="flex cursor-pointer items-center gap-3 rounded border p-3 hover:bg-accent">
+                        <Checkbox
+                          checked={selectedDest.includes(d.id)}
+                          onCheckedChange={(v) => setSelectedDest((s) => v ? [...s, d.id] : s.filter((x) => x !== d.id))}
+                        />
+                        <span className="flex-1">{d.nombre}</span>
+                        {isFav && <span className="text-yellow-500" title="Favorito">★</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" disabled={working}
+                onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, [])}>
                 Guardar sin enviar
               </Button>
               <Button
+                disabled={working || selectedDest.length === 0}
                 onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, selectedDest)}
-                disabled={selectedDest.length === 0}
               >
-                Enviar a {selectedDest.length || ""}
+                Enviar {selectedDest.length > 0 && `(${selectedDest.length})`}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
 
         {job.observaciones && (
           <div className="rounded-xl border bg-card p-5">
