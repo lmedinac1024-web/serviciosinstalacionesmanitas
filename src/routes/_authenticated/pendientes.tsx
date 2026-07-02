@@ -45,9 +45,9 @@ function Pendientes() {
         .from("servicios")
         .update({
           estado: "realizado",
-          llegada_validada: true,
+          direccion_validada_llegada: true,
           hora_llegada: job.hora_llegada ?? new Date().toISOString(),
-          hora_final: new Date().toISOString(),
+          hora_fin: new Date().toISOString(),
         })
         .eq("id", job.id);
       if (error) throw error;
