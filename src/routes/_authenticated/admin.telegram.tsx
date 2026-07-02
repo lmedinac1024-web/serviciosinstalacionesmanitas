@@ -190,16 +190,52 @@ function AdminTelegram() {
             <DialogHeader>
               <DialogTitle>{editing ? "Editar destino Telegram" : "Nuevo destino Telegram"}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={guardar} className="space-y-3">
+            <form onSubmit={guardar} noValidate className="space-y-3">
               <div>
-                <Label>Nombre *</Label>
-                <Input required placeholder="Admin" value={form.nombre}
-                  onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+                <Label htmlFor="dest-nombre">Nombre *</Label>
+                <Input
+                  id="dest-nombre"
+                  placeholder="Admin"
+                  maxLength={60}
+                  value={form.nombre}
+                  aria-invalid={!!errors.nombre}
+                  onChange={(e) => {
+                    setForm({ ...form, nombre: e.target.value });
+                    if (errors.nombre) setErrors((x) => ({ ...x, nombre: undefined }));
+                  }}
+                />
+                {errors.nombre && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5" /> {errors.nombre}
+                  </p>
+                )}
               </div>
               <div>
-                <Label>Chat ID *</Label>
-                <Input required placeholder="123456789" value={form.chat_id}
-                  onChange={(e) => setForm({ ...form, chat_id: e.target.value })} />
+                <Label htmlFor="dest-chatid">Chat ID *</Label>
+                <Input
+                  id="dest-chatid"
+                  placeholder="123456789 o @canal"
+                  maxLength={40}
+                  inputMode="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={form.chat_id}
+                  aria-invalid={!!errors.chat_id}
+                  onChange={(e) => {
+                    setForm({ ...form, chat_id: e.target.value });
+                    if (errors.chat_id) setErrors((x) => ({ ...x, chat_id: undefined }));
+                  }}
+                />
+                {errors.chat_id ? (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5" /> {errors.chat_id}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Solo números (usuario/grupo) o @usuario de canal público.
+                  </p>
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
