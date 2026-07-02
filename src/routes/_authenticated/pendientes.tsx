@@ -71,7 +71,7 @@ function Pendientes() {
 
   const counts = {
     pendientes: data.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").length,
-    realizados: data.filter((j) => j.estado === "realizado" || j.estado === "cancelado").length,
+    realizados: data.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado")).length,
     todos: data.length,
   };
 
