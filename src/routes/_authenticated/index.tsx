@@ -28,9 +28,9 @@ function todayStr(): string {
 
 function Dashboard() {
   const { data: me } = useUserRole();
-  const isAdmin = me?.role === "admin";
+  const isAdmin = me?.isAdmin;
 
-  const { data: jobs = [], isLoading } = useQuery({
+  const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "all"],
     queryFn: async () => {
       const { data, error } = await supabase.from('servicios').select("*")
@@ -39,6 +39,9 @@ function Dashboard() {
       return data as Job[];
     },
   });
+
+  // Excluir servicios anulados (soft-deleted) de todas las métricas y listados.
+  const jobs = allJobs.filter((j) => !j.eliminado_logico);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["all-profiles"],
@@ -53,17 +56,21 @@ function Dashboard() {
   const weekStart = startOfWeekISO();
   const monthStart = startOfMonthISO();
 
+  // Un servicio "paga" cuando está realizado o cancelado por el trabajador (y no anulado).
+  const pagados = jobs.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
   const realizados = jobs.filter((j) => j.estado === "realizado");
+
   const pendientesHoy = jobs.filter((j) => j.fecha === today && j.estado === "pendiente");
   const realizadosHoy = realizados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
   const canceladosHoy = jobs.filter((j) => j.fecha === today && j.estado.startsWith("cancelado"));
   const enProcesoHoy = jobs.filter((j) => j.fecha === today && j.estado === "en_proceso");
 
   const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
-  const ganadoHoy = sum(realizadosHoy);
-  const ganadoSemana = sum(realizados.filter((j) => j.hora_fin && j.hora_fin >= weekStart));
-  const ganadoMes = sum(realizados.filter((j) => j.hora_fin && j.hora_fin >= monthStart));
-  const totalAcumulado = sum(realizados);
+  const pagadosHoy = pagados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
+  const ganadoHoy = sum(pagadosHoy);
+  const ganadoSemana = sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= weekStart));
+  const ganadoMes = sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= monthStart));
+  const totalAcumulado = sum(pagados);
 
   const proximos = jobs.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").slice(0, 5);
 
@@ -75,7 +82,7 @@ function Dashboard() {
   };
   const ranking = isAdmin
     ? Object.entries(
-        realizados.reduce<Record<string, { ganado: number; count: number }>>((acc, j) => {
+        pagados.reduce<Record<string, { ganado: number; count: number }>>((acc, j) => {
           const key = j.empleado_id ?? j.user_id;
           if (!key) return acc;
           if (!acc[key]) acc[key] = { ganado: 0, count: 0 };
@@ -88,8 +95,10 @@ function Dashboard() {
         .sort((a, b) => b.ganado - a.ganado)
     : [];
 
+  const headerTitle = me?.displayName || me?.username || (isAdmin ? "Panel" : "Mi panel");
+
   return (
-    <AppShell title={isAdmin ? "Panel de control" : "Mi panel"}>
+    <AppShell title={headerTitle}>
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (

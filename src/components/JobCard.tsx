@@ -39,7 +39,7 @@ export function JobCard({ job }: { job: Job }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-2">
-          <StatusBadge status={job.estado} />
+          <StatusBadge status={job.estado} voided={!!job.eliminado_logico} />
           <div className="text-right">
             <div className="text-base font-bold">{formatEUR(jobTotal(job))}</div>
             {Number(job.precio_llegada ?? 0) > 0 && (

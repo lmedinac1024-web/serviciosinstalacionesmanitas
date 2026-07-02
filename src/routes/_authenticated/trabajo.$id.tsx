@@ -67,8 +67,8 @@ function Detalle() {
   const finalInput = useRef<HTMLInputElement>(null);
   const cancelInput = useRef<HTMLInputElement>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelMotivoStatus, setCancelMotivoStatus] = useState<JobStatus | null>(null);
-  const [cancelMotivoText, setCancelMotivoText] = useState("");
+  const [cancelReason, setCancelReason] = useState<string | null>(null);
+  const [cancelExtra, setCancelExtra] = useState("");
   const [working, setWorking] = useState(false);
   const [destOpen, setDestOpen] = useState<Fase | null>(null);
   const [selectedDest, setSelectedDest] = useState<string[]>([]);
@@ -207,9 +207,7 @@ function Detalle() {
   }
 
   async function handleCancelConfirm() {
-    if (!cancelMotivoStatus) { toast.error("Selecciona un motivo"); return; }
-    const texto = cancelMotivoText.trim() || STATUS_LABELS[cancelMotivoStatus];
-    if (!texto) { toast.error("Escribe un motivo"); return; }
+    if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
     setCheckingGps(true);
     try {
       const meta = await captureGps(false);
@@ -241,14 +239,15 @@ function Detalle() {
       if (!userId) throw new Error("No autenticado");
 
       const now = new Date().toISOString();
+      const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivoFinal =
         fase === "cancel"
-          ? (cancelMotivoText.trim() || (cancelMotivoStatus ? STATUS_LABELS[cancelMotivoStatus] : "Cancelado"))
+          ? [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ")
           : null;
       const nextEstado: JobStatus =
         fase === "inicio" ? "en_proceso"
         : fase === "final" ? "realizado"
-        : (cancelMotivoStatus ?? "cancelado_otro");
+        : (reasonEntry?.status ?? "cancelado_otro");
 
       if (!online) {
         await enqueueOffline({
@@ -262,7 +261,7 @@ function Detalle() {
           arrivalLng: gpsMeta?.lng,
           arrivalDistanceM: gpsMeta?.distanceM ?? null,
           arrivalValidated: gpsMeta?.validated ?? false,
-          motivo: fase === "cancel" && cancelMotivoStatus ? `${cancelMotivoStatus}|${motivoFinal}` : undefined,
+          motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
         });
         qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
           old ? {
@@ -317,7 +316,7 @@ function Detalle() {
       setPendingFile(null);
       setDestOpen(null);
       setGpsMeta(null);
-      if (fase === "cancel") { setCancelMotivoStatus(null); setCancelMotivoText(""); }
+      if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
     }
   }
 
@@ -339,13 +338,13 @@ function Detalle() {
               <h2 className="mt-1 text-xl font-bold">{job.cliente}</h2>
               {job.tipo_servicio && <div className="text-sm text-muted-foreground">{job.tipo_servicio}</div>}
               {job.referencia && <div className="text-xs text-muted-foreground">Ref: {job.referencia}</div>}
-              {me?.role === "admin" && empleado && (
+              {me?.isAdmin && empleado && (
                 <div className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
                   <User className="h-3 w-3" /> {empleado.display_name || empleado.username}
                 </div>
               )}
             </div>
-            <StatusBadge status={job.estado} />
+            <StatusBadge status={job.estado} voided={!!job.eliminado_logico} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
@@ -419,7 +418,7 @@ function Detalle() {
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
-            <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (!v) { setCancelMotivoStatus(null); setCancelMotivoText(""); } }}>
+            <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (!v) { setCancelReason(null); setCancelExtra(""); } }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-12 w-full text-destructive" disabled={working}>
                   <XCircle className="mr-2 h-4 w-4" /> Cancelar trabajo
@@ -432,10 +431,10 @@ function Detalle() {
                     <div className="mb-1.5 text-xs font-medium">Motivo *</div>
                     <div className="grid grid-cols-2 gap-2">
                       {CANCEL_REASONS.map((r) => (
-                        <Button key={r.value}
-                          variant={cancelMotivoStatus === r.value ? "default" : "outline"}
+                        <Button key={r.label}
+                          variant={cancelReason === r.label ? "default" : "outline"}
                           className="h-10 justify-start text-xs"
-                          onClick={() => setCancelMotivoStatus(r.value)}>
+                          onClick={() => setCancelReason(r.label)}>
                           {r.label}
                         </Button>
                       ))}
@@ -444,14 +443,14 @@ function Detalle() {
                   <div>
                     <div className="mb-1.5 text-xs font-medium">Comentario adicional</div>
                     <Textarea
-                      value={cancelMotivoText}
-                      onChange={(e) => setCancelMotivoText(e.target.value)}
+                      value={cancelExtra}
+                      onChange={(e) => setCancelExtra(e.target.value)}
                       placeholder="Detalles (opcional)"
                       rows={2}
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b> y se guardará tu <b>ubicación GPS</b>.
+                    Al continuar te pediremos una <b>foto obligatoria</b> y se guardará tu <b>ubicación GPS</b>. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
                   </div>
                 </div>
                 <DialogFooter>
@@ -459,7 +458,7 @@ function Detalle() {
                   <Button
                     variant="destructive"
                     onClick={handleCancelConfirm}
-                    disabled={!cancelMotivoStatus || checkingGps}>
+                    disabled={!cancelReason || checkingGps}>
                     {checkingGps ? "Ubicación..." : "Continuar y tomar foto"}
                   </Button>
                 </DialogFooter>
@@ -557,8 +556,12 @@ function Detalle() {
           <PhotoBox title="Foto cancel." url={fotoCancelUrl} />
         </div>
 
-        {me?.role === "admin" && (
-          <AdminOverride job={job} onSaved={() => qc.invalidateQueries({ queryKey: ["jobs"] })} />
+        {me?.isAdmin && (
+          <AdminOverride
+            job={job}
+            isSuperAdmin={!!me?.isSuperAdmin}
+            onSaved={() => qc.invalidateQueries({ queryKey: ["jobs"] })}
+          />
         )}
 
         <Button variant="ghost" onClick={() => navigate({ to: "/" })}>← Volver</Button>
@@ -567,7 +570,11 @@ function Detalle() {
   );
 }
 
-function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
+function AdminOverride({
+  job,
+  isSuperAdmin,
+  onSaved,
+}: { job: Job; isSuperAdmin: boolean; onSaved: () => void }) {
   const [estado, setEstado] = useState<JobStatus>(job.estado);
   const [validada, setValidada] = useState<boolean>(job.direccion_validada_llegada);
   const [importe, setImporte] = useState<string>(String(job.importe ?? 0));
@@ -575,6 +582,12 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
   const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
   const [fecha, setFecha] = useState<string>(job.fecha);
   const [saving, setSaving] = useState(false);
+
+  // Anular
+  const [anularOpen, setAnularOpen] = useState(false);
+  const [motivoAnul, setMotivoAnul] = useState("");
+  const [anulando, setAnulando] = useState(false);
+  const isVoided = !!job.eliminado_logico;
 
   const cancelled = estado.startsWith("cancelado");
 
@@ -601,6 +614,59 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
     }
   }
 
+  async function anular() {
+    if (!motivoAnul.trim()) { toast.error("Motivo obligatorio"); return; }
+    setAnulando(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      const { error } = await supabase.from('servicios').update({
+        eliminado_logico: true,
+        motivo_anulacion: motivoAnul.trim(),
+        anulado_por: uid,
+        fecha_anulacion: new Date().toISOString(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any).eq("id", job.id);
+      if (error) throw error;
+      toast.success("Servicio anulado (no suma ganancia)");
+      setAnularOpen(false);
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al anular");
+    } finally { setAnulando(false); }
+  }
+
+  async function restaurar() {
+    setAnulando(true);
+    try {
+      const { error } = await supabase.from('servicios').update({
+        eliminado_logico: false,
+        motivo_anulacion: null,
+        anulado_por: null,
+        fecha_anulacion: null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any).eq("id", job.id);
+      if (error) throw error;
+      toast.success("Servicio restaurado");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al restaurar");
+    } finally { setAnulando(false); }
+  }
+
+  async function eliminarDefinitivo() {
+    if (!confirm("⚠️ ELIMINAR DEFINITIVAMENTE este servicio? Esta acción es irreversible.")) return;
+    setAnulando(true);
+    try {
+      const { error } = await supabase.from('servicios').delete().eq("id", job.id);
+      if (error) throw error;
+      toast.success("Servicio eliminado definitivamente");
+      window.history.back();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar");
+    } finally { setAnulando(false); }
+  }
+
   return (
     <div className="rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-5 space-y-3">
       <div>
@@ -609,6 +675,15 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
           Edita servicios pasados sin GPS ni foto. Marca la llegada como validada para que el empleado cobre.
         </div>
       </div>
+
+      {isVoided && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+          <div className="font-medium text-destructive">Servicio ANULADO</div>
+          {job.motivo_anulacion && <div className="text-xs mt-1">Motivo: {job.motivo_anulacion}</div>}
+          {job.fecha_anulacion && <div className="text-xs text-muted-foreground">Fecha: {new Date(job.fecha_anulacion).toLocaleString()}</div>}
+          <div className="text-xs text-muted-foreground mt-1">No suma ganancia. Sigue visible en historial admin.</div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -662,6 +737,48 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
       <Button onClick={save} disabled={saving} className="w-full">
         {saving ? "Guardando..." : "Guardar cambios (admin)"}
       </Button>
+
+      <div className="border-t pt-3 space-y-2">
+        <div className="text-[11px] uppercase tracking-wider text-destructive font-semibold">Zona sensible</div>
+        {!isVoided ? (
+          <Dialog open={anularOpen} onOpenChange={setAnularOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full text-destructive border-destructive/40">
+                Anular servicio (no suma ganancia)
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Anular servicio</DialogTitle></DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="rounded-md bg-muted p-2 text-xs">
+                  Marca este servicio como <b>Anulado</b>. No sumará ganancia, desaparecerá de los pendientes del trabajador y quedará registrado con motivo y responsable.
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Motivo de anulación *</label>
+                  <Textarea value={motivoAnul} onChange={(e) => setMotivoAnul(e.target.value)}
+                    placeholder="Ej: Duplicado, creado por error, cliente inexistente..." rows={3} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAnularOpen(false)}>Volver</Button>
+                <Button variant="destructive" onClick={anular} disabled={anulando || !motivoAnul.trim()}>
+                  {anulando ? "Anulando..." : "Anular"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Button variant="outline" onClick={restaurar} disabled={anulando} className="w-full">
+            {anulando ? "..." : "Restaurar servicio"}
+          </Button>
+        )}
+
+        {isSuperAdmin && (
+          <Button variant="destructive" onClick={eliminarDefinitivo} disabled={anulando} className="w-full">
+            ⚠️ Eliminar definitivamente (Super Admin)
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

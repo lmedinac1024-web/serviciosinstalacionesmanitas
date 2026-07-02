@@ -57,7 +57,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: me } = useUserRole();
   const navigate = useNavigate();
-  const isAdmin = me?.role === "admin";
+  const isAdmin = me?.isAdmin;
   const NAV = isAdmin ? NAV_ADMIN : NAV_EMPLEADO;
 
   async function handleSignOut() {
@@ -137,8 +137,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-3 md:px-6">
             <div>
-              <h1 className="text-base font-semibold md:text-lg">{title ?? "Mis Trabajos"}</h1>
-              {isAdmin && <div className="text-[10px] uppercase tracking-wider text-primary">Admin</div>}
+              <h1 className="text-base font-semibold md:text-lg">
+                {title ?? (me?.displayName || me?.username || "Mi panel")}
+              </h1>
+              {isAdmin && <div className="text-[10px] uppercase tracking-wider text-primary">{me?.isSuperAdmin ? "Super Admin" : "Admin"}</div>}
             </div>
             {isAdmin && (
               <Link
