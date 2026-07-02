@@ -40,6 +40,8 @@ function NuevoServicio() {
     telefono: "",
     referencia: "",
     direccion: "",
+    piso: "",
+    puerta: "",
     codigo_postal: "",
     ciudad: "",
     observaciones: "",
