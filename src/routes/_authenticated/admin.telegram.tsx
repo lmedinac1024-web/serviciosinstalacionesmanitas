@@ -262,11 +262,22 @@ function AdminTelegram() {
                   </p>
                 )}
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "..." : editing ? "Guardar cambios" : "Añadir"}
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={probar}
+                  disabled={testing || !form.chat_id.trim()}
+                >
+                  <Send className="mr-1.5 h-4 w-4" />
+                  {testing ? "Enviando..." : "Probar envío"}
                 </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "..." : editing ? "Guardar cambios" : "Añadir"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </DialogContent>
