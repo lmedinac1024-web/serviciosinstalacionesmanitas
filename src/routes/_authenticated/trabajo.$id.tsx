@@ -15,7 +15,7 @@ import {
   Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, Navigation,
 } from "lucide-react";
 import {
-  CANCEL_REASONS, STATUS_LABELS, formatEUR, googleMapsUrl, isCancelled,
+  CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
   jobTotal, telUrl, whatsappUrl, type Job, type JobStatus,
 } from "@/lib/jobs";
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
