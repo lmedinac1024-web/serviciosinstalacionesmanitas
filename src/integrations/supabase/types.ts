@@ -302,6 +302,8 @@ export type Database = {
         Row: {
           telegram_chat_id: string | null
           telegram_destino_default_id: string | null
+          telegram_destinos_favoritos: string[]
+          telegram_destinos_permitidos: string[]
           updated_at: string
           user_id: string
           username: string | null
@@ -309,6 +311,8 @@ export type Database = {
         Insert: {
           telegram_chat_id?: string | null
           telegram_destino_default_id?: string | null
+          telegram_destinos_favoritos?: string[]
+          telegram_destinos_permitidos?: string[]
           updated_at?: string
           user_id: string
           username?: string | null
@@ -316,6 +320,8 @@ export type Database = {
         Update: {
           telegram_chat_id?: string | null
           telegram_destino_default_id?: string | null
+          telegram_destinos_favoritos?: string[]
+          telegram_destinos_permitidos?: string[]
           updated_at?: string
           user_id?: string
           username?: string | null
