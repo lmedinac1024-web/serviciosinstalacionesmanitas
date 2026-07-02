@@ -86,12 +86,20 @@ function Detalle() {
   });
 
   const { data: userSettings } = useQuery({
-    queryKey: ["user-settings-default"],
+    queryKey: ["user-settings-destinos"],
     queryFn: async () => {
-      const { data } = await supabase.from("user_settings").select("telegram_destino_default_id").maybeSingle();
+      const { data } = await supabase.from("user_settings")
+        .select("telegram_destinos_permitidos, telegram_destinos_favoritos, telegram_destino_default_id")
+        .maybeSingle();
       return data;
     },
   });
+
+  const permitidosIds: string[] = (userSettings?.telegram_destinos_permitidos as string[] | null) ?? [];
+  const favoritosIds: string[] = (userSettings?.telegram_destinos_favoritos as string[] | null) ?? [];
+  const destinosDisponibles = destinos.filter((d) =>
+    permitidosIds.length === 0 ? true : permitidosIds.includes(d.id),
+  );
 
   const { data: fotoInicioUrl } = useQuery({
     queryKey: ["photo", job?.foto_inicio], enabled: !!job?.foto_inicio,
@@ -123,16 +131,21 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: "inicio" | "final", file: File) {
-    // si hay más de un destino y no hay default, pedir selección
-    const hasDefault = !!userSettings?.telegram_destino_default_id;
-    if (destinos.length > 1 && !hasDefault) {
-      setPendingFile(file);
-      setSelectedDest([]);
-      setDestOpen(fase);
-      return;
-    }
-    await savePhotoAndNotify(fase, file, []);
+    // Siempre mostrar selector con checkboxes (favoritos premarcados)
+    setPendingFile(file);
+    // Preseleccionar favoritos que estén disponibles; si no hay, default_id; si tampoco, vacío
+    const pre = favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id));
+    const fallbackDefault = userSettings?.telegram_destino_default_id;
+    setSelectedDest(
+      pre.length > 0
+        ? pre
+        : fallbackDefault && destinosDisponibles.some((d) => d.id === fallbackDefault)
+          ? [fallbackDefault]
+          : [],
+    );
+    setDestOpen(fase);
   }
+
 
   async function savePhotoAndNotify(fase: "inicio" | "final", file: File, destinoIds: string[]) {
     setWorking(true);
