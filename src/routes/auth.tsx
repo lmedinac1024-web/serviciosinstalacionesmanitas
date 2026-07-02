@@ -94,9 +94,9 @@ function AuthPage() {
       <div className="w-full max-w-sm space-y-5 rounded-2xl border bg-card p-7 shadow-lg">
         <div className="flex flex-col items-center gap-3 text-center">
           <img
-            src="/logo-servihogar.png"
-            alt="ServiHogar"
-            className="h-16 w-auto"
+            src={logoAsset.url}
+            alt="Servicios de Manitas"
+            className="h-24 w-auto"
           />
           <div>
             <h1 className="text-2xl font-bold tracking-tight">ServiHogar</h1>
