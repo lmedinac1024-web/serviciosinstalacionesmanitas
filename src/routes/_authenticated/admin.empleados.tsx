@@ -69,9 +69,6 @@ function AdminEmpleados() {
                   <div className="text-xs text-muted-foreground">@{p.username}</div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="outline" size="sm" onClick={() => setTarifasOpen(p)}>
-                    <Euro className="mr-1 h-3.5 w-3.5" /> Tarifas
-                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => setPwOpen(p)}>
                     <Key className="h-4 w-4" />
                   </Button>
