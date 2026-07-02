@@ -297,9 +297,14 @@ function Detalle() {
             gps_final_lat: gpsMeta?.lat ?? null,
             gps_final_lng: gpsMeta?.lng ?? null,
           };
-          if (me?.isAdmin && importeFinal.trim() !== "") {
-            const n = Number(importeFinal);
-            if (!Number.isNaN(n) && n >= 0) patch.importe = n;
+          if (me?.isAdmin) {
+            if (importeFinal.trim() !== "") {
+              const n = Number(importeFinal);
+              if (!Number.isNaN(n) && n >= 0) patch.importe = n;
+            }
+            if (direccionFinal.trim() !== "") patch.direccion = direccionFinal.trim();
+            if (pisoFinal.trim() !== "") patch.piso = pisoFinal.trim();
+            if (puertaFinal.trim() !== "") patch.puerta = puertaFinal.trim();
           }
         } else {
           patch = {
