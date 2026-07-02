@@ -137,15 +137,42 @@ function Detalle() {
   async function savePhotoAndNotify(fase: "inicio" | "final", file: File, destinoIds: string[]) {
     setWorking(true);
     try {
-      const path = await uploadPhoto(job!.id, fase, file);
-      const patch: Partial<Job> = fase === "inicio"
-        ? { foto_inicio: path, estado: "en_proceso" }
-        : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
-      const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["jobs"] });
-      toast.success(fase === "inicio" ? "Trabajo iniciado" : "Trabajo finalizado");
-      void notifyTelegram(job!.id, fase, destinoIds);
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("No autenticado");
+
+      if (!online) {
+        // Encolar acción con foto persistente en IndexedDB
+        await enqueueOffline({
+          jobId: job!.id,
+          userId,
+          kind: fase,
+          destinoIds,
+          photo: file,
+          photoName: file.name,
+        });
+        // Actualización optimista del cache
+        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+          old ? {
+            ...old,
+            estado: fase === "inicio" ? "en_proceso" : "realizado",
+            finalizado_at: fase === "final" ? new Date().toISOString() : old.finalizado_at,
+          } : old,
+        );
+        toast.success(fase === "inicio"
+          ? "Guardado offline — se subirá al recuperar conexión"
+          : "Finalización guardada offline — se subirá al recuperar conexión");
+      } else {
+        const path = await uploadPhoto(job!.id, fase, file);
+        const patch: Partial<Job> = fase === "inicio"
+          ? { foto_inicio: path, estado: "en_proceso" }
+          : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
+        const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
+        if (error) throw error;
+        await qc.invalidateQueries({ queryKey: ["jobs"] });
+        toast.success(fase === "inicio" ? "Trabajo iniciado" : "Trabajo finalizado");
+        void notifyTelegram(job!.id, fase, destinoIds);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error subiendo foto");
     } finally {
@@ -158,11 +185,26 @@ function Detalle() {
   async function cancelar(motivo: JobStatus) {
     setWorking(true);
     try {
-      const { error } = await supabase.from("jobs")
-        .update({ estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] }).eq("id", job!.id);
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["jobs"] });
-      toast.success("Trabajo cancelado");
+      if (!online) {
+        await enqueueOffline({
+          jobId: job!.id,
+          userId: (await supabase.auth.getUser()).data.user?.id ?? "",
+          kind: "cancelar",
+          motivo: `${motivo}|${STATUS_LABELS[motivo]}`,
+        });
+        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+          old ? { ...old, estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] } : old,
+        );
+        toast.success("Cancelación guardada offline");
+      } else {
+        const { error } = await supabase.from("jobs")
+          .update({ estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] }).eq("id", job!.id);
+        if (error) throw error;
+        await qc.invalidateQueries({ queryKey: ["jobs"] });
+        toast.success("Trabajo cancelado");
+        // por si había algo encolado
+        void processQueue();
+      }
       setCancelOpen(false);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
     finally { setWorking(false); }
