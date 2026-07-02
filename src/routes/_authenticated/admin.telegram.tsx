@@ -1,6 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export const Route = createFileRoute("/_authenticated/admin/telegram")({ component: AdminTelegram });
+
+// Formato Chat ID Telegram:
+//  - Numérico: usuario (positivo), grupo (negativo), supergrupo/canal (-100…)
+//  - @username de canal público (5-32 chars, letras/números/_)
+const chatIdRegex = /^(-?\d{4,20}|@[A-Za-z][A-Za-z0-9_]{4,31})$/;
+
+const destinoSchema = z.object({
+  nombre: z
+    .string()
+    .trim()
+    .min(1, "El nombre es obligatorio")
+    .max(60, "Máximo 60 caracteres"),
+  chat_id: z
+    .string()
+    .trim()
+    .min(1, "El Chat ID es obligatorio")
+    .max(40, "Máximo 40 caracteres")
+    .regex(
+      chatIdRegex,
+      "Debe ser un número (ej. 123456789 o -1001234567890) o un @usuario de canal",
+    ),
+});
+
+type FormErrors = Partial<Record<"nombre" | "chat_id", string>>;
 
 type Destino = { id: string; nombre: string; chat_id: string; activo: boolean };
 
