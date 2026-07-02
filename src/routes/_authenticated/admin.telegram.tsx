@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertCircle, Send } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useServerFn } from "@tanstack/react-start";
+import { sendTelegramTestMessage } from "@/lib/telegram.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/telegram")({ component: AdminTelegram });
 
@@ -48,6 +50,29 @@ function AdminTelegram() {
   const [form, setForm] = useState({ nombre: "", chat_id: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const sendTest = useServerFn(sendTelegramTestMessage);
+
+  async function probar() {
+    // Validar chat_id sin exigir nombre para pruebas rápidas
+    const parsed = destinoSchema.shape.chat_id.safeParse(form.chat_id);
+    if (!parsed.success) {
+      setErrors((x) => ({ ...x, chat_id: parsed.error.issues[0]?.message ?? "Chat ID inválido" }));
+      toast.error("Chat ID inválido");
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await sendTest({ data: { chatId: parsed.data, nombre: form.nombre } });
+      if (res.ok) toast.success("Mensaje de prueba enviado ✅");
+      else if ("skipped" in res && res.skipped) toast.info("Telegram no conectado.");
+      else toast.error(`Error: ${"error" in res ? res.error : "desconocido"}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error enviando prueba");
+    } finally {
+      setTesting(false);
+    }
+  }
 
   const { data: destinos = [] } = useQuery({
     queryKey: ["telegram-destinos"],
@@ -170,6 +195,24 @@ function AdminTelegram() {
                   <div className="font-mono text-xs text-muted-foreground truncate">{d.chat_id}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      setTesting(true);
+                      try {
+                        const res = await sendTest({ data: { chatId: d.chat_id, nombre: d.nombre } });
+                        if (res.ok) toast.success(`Prueba enviada a ${d.nombre}`);
+                        else if ("skipped" in res && res.skipped) toast.info("Telegram no conectado.");
+                        else toast.error(`Error: ${"error" in res ? res.error : "desconocido"}`);
+                      } finally { setTesting(false); }
+                    }}
+                    disabled={testing || !d.activo}
+                    aria-label="Probar envío"
+                    title={d.activo ? "Enviar mensaje de prueba" : "Activa el destino para probar"}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                   <Button variant={d.activo ? "outline" : "secondary"} size="sm" onClick={() => toggle(d)}>
                     {d.activo ? "Desactivar" : "Activar"}
                   </Button>
@@ -237,11 +280,22 @@ function AdminTelegram() {
                   </p>
                 )}
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "..." : editing ? "Guardar cambios" : "Añadir"}
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={probar}
+                  disabled={testing || !form.chat_id.trim()}
+                >
+                  <Send className="mr-1.5 h-4 w-4" />
+                  {testing ? "Enviando..." : "Probar envío"}
                 </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "..." : editing ? "Guardar cambios" : "Añadir"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </DialogContent>
