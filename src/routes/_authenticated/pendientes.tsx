@@ -14,7 +14,7 @@ function Pendientes() {
     queryKey: ["jobs", "pendientes"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .in("estado", ["pendiente", "en_proceso"])
         .order("fecha", { ascending: true })

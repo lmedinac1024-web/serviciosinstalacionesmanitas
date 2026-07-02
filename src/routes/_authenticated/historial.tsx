@@ -47,7 +47,7 @@ function Historial() {
     queryKey: ["jobs", "historial"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .order("fecha", { ascending: false })
         .order("hora", { ascending: false });

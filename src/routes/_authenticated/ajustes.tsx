@@ -94,10 +94,10 @@ function Ajustes() {
   }
 
   async function exportCSV() {
-    const { data } = await supabase.from("jobs").select("*").order("fecha", { ascending: false });
+    const { data } = await supabase.from('servicios').select("*").order("fecha", { ascending: false });
     if (!data) return;
     const headers = ["ID","Fecha","Hora","Cliente","Servicio","Direccion","Piso","Puerta","CP","Ciudad","Telefono","Estado","Importe","Cantidad","Total","Creado","Finalizado"];
-    const rows = data.map((j) => [j.id, j.fecha, j.hora ?? "", j.cliente, j.servicio ?? "", j.direccion, j.piso ?? "", j.puerta ?? "", j.codigo_postal ?? "", j.ciudad ?? "", j.telefono ?? "", j.estado, j.importe, j.cantidad, j.total ?? "", j.created_at, j.finalizado_at ?? ""]);
+    const rows = data.map((j) => [j.id, j.fecha, j.hora ?? "", j.cliente, j.servicio ?? "", j.direccion, j.piso ?? "", j.puerta ?? "", j.codigo_postal ?? "", j.ciudad ?? "", j.telefono ?? "", j.estado, j.importe, j.cantidad, j.total ?? "", j.created_at, j.hora_fin ?? ""]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

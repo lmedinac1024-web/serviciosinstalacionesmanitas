@@ -73,7 +73,7 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
       return { ok: false, skipped: true, reason: "no_chat_id" as const };
     }
 
-    const { data: job, error } = await supabase.from("jobs").select("*").eq("id", data.jobId).maybeSingle();
+    const { data: job, error } = await supabase.from('servicios').select("*").eq("id", data.jobId).maybeSingle();
     if (error || !job) return { ok: false, skipped: true, reason: "job_not_found" as const };
 
     // datos empleado
@@ -153,7 +153,7 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     if (anyOk) {
       const firstMsgId = results.find((r) => r.ok)?.message_id ?? "";
       await supabase
-        .from("jobs")
+        .from('servicios')
         .update(
           data.fase === "inicio"
             ? { telegram_inicio_msg_id: firstMsgId }

@@ -98,7 +98,7 @@ function NuevoServicio() {
       const { data: userData } = await supabase.auth.getUser();
       const servicioNombre = servicios.find((s) => s.id === form.servicio_id)?.nombre ?? null;
 
-      const { data, error } = await supabase.from("jobs").insert({
+      const { data, error } = await supabase.from('servicios').insert({
         user_id: form.empleado_id,
         empleado_id: form.empleado_id,
         assigned_by: userData.user?.id ?? null,

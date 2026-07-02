@@ -74,7 +74,7 @@ function Detalle() {
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("jobs").select("*").eq("id", id).single();
+      const { data, error } = await supabase.from('servicios').select("*").eq("id", id).single();
       if (error) throw error;
       return data as Job;
     },
@@ -223,7 +223,7 @@ function Detalle() {
           old ? {
             ...old,
             estado: fase === "inicio" ? "en_proceso" : "realizado",
-            finalizado_at: fase === "final" ? new Date().toISOString() : old.finalizado_at,
+            hora_fin: fase === "final" ? new Date().toISOString() : old.hora_fin,
           } : old,
         );
         toast.success(fase === "inicio"
@@ -235,13 +235,13 @@ function Detalle() {
           ? {
               foto_inicio: path,
               estado: "en_proceso" as const,
-              llegada_lat: arrivalMeta?.lat ?? null,
-              llegada_lng: arrivalMeta?.lng ?? null,
-              llegada_distancia_m: arrivalMeta?.distanceM ?? null,
-              llegada_validada: arrivalMeta?.validated ?? false,
+              gps_llegada_lat: arrivalMeta?.lat ?? null,
+              gps_llegada_lng: arrivalMeta?.lng ?? null,
+              distancia_llegada_metros: arrivalMeta?.distanceM ?? null,
+              direccion_validada_llegada: arrivalMeta?.validated ?? false,
             }
-          : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
-        const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
+          : { foto_final: path, estado: "realizado" as const, hora_fin: new Date().toISOString() };
+        const { error } = await supabase.from('servicios').update(patch).eq("id", job!.id);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });
         toast.success(fase === "inicio" ? "Trabajo iniciado" : "Trabajo finalizado");
@@ -272,7 +272,7 @@ function Detalle() {
         );
         toast.success("Cancelación guardada offline");
       } else {
-        const { error } = await supabase.from("jobs")
+        const { error } = await supabase.from('servicios')
           .update({ estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] }).eq("id", job!.id);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });
@@ -496,7 +496,7 @@ function Detalle() {
 
 function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
   const [estado, setEstado] = useState<JobStatus>(job.estado);
-  const [validada, setValidada] = useState<boolean>(job.llegada_validada);
+  const [validada, setValidada] = useState<boolean>(job.direccion_validada_llegada);
   const [importe, setImporte] = useState<string>(String(job.importe ?? 0));
   const [precioLlegada, setPrecioLlegada] = useState<string>(String(job.precio_llegada ?? 0));
   const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
@@ -510,14 +510,14 @@ function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
     try {
       const patch = {
         estado,
-        llegada_validada: validada,
+        direccion_validada_llegada: validada,
         importe: Number(importe) || 0,
         precio_llegada: Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
-        finalizado_at: estado === "realizado" && !job.finalizado_at ? new Date().toISOString() : job.finalizado_at,
+        hora_fin: estado === "realizado" && !job.hora_fin ? new Date().toISOString() : job.hora_fin,
       };
-      const { error } = await supabase.from("jobs").update(patch).eq("id", job.id);
+      const { error } = await supabase.from('servicios').update(patch).eq("id", job.id);
       if (error) throw error;
       toast.success("Trabajo actualizado");
       onSaved();

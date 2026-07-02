@@ -123,7 +123,7 @@ async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "fina
 async function processOne(action: PendingAction): Promise<void> {
   if (action.kind === "cancelar") {
     const { error } = await supabase
-      .from("jobs")
+      .from('servicios')
       .update({ estado: "no_paga" as never, motivo_cancelacion: action.motivo ?? "Cancelado" })
       .eq("id", action.jobId);
     if (error) throw error;
@@ -137,13 +137,13 @@ async function processOne(action: PendingAction): Promise<void> {
     ? {
         foto_inicio: path,
         estado: "en_proceso" as const,
-        llegada_lat: action.arrivalLat ?? null,
-        llegada_lng: action.arrivalLng ?? null,
-        llegada_distancia_m: action.arrivalDistanceM ?? null,
-        llegada_validada: action.arrivalValidated ?? false,
+        gps_llegada_lat: action.arrivalLat ?? null,
+        gps_llegada_lng: action.arrivalLng ?? null,
+        distancia_llegada_metros: action.arrivalDistanceM ?? null,
+        direccion_validada_llegada: action.arrivalValidated ?? false,
       }
-    : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
-  const { error } = await supabase.from("jobs").update(patch).eq("id", action.jobId);
+    : { foto_final: path, estado: "realizado" as const, hora_fin: new Date().toISOString() };
+  const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
   if (error) throw error;
 
   // Fire-and-forget Telegram (server fn). We import lazily to avoid circular deps.
@@ -164,7 +164,7 @@ async function processCancel(action: PendingAction): Promise<void> {
   const [estado, ...labelParts] = (action.motivo ?? "no_paga|Cancelado").split("|");
   const label = labelParts.join("|") || "Cancelado";
   const { error } = await supabase
-    .from("jobs")
+    .from('servicios')
     .update({ estado: estado as never, motivo_cancelacion: label })
     .eq("id", action.jobId);
   if (error) throw error;

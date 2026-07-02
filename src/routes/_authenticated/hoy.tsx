@@ -19,7 +19,7 @@ function Hoy() {
     queryKey: ["jobs", "hoy", today],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .eq("fecha", today)
         .order("hora", { ascending: true });

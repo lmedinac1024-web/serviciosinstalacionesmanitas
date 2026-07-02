@@ -14,10 +14,10 @@ function Realizados() {
     queryKey: ["jobs", "realizados"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("jobs")
+        .from('servicios')
         .select("*")
         .eq("estado", "realizado")
-        .order("finalizado_at", { ascending: false });
+        .order("hora_fin", { ascending: false });
       if (error) throw error;
       return data as Job[];
     },
