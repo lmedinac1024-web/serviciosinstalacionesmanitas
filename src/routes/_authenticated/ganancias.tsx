@@ -70,7 +70,7 @@ function Ganancias() {
                     <th className="px-3 py-2 text-left">Fecha</th>
                     <th className="px-3 py-2 text-left">Cliente</th>
                     <th className="px-3 py-2 text-right">Importe</th>
-                    <th className="px-3 py-2 text-right">Cant.</th>
+                    <th className="px-3 py-2 text-right">Llegada</th>
                     <th className="px-3 py-2 text-right">Total</th>
                   </tr>
                 </thead>
@@ -82,7 +82,7 @@ function Ganancias() {
                       </td>
                       <td className="px-3 py-2">{j.cliente}</td>
                       <td className="px-3 py-2 text-right">{formatEUR(j.importe)}</td>
-                      <td className="px-3 py-2 text-right">{j.cantidad}</td>
+                      <td className="px-3 py-2 text-right">{formatEUR(j.precio_llegada)}</td>
                       <td className="px-3 py-2 text-right font-semibold">
                         {formatEUR(jobTotal(j))}
                       </td>
