@@ -353,11 +353,15 @@ function Detalle() {
               <Button
                 size="lg"
                 className="h-14 w-full text-base"
-                onClick={() => pickPhoto("inicio")}
-                disabled={working}
+                onClick={handleArrivalTap}
+                disabled={working || checkingGps}
                 title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
-                <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
+                {checkingGps ? (
+                  <><Navigation className="mr-2 h-5 w-5 animate-pulse" /> Comprobando ubicación...</>
+                ) : (
+                  <><Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio</>
+                )}
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
