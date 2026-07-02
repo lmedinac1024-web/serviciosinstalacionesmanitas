@@ -110,6 +110,8 @@ function NuevoServicio() {
         telefono_cliente: form.telefono.trim() || null,
         referencia: form.referencia.trim() || null,
         direccion: form.direccion.trim(),
+        piso: form.piso.trim() || null,
+        puerta: form.puerta.trim() || null,
         codigo_postal: form.codigo_postal.trim() || null,
         ciudad: form.ciudad.trim() || null,
         fecha: form.fecha,
