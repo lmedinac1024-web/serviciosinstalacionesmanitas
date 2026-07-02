@@ -75,6 +75,7 @@ function Detalle() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
   const [checkingGps, setCheckingGps] = useState(false);
+  const [importeFinal, setImporteFinal] = useState<string>("");
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
