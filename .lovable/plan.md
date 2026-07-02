@@ -1,158 +1,98 @@
+# Rediseño: Órdenes de trabajo con servicio (categoría) + validación GPS
 
-# Plan: App de Gestión de Trabajos Diarios
+## Modelo conceptual
 
-## 1. Backend — Lovable Cloud
+**Orden de trabajo** (lo que hoy es `jobs`) contiene:
+- Datos del cliente: nombre, teléfono, dirección, CP, ciudad
+- **Servicio** (categoría): desplegable con Manitas, Fontanería, Instalación de Ventilador… (gestionable en admin)
+- **Observaciones**: texto libre con lo que pide el cliente
+- Empleado asignado
+- Fecha + hora
+- **Precio completo** (si se realiza)
+- **Precio por llegada** (si valida GPS pero se cancela)
 
-- Base de datos PostgreSQL + storage de fotos + auth, todo integrado.
-- Si quieres seguir usando Google Sheets en paralelo, se puede añadir un botón de exportar a CSV/Sheets, pero la fuente de datos en vivo es Cloud (más rápido y fiable en móvil).
+## Panel admin (simplificado)
 
-### Tabla `jobs`
+Menú lateral queda con:
+- Dashboard
+- **Servicios** (=lista de órdenes, crear/editar) ← reemplaza "trabajo/nuevo" y "clientes"
+- **Categorías** (renombrado del actual "servicios"; solo Manitas/Fontanería/etc.)
+- Empleados
+- Destinos Telegram
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | uuid | PK |
-| user_id | uuid | FK auth.users |
-| fecha | date | |
-| hora | time | |
-| cliente | text | |
-| servicio | text | |
-| direccion | text | |
-| piso, puerta | text | |
-| codigo_postal, ciudad | text | |
-| telefono | text | |
-| estado | enum | pendiente, en_proceso, realizado, cancelado_cliente, cancelado_no_estaba, cancelado_direccion, cancelado_otro |
-| motivo_cancelacion | text | |
-| importe | numeric(10,2) | |
-| cantidad | int default 1 | para el ×2 |
-| total | generated | `importe * cantidad` |
-| foto_inicio | text | URL en storage (obligatoria al iniciar) |
-| foto_final | text | URL en storage (obligatoria al finalizar) |
-| observaciones | text | |
-| created_at, finalizado_at | timestamptz | |
-| telegram_inicio_msg_id | text | id del mensaje enviado |
-| telegram_final_msg_id | text | id del mensaje enviado |
+Se **quita del menú** la pestaña "Clientes" (los datos del cliente se rellenan en la propia orden). También se retira "tarifas por empleado" — el precio lo fija el admin en cada orden. Archivos existentes quedan sin enlazar por si quieres recuperarlos más tarde.
 
-RLS por `user_id`. Bucket privado `job-photos` con políticas por usuario.
+## Formulario "Nueva orden" (admin)
 
-## 2. Pantallas
+Campos, en este orden:
+1. Fecha + hora
+2. Empleado (select)
+3. Servicio/Categoría (select: Manitas, Fontanería, Ventilador…)
+4. Cliente: nombre, teléfono
+5. Dirección + CP + ciudad → al guardar geocodifico con Google Maps
+6. Observaciones (textarea grande)
+7. Precio completo (€)
+8. Precio por llegada (€, opcional; default 0)
 
-- `/` Dashboard
-- `/pendientes`
-- `/hoy`
-- `/trabajo/$id` Detalle
-- `/trabajo/nuevo`
-- `/realizados`
-- `/cancelados`
-- `/ganancias`
-- `/historial` (filtros: día/semana/mes/cliente/ciudad/estado/tipo)
-- `/ajustes` (Telegram chat_id, exportar CSV, cerrar sesión)
-- `/auth`
+## Empleado en calle (`/hoy`)
 
-Nav inferior en móvil, sidebar en desktop.
+- Lista **ordenada por hora asc** del día del empleado logueado.
+- Tarjeta muestra: hora, nombre cliente, categoría, dirección.
+- Toco la tarjeta → detalle con acciones:
+  - **Mapa** (Google Maps con la dirección)
+  - **Llamar**
+  - **WhatsApp**
+  - **Cancelar** (con motivo)
+  - **Llegué** → valida GPS 100m → pide foto → envía Telegram
+  - **Finalizar** → foto final → envía Telegram
 
-## 3. Dashboard — KPIs
+## Validación GPS 100m
 
-Pendientes hoy · Realizados hoy · Cancelados hoy · Ganado hoy/semana/mes/total · Total trabajos realizados · Total pendientes.
+- Al crear/editar orden en admin: geocodifico `dirección, CP, ciudad` con Google Maps y guardo `lat/lng` en la orden. Si falla, aviso pero permito guardar (esa orden no validará distancia).
+- Al pulsar **Llegué**:
+  1. `navigator.geolocation.getCurrentPosition`
+  2. Distancia haversine al `lat/lng` de la orden
+  3. ≤100m → `llegada_validada=true`, sigo con foto+Telegram
+  4. >100m → alerta con distancia real, bloqueo hasta acercarse
+  5. Sin GPS guardado → acepta sin validar
 
-## 4. Cálculo de ganancias
+## Cálculo de ganancias por empleado
 
-`SUM(importe * cantidad)` filtrando `estado = 'realizado'`:
-- Hoy: `finalizado_at::date = CURRENT_DATE`
-- Semana: `>= date_trunc('week', now())`
-- Mes: `>= date_trunc('month', now())`
-- Total: sin filtro
+Para cada orden:
+- `realizado` → cobra `precio_completo`
+- `cancelado_*` con `llegada_validada=true` → cobra `precio_llegada`
+- resto → 0
 
-Ej.: 30 € × 2 = 60 €. ✅
+Pantalla "Ganancias" (ya existe) usa esta lógica y agrupa por día/empleado.
 
-## 5. Detalle del trabajo — botones
+## Cambios técnicos
 
-- 📞 Llamar (`tel:`)
-- 💬 WhatsApp (`https://wa.me/...`)
-- 🗺️ Google Maps con `direccion + codigo_postal + ciudad` (piso/puerta se muestran pero NO entran en la búsqueda)
-- ▶️ **Iniciar / Llegué** → ver flujo abajo
-- ✅ **Finalizar** → ver flujo abajo
-- ❌ Cancelar (modal con 4 motivos)
+### DB (una sola migración)
+Añadir a `jobs`:
+- `lat numeric(10,7)`, `lng numeric(10,7)` — coordenadas de la dirección
+- `precio_llegada numeric(10,2) DEFAULT 0`
+- `llegada_validada boolean DEFAULT false`
+- `llegada_lat`, `llegada_lng`, `llegada_distancia_m` — registro real del móvil
+- `servicio_id uuid REFERENCES servicios(id)` — categoría
+- `observaciones text`
 
-## 6. Flujo "Llegué" (con foto obligatoria + Telegram)
+### Google Maps
+- Conectar el connector **Google Maps Platform** (te abro el diálogo al aprobar).
+- Server fn `geocodeAddress(direccion, cp, ciudad)` que llama al gateway `/maps/api/geocode/json`.
 
-1. Usuario pulsa **Llegué / Iniciar**.
-2. La app abre **directamente la cámara** para subir la **foto de inicio**.
-   - No se puede continuar sin foto. Si cancela la cámara, el estado NO cambia.
-3. Al subir la foto:
-   - Se guarda en `job-photos/{user_id}/{job_id}/inicio.jpg` → URL en `foto_inicio`.
-   - Estado → `en_proceso`.
-   - **Se envía automáticamente a Telegram** un mensaje con:
-     - Cliente, dirección, hora de llegada, importe.
-     - La foto de inicio adjunta (`sendPhoto`).
-   - Se guarda `telegram_inicio_msg_id`.
-4. Si el envío a Telegram falla: el trabajo queda iniciado igual, se muestra aviso "no se pudo enviar a Telegram" con botón reintentar.
+### Frontend
+- **Nuevo**: `src/routes/_authenticated/admin.ordenes.tsx` (lista + botón nueva) y `admin.ordenes.nueva.tsx` (formulario unificado).
+- **Modificar**: `hoy.tsx` ordenar por hora asc y mostrar categoría.
+- **Modificar**: `trabajo.$id.tsx` — botón Llegué con validación GPS.
+- **Modificar**: `AppShell.tsx` — nuevo menú admin.
+- **Modificar**: `ganancias.tsx` — lógica de cobro por llegada.
+- **Renombrar en UI**: pestaña "Servicios" del admin actual pasa a llamarse "Categorías" (mismo archivo, solo texto).
 
-## 7. Flujo "Finalizar" (con foto obligatoria + Telegram)
+### Lo que NO cambia
+- Fotos + Telegram al llegar/finalizar (ya funciona).
+- PWA/offline.
+- Auth y roles.
 
-1. Usuario pulsa **Finalizar**.
-2. La app abre **directamente la cámara** para la **foto final**.
-   - No se puede marcar como realizado sin foto final.
-3. Al subir la foto:
-   - Se guarda en `job-photos/{user_id}/{job_id}/final.jpg` → URL en `foto_final`.
-   - Estado → `realizado`, `finalizado_at = now()`.
-   - **Se envía automáticamente a Telegram** un mensaje con:
-     - Cliente, dirección, hora de fin, importe, total (importe × cantidad).
-     - La foto final adjunta.
-   - Suma a ganancias del día/semana/mes.
-
-## 8. Integración Telegram
-
-- Se usa el conector Telegram de Lovable (no hay que pegar token de bot, solo conectarlo).
-- En **Ajustes** pides una vez el **chat_id de destino** (el chat personal o grupo donde quieres recibir los avisos). Se guarda por usuario.
-- Server function `sendJobUpdateToTelegram(jobId, fase: 'inicio' | 'final')`:
-  - Lee el trabajo (RLS).
-  - Descarga la foto del storage.
-  - Llama al gateway de Telegram → `sendPhoto` con caption formateado.
-- Mensajes en español, claros:
-
-  **Inicio:**
-  ```
-  🟦 LLEGADA
-  Cliente: Juan Pérez
-  Dirección: Calle Mayor 12, 28013 Madrid
-  Hora: 10:42
-  Importe: 30 €
-  ```
-
-  **Final:**
-  ```
-  ✅ TRABAJO REALIZADO
-  Cliente: Juan Pérez
-  Dirección: Calle Mayor 12, 28013 Madrid
-  Hora fin: 11:15
-  Importe: 30 € × 2 = 60 €
-  ```
-
-## 9. Cancelaciones
-
-Un solo botón **Cancelar** → modal con 4 motivos → guarda estado + motivo. (No requiere foto ni Telegram, salvo que lo quieras añadir.)
-
-## 10. Historial y filtros
-
-Día / semana / mes / cliente / ciudad / estado / tipo de servicio.
-
-## 11. Diseño
-
-Mobile-first, tarjetas grandes, colores por estado (verde realizado, ámbar pendiente, azul en proceso, rojo cancelado). Tokens en `src/styles.css`.
-
-## 12. Stack técnico
-
-- TanStack Start + React + Tailwind + shadcn/ui.
-- TanStack Query + `createServerFn` con `requireSupabaseAuth`.
-- Subida de fotos al bucket `job-photos` desde el cliente.
-- Telegram vía connector gateway en server function.
-- Estado enum en PostgreSQL, columna `total` generada.
-
----
-
-### Lo que necesito para empezar a construir
-
-1. **Confirmas Lovable Cloud + Telegram** como integraciones (te pediré conectar el Telegram cuando llegue el momento).
-2. Después, en Ajustes pegarás el **chat_id** donde quieres recibir las fotos/avisos (te explico cómo obtenerlo).
-
-¿Confirmas y empiezo?
+## Qué necesito al aprobar
+1. Aprobar la migración de base de datos.
+2. Conectar el connector Google Maps Platform (te abro el diálogo).
