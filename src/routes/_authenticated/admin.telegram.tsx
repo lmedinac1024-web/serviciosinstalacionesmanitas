@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export const Route = createFileRoute("/_authenticated/admin/telegram")({ component: AdminTelegram });
@@ -19,6 +19,7 @@ function AdminTelegram() {
   const { data: me, isLoading } = useUserRole();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Destino | null>(null);
   const [form, setForm] = useState({ nombre: "", chat_id: "" });
   const [saving, setSaving] = useState(false);
 
@@ -34,18 +35,32 @@ function AdminTelegram() {
   if (isLoading) return <AppShell title="Telegram"><div>…</div></AppShell>;
   if (me?.role !== "admin") return <Navigate to="/" />;
 
-  async function crear(e: React.FormEvent) {
+  function abrirNuevo() {
+    setEditing(null);
+    setForm({ nombre: "", chat_id: "" });
+    setOpen(true);
+  }
+
+  function abrirEditar(d: Destino) {
+    setEditing(d);
+    setForm({ nombre: d.nombre, chat_id: d.chat_id });
+    setOpen(true);
+  }
+
+  async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (!form.nombre.trim() || !form.chat_id.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("telegram_destinos").insert({
-      nombre: form.nombre.trim(), chat_id: form.chat_id.trim(),
-    });
+    const payload = { nombre: form.nombre.trim(), chat_id: form.chat_id.trim() };
+    const { error } = editing
+      ? await supabase.from("telegram_destinos").update(payload).eq("id", editing.id)
+      : await supabase.from("telegram_destinos").insert(payload);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Destino añadido");
-    setForm({ nombre: "", chat_id: "" });
+    toast.success(editing ? "Destino actualizado" : "Destino añadido");
     setOpen(false);
+    setEditing(null);
+    setForm({ nombre: "", chat_id: "" });
     qc.invalidateQueries({ queryKey: ["telegram-destinos"] });
   }
 
@@ -57,7 +72,9 @@ function AdminTelegram() {
   }
 
   async function toggle(d: Destino) {
-    await supabase.from("telegram_destinos").update({ activo: !d.activo }).eq("id", d.id);
+    const { error } = await supabase.from("telegram_destinos").update({ activo: !d.activo }).eq("id", d.id);
+    if (error) return toast.error(error.message);
+    toast.success(d.activo ? "Destino desactivado" : "Destino activado");
     qc.invalidateQueries({ queryKey: ["telegram-destinos"] });
   }
 
@@ -71,7 +88,7 @@ function AdminTelegram() {
           </div>
         </div>
         <div className="flex justify-end">
-          <Button onClick={() => setOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> Nuevo destino</Button>
+          <Button onClick={abrirNuevo}><Plus className="mr-1.5 h-4 w-4" /> Nuevo destino</Button>
         </div>
         {destinos.length === 0 ? (
           <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
@@ -80,16 +97,26 @@ function AdminTelegram() {
         ) : (
           <div className="divide-y rounded-lg border bg-card">
             {destinos.map((d) => (
-              <div key={d.id} className="flex items-center justify-between p-4">
-                <div>
-                  <div className="font-semibold">{d.nombre}</div>
-                  <div className="font-mono text-xs text-muted-foreground">{d.chat_id}</div>
+              <div key={d.id} className="flex items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold truncate">{d.nombre}</span>
+                    {!d.activo && (
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Inactivo
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-mono text-xs text-muted-foreground truncate">{d.chat_id}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <Button variant={d.activo ? "outline" : "secondary"} size="sm" onClick={() => toggle(d)}>
-                    {d.activo ? "Activo" : "Inactivo"}
+                    {d.activo ? "Desactivar" : "Activar"}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => eliminar(d.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => abrirEditar(d)} aria-label="Editar">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => eliminar(d.id)} aria-label="Eliminar">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -98,15 +125,27 @@ function AdminTelegram() {
           </div>
         )}
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo destino Telegram</DialogTitle></DialogHeader>
-            <form onSubmit={crear} className="space-y-3">
-              <div><Label>Nombre *</Label><Input required placeholder="Admin" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></div>
-              <div><Label>Chat ID *</Label><Input required placeholder="123456789" value={form.chat_id} onChange={(e) => setForm({ ...form, chat_id: e.target.value })} /></div>
+            <DialogHeader>
+              <DialogTitle>{editing ? "Editar destino Telegram" : "Nuevo destino Telegram"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={guardar} className="space-y-3">
+              <div>
+                <Label>Nombre *</Label>
+                <Input required placeholder="Admin" value={form.nombre}
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+              </div>
+              <div>
+                <Label>Chat ID *</Label>
+                <Input required placeholder="123456789" value={form.chat_id}
+                  onChange={(e) => setForm({ ...form, chat_id: e.target.value })} />
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={saving}>{saving ? "..." : "Añadir"}</Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "..." : editing ? "Guardar cambios" : "Añadir"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
