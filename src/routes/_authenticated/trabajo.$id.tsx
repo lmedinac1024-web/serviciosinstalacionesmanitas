@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -86,12 +86,20 @@ function Detalle() {
   });
 
   const { data: userSettings } = useQuery({
-    queryKey: ["user-settings-default"],
+    queryKey: ["user-settings-destinos"],
     queryFn: async () => {
-      const { data } = await supabase.from("user_settings").select("telegram_destino_default_id").maybeSingle();
+      const { data } = await supabase.from("user_settings")
+        .select("telegram_destinos_permitidos, telegram_destinos_favoritos, telegram_destino_default_id")
+        .maybeSingle();
       return data;
     },
   });
+
+  const permitidosIds: string[] = (userSettings?.telegram_destinos_permitidos as string[] | null) ?? [];
+  const favoritosIds: string[] = (userSettings?.telegram_destinos_favoritos as string[] | null) ?? [];
+  const destinosDisponibles = destinos.filter((d) =>
+    permitidosIds.length === 0 ? true : permitidosIds.includes(d.id),
+  );
 
   const { data: fotoInicioUrl } = useQuery({
     queryKey: ["photo", job?.foto_inicio], enabled: !!job?.foto_inicio,
@@ -123,16 +131,21 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: "inicio" | "final", file: File) {
-    // si hay más de un destino y no hay default, pedir selección
-    const hasDefault = !!userSettings?.telegram_destino_default_id;
-    if (destinos.length > 1 && !hasDefault) {
-      setPendingFile(file);
-      setSelectedDest([]);
-      setDestOpen(fase);
-      return;
-    }
-    await savePhotoAndNotify(fase, file, []);
+    // Siempre mostrar selector con checkboxes (favoritos premarcados)
+    setPendingFile(file);
+    // Preseleccionar favoritos que estén disponibles; si no hay, default_id; si tampoco, vacío
+    const pre = favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id));
+    const fallbackDefault = userSettings?.telegram_destino_default_id;
+    setSelectedDest(
+      pre.length > 0
+        ? pre
+        : fallbackDefault && destinosDisponibles.some((d) => d.id === fallbackDefault)
+          ? [fallbackDefault]
+          : [],
+    );
+    setDestOpen(fase);
   }
+
 
   async function savePhotoAndNotify(fase: "inicio" | "final", file: File, destinoIds: string[]) {
     setWorking(true);
@@ -327,31 +340,64 @@ function Detalle() {
         {/* Destino Telegram picker */}
         <Dialog open={!!destOpen} onOpenChange={(v) => { if (!v) { setDestOpen(null); setPendingFile(null); } }}>
           <DialogContent>
-            <DialogHeader><DialogTitle>¿A quién enviar por Telegram?</DialogTitle></DialogHeader>
-            <div className="space-y-2">
-              {destinos.map((d) => (
-                <label key={d.id} className="flex cursor-pointer items-center gap-3 rounded border p-3">
-                  <Checkbox
-                    checked={selectedDest.includes(d.id)}
-                    onCheckedChange={(v) => setSelectedDest((s) => v ? [...s, d.id] : s.filter((x) => x !== d.id))}
-                  />
-                  <span>{d.nombre}</span>
-                </label>
-              ))}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, [])}>
+            <DialogHeader>
+              <DialogTitle>
+                {destOpen === "inicio" ? "Enviar foto de inicio" : "Enviar foto final"}
+              </DialogTitle>
+            </DialogHeader>
+            {destinosDisponibles.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                No tienes destinos Telegram permitidos. Puedes guardar sin enviar o configurarlos en <b>Ajustes</b>.
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{selectedDest.length} de {destinosDisponibles.length} seleccionados</span>
+                  <div className="flex gap-3">
+                    <button type="button" className="underline"
+                      onClick={() => setSelectedDest(destinosDisponibles.map((d) => d.id))}>Todos</button>
+                    <button type="button" className="underline"
+                      onClick={() => setSelectedDest([])}>Ninguno</button>
+                    {favoritosIds.length > 0 && (
+                      <button type="button" className="underline"
+                        onClick={() => setSelectedDest(favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id)))}>
+                        Solo favoritos
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="max-h-72 space-y-2 overflow-y-auto">
+                  {destinosDisponibles.map((d) => {
+                    const isFav = favoritosIds.includes(d.id);
+                    return (
+                      <label key={d.id} className="flex cursor-pointer items-center gap-3 rounded border p-3 hover:bg-accent">
+                        <Checkbox
+                          checked={selectedDest.includes(d.id)}
+                          onCheckedChange={(v) => setSelectedDest((s) => v ? [...s, d.id] : s.filter((x) => x !== d.id))}
+                        />
+                        <span className="flex-1">{d.nombre}</span>
+                        {isFav && <span className="text-yellow-500" title="Favorito">★</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" disabled={working}
+                onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, [])}>
                 Guardar sin enviar
               </Button>
               <Button
+                disabled={working || selectedDest.length === 0}
                 onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, selectedDest)}
-                disabled={selectedDest.length === 0}
               >
-                Enviar a {selectedDest.length || ""}
+                Enviar {selectedDest.length > 0 && `(${selectedDest.length})`}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
 
         {job.observaciones && (
           <div className="rounded-xl border bg-card p-5">
