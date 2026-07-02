@@ -20,7 +20,7 @@ import { MapPin, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
 
-type Empleado_ = never;
+
 type Empleado = { user_id: string; username: string; display_name: string | null };
 
 function NuevoServicio() {
