@@ -136,16 +136,6 @@ function Detalle() {
     return <AppShell title="Servicio"><div className="text-sm text-muted-foreground">Cargando...</div></AppShell>;
   }
 
-  async function notifyTelegram(jobId: string, fase: Fase, destinoIds: string[]) {
-    try {
-      const res = await sendTg({ data: { jobId, fase, destinoIds } });
-      if (res.ok) toast.success("Enviado a Telegram");
-      else if (res.skipped) {
-        if (res.reason === "telegram_not_connected") toast.info("Telegram no conectado.");
-        else if (res.reason === "no_chat_id") toast.info("Sin destino Telegram configurado.");
-      } else toast.error(`Telegram: ${"error" in res ? res.error : "error"}`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Error Telegram"); }
-  }
 
   function pickPhoto(fase: Fase) {
     if (fase === "inicio") startInput.current?.click();
