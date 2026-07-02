@@ -65,10 +65,36 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navigate = useNavigate();
   const isAdmin = me?.isAdmin;
   const NAV = isAdmin ? NAV_ADMIN : NAV_EMPLEADO;
+  const qc = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+  const [pending, setPending] = useState(0);
+
+  useEffect(() => {
+    void pendingCount().then(setPending).catch(() => {});
+    return subscribeQueue(() => { void pendingCount().then(setPending).catch(() => {}); });
+  }, []);
 
   async function handleSignOut() {
+    if (!confirm("¿Cerrar sesión?")) return;
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
+  }
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const res = await processQueue();
+      await qc.invalidateQueries();
+      const n = await pendingCount();
+      setPending(n);
+      if (res.ok > 0) toast.success(`Sincronizado: ${res.ok} acción(es)`);
+      else if (res.failed > 0) toast.error(`Fallaron ${res.failed} acción(es)`);
+      else toast.success("Datos actualizados");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al sincronizar");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   return (
