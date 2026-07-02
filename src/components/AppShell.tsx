@@ -34,7 +34,8 @@ type NavPath =
   | "/ajustes"
   | "/admin/servicios"
   | "/admin/empleados"
-  | "/admin/telegram";
+  | "/admin/telegram"
+  | "/admin/roles";
 
 type NavItem = { to: NavPath; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 
