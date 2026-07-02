@@ -35,9 +35,10 @@ function NuevoServicio() {
     fecha: new Date().toISOString().slice(0, 10),
     hora: "",
     empleado_id: "",
-    servicio_id: "",
+    tipo_servicio: "",
     cliente: "",
     telefono: "",
+    referencia: "",
     direccion: "",
     codigo_postal: "",
     ciudad: "",
@@ -46,10 +47,8 @@ function NuevoServicio() {
     precio_llegada: "",
   });
 
-  const { data: servicios = [] } = useQuery({
-    queryKey: ["servicios"],
-    queryFn: async () => (await supabase.from("servicios").select("id,nombre").eq("activo", true).order("nombre")).data as Servicio[] ?? [],
-  });
+  const sendTg = useServerFn(sendJobUpdateToTelegram);
+
   const { data: empleados = [] } = useQuery({
     queryKey: ["empleados-list"],
     queryFn: async () => {
