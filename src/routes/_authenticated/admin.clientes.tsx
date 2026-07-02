@@ -45,7 +45,7 @@ function AdminClientes() {
   });
 
   if (loadingRole) return <AppShell title="Clientes"><div className="text-sm text-muted-foreground">…</div></AppShell>;
-  if (me?.role !== "admin") return <Navigate to="/" />;
+  if (!me?.isAdmin) return <Navigate to="/" />;
 
   async function remove(id: string) {
     if (!confirm("¿Eliminar cliente?")) return;

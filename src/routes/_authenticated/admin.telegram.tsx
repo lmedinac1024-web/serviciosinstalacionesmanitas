@@ -92,7 +92,7 @@ function AdminTelegram() {
   );
 
   if (isLoading) return <AppShell title="Telegram"><div>…</div></AppShell>;
-  if (me?.role !== "admin") return <Navigate to="/" />;
+  if (!me?.isAdmin) return <Navigate to="/" />;
 
   function abrirNuevo() {
     setEditing(null);
