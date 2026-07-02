@@ -21,6 +21,7 @@ function Hoy() {
       const { data, error } = await supabase
         .from('servicios')
         .select("*")
+        .eq("eliminado_logico", false)
         .eq("fecha", today)
         .order("hora_programada", { ascending: true });
       if (error) throw error;
