@@ -379,14 +379,34 @@ function Detalle() {
             </div>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <a href={googleMapsUrl(job)} target="_blank" rel="noreferrer">
-              <Button variant="outline" className="w-full"><MapPin className="mr-1.5 h-4 w-4" /> Mapa</Button>
+            <a href={googleMapsUrl(job)} target="_blank" rel="noreferrer" className="block">
+              <button
+                type="button"
+                className="flex h-20 w-full flex-col items-center justify-center gap-1 rounded-xl bg-[#1a73e8] text-white shadow-md transition-transform active:scale-95 hover:brightness-110"
+              >
+                <MapPin className="h-7 w-7" strokeWidth={2.4} />
+                <span className="text-xs font-semibold uppercase tracking-wide">Mapa</span>
+              </button>
             </a>
-            <a href={telUrl(job.telefono_cliente)}>
-              <Button variant="outline" className="w-full" disabled={!job.telefono_cliente}><Phone className="mr-1.5 h-4 w-4" /> Llamar</Button>
+            <a href={telUrl(job.telefono_cliente)} className="block">
+              <button
+                type="button"
+                disabled={!job.telefono_cliente}
+                className="flex h-20 w-full flex-col items-center justify-center gap-1 rounded-xl bg-[#059669] text-white shadow-md transition-transform active:scale-95 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Phone className="h-7 w-7" strokeWidth={2.4} />
+                <span className="text-xs font-semibold uppercase tracking-wide">Llamar</span>
+              </button>
             </a>
-            <a href={whatsappUrl(job.telefono_cliente, waMsg)} target="_blank" rel="noreferrer">
-              <Button variant="outline" className="w-full" disabled={!job.telefono_cliente}><MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp</Button>
+            <a href={whatsappUrl(job.telefono_cliente, waMsg)} target="_blank" rel="noreferrer" className="block">
+              <button
+                type="button"
+                disabled={!job.telefono_cliente}
+                className="flex h-20 w-full flex-col items-center justify-center gap-1 rounded-xl bg-[#25D366] text-white shadow-md transition-transform active:scale-95 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <MessageCircle className="h-7 w-7" strokeWidth={2.4} />
+                <span className="text-xs font-semibold uppercase tracking-wide">WhatsApp</span>
+              </button>
             </a>
           </div>
         </div>
