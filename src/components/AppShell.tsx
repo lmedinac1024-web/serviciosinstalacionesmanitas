@@ -34,7 +34,8 @@ type NavPath =
   | "/ajustes"
   | "/admin/servicios"
   | "/admin/empleados"
-  | "/admin/telegram";
+  | "/admin/telegram"
+  | "/admin/roles";
 
 type NavItem = { to: NavPath; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 
@@ -57,6 +58,10 @@ const ADMIN_LINKS: NavItem[] = [
   { to: "/admin/empleados", label: "Empleados", icon: UserSquare2 },
   { to: "/admin/servicios", label: "Categorías", icon: Briefcase },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
+];
+
+const SUPER_LINKS: NavItem[] = [
+  { to: "/admin/roles", label: "Roles", icon: UserCircle2 },
 ];
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
@@ -132,6 +137,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               ))}
             </>
           )}
+
+          {me?.isSuperAdmin && (
+            <>
+              <div className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Super admin
+              </div>
+              {SUPER_LINKS.map((item) => (
+                <NavLink key={item.to} item={item} pathname={pathname} />
+              ))}
+            </>
+          )}
+
 
           <div className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Cuenta

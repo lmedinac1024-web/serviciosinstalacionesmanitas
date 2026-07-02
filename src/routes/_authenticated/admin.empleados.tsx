@@ -38,7 +38,7 @@ function AdminEmpleados() {
   });
 
   if (isLoading) return <AppShell title="Empleados"><div>…</div></AppShell>;
-  if (me?.role !== "admin") return <Navigate to="/" />;
+  if (!me?.isAdmin) return <Navigate to="/" />;
 
   async function borrar(p: Profile) {
     if (!confirm(`¿Eliminar empleado ${p.username}? Sus trabajos quedarán sin asignar.`)) return;

@@ -68,7 +68,7 @@ function NuevoServicio() {
   }
 
   if (isLoading) return <AppShell title="Nuevo servicio"><div>…</div></AppShell>;
-  if (me?.role !== "admin") return <Navigate to="/" />;
+  if (!me?.isAdmin) return <Navigate to="/" />;
 
   async function tryGeocode() {
     if (!form.direccion.trim()) return null;

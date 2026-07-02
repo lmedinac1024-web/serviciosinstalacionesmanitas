@@ -65,3 +65,56 @@ export const adminDeleteEmployee = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+async function ensureSuperAdmin(ctx: { supabase: import("@supabase/supabase-js").SupabaseClient; userId: string }) {
+  const { data } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "super_admin" });
+  if (!data) throw new Error("Solo super admin");
+}
+
+export const superListUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: profiles }, { data: roles }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("user_id, username, display_name"),
+      supabaseAdmin.from("user_roles").select("user_id, role"),
+    ]);
+    const byUser = new Map<string, string[]>();
+    for (const r of roles ?? []) {
+      const arr = byUser.get(r.user_id) ?? [];
+      arr.push(r.role as string);
+      byUser.set(r.user_id, arr);
+    }
+    return (profiles ?? []).map((p) => ({
+      userId: p.user_id,
+      username: p.username,
+      displayName: p.display_name,
+      roles: byUser.get(p.user_id) ?? [],
+    }));
+  });
+
+export const superSetRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; role: "admin" | "super_admin" | "empleado"; grant: boolean }) => d)
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.userId === context.userId && data.role === "super_admin" && !data.grant) {
+      throw new Error("No puedes quitarte super_admin a ti mismo");
+    }
+    if (data.grant) {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id,role" });
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.userId)
+        .eq("role", data.role);
+      if (error) throw error;
+    }
+    return { ok: true };
+  });
