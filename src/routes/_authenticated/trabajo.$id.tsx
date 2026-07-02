@@ -22,6 +22,7 @@ import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
+import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
@@ -136,15 +137,42 @@ function Detalle() {
   async function savePhotoAndNotify(fase: "inicio" | "final", file: File, destinoIds: string[]) {
     setWorking(true);
     try {
-      const path = await uploadPhoto(job!.id, fase, file);
-      const patch: Partial<Job> = fase === "inicio"
-        ? { foto_inicio: path, estado: "en_proceso" }
-        : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
-      const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["jobs"] });
-      toast.success(fase === "inicio" ? "Trabajo iniciado" : "Trabajo finalizado");
-      void notifyTelegram(job!.id, fase, destinoIds);
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("No autenticado");
+
+      if (!online) {
+        // Encolar acción con foto persistente en IndexedDB
+        await enqueueOffline({
+          jobId: job!.id,
+          userId,
+          kind: fase,
+          destinoIds,
+          photo: file,
+          photoName: file.name,
+        });
+        // Actualización optimista del cache
+        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+          old ? {
+            ...old,
+            estado: fase === "inicio" ? "en_proceso" : "realizado",
+            finalizado_at: fase === "final" ? new Date().toISOString() : old.finalizado_at,
+          } : old,
+        );
+        toast.success(fase === "inicio"
+          ? "Guardado offline — se subirá al recuperar conexión"
+          : "Finalización guardada offline — se subirá al recuperar conexión");
+      } else {
+        const path = await uploadPhoto(job!.id, fase, file);
+        const patch: Partial<Job> = fase === "inicio"
+          ? { foto_inicio: path, estado: "en_proceso" }
+          : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
+        const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
+        if (error) throw error;
+        await qc.invalidateQueries({ queryKey: ["jobs"] });
+        toast.success(fase === "inicio" ? "Trabajo iniciado" : "Trabajo finalizado");
+        void notifyTelegram(job!.id, fase, destinoIds);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error subiendo foto");
     } finally {
@@ -157,11 +185,26 @@ function Detalle() {
   async function cancelar(motivo: JobStatus) {
     setWorking(true);
     try {
-      const { error } = await supabase.from("jobs")
-        .update({ estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] }).eq("id", job!.id);
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["jobs"] });
-      toast.success("Trabajo cancelado");
+      if (!online) {
+        await enqueueOffline({
+          jobId: job!.id,
+          userId: (await supabase.auth.getUser()).data.user?.id ?? "",
+          kind: "cancelar",
+          motivo: `${motivo}|${STATUS_LABELS[motivo]}`,
+        });
+        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+          old ? { ...old, estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] } : old,
+        );
+        toast.success("Cancelación guardada offline");
+      } else {
+        const { error } = await supabase.from("jobs")
+          .update({ estado: motivo, motivo_cancelacion: STATUS_LABELS[motivo] }).eq("id", job!.id);
+        if (error) throw error;
+        await qc.invalidateQueries({ queryKey: ["jobs"] });
+        toast.success("Trabajo cancelado");
+        // por si había algo encolado
+        void processQueue();
+      }
       setCancelOpen(false);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
     finally { setWorking(false); }
@@ -236,10 +279,11 @@ function Detalle() {
                 size="lg"
                 className="h-14 w-full text-base"
                 onClick={() => pickPhoto("inicio")}
-                disabled={working || !online}
-                title={!online ? "Necesitas conexión para iniciar" : undefined}
+                disabled={working}
+                title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
                 <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
+                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
             {canFinish && (
@@ -247,15 +291,16 @@ function Detalle() {
                 size="lg"
                 className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
                 onClick={() => pickPhoto("final")}
-                disabled={working || !online}
-                title={!online ? "Necesitas conexión para finalizar" : undefined}
+                disabled={working}
+                title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
                 <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
+                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
             <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="h-12 w-full text-destructive" disabled={working || !online}>
+                <Button variant="outline" className="h-12 w-full text-destructive" disabled={working}>
                   <XCircle className="mr-2 h-4 w-4" /> Cancelar trabajo
                 </Button>
               </DialogTrigger>
@@ -264,7 +309,7 @@ function Detalle() {
                 <div className="space-y-2">
                   {CANCEL_REASONS.map((r) => (
                     <Button key={r.value} variant="outline" className="h-12 w-full justify-start"
-                      onClick={() => cancelar(r.value)} disabled={working || !online}>
+                      onClick={() => cancelar(r.value)} disabled={working}>
                       {r.label}
                     </Button>
                   ))}
