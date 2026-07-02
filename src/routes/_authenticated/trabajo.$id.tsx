@@ -210,7 +210,15 @@ function Detalle() {
 
   async function shareFileNative(file: File, fase: Fase) {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
-    const text = `${faseTxt} — ${job?.cliente ?? ""} · ${job?.referencia ?? ""}\n${direccionCompleta}`;
+    const header = `${faseTxt} — ${job?.cliente ?? ""} · ${job?.referencia ?? ""}`;
+    let text = header;
+    if (fase === "inicio") {
+      text = `${header}\n📍 ${direccionCompleta}`;
+    } else if (fase === "cancel") {
+      const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
+      const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
+      text = `${header}\n❌ Motivo: ${motivo}`;
+    }
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
       if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
