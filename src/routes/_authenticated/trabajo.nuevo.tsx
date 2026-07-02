@@ -156,19 +156,13 @@ function NuevoServicio() {
           )}
         </Field>
 
-        <Field label="Servicio">
-          {servicios.length === 0 ? (
-            <div className="rounded border bg-muted/40 p-3 text-sm text-muted-foreground">
-              Añade categorías en "Categorías" (ej. Manitas, Fontanería, Ventilador).
-            </div>
-          ) : (
-            <Select value={form.servicio_id} onValueChange={(v) => set("servicio_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Selecciona servicio" /></SelectTrigger>
-              <SelectContent>
-                {servicios.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          )}
+        <Field label="Tipo de servicio">
+          <Select value={form.tipo_servicio} onValueChange={(v) => set("tipo_servicio", v)}>
+            <SelectTrigger><SelectValue placeholder="Manitas / Fontanería / Ventilador…" /></SelectTrigger>
+            <SelectContent>
+              {TIPO_SERVICIO_OPCIONES.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+            </SelectContent>
+          </Select>
         </Field>
 
         <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
