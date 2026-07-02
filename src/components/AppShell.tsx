@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 type NavPath =
   | "/"
@@ -69,6 +70,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   return (
     <div className="min-h-screen bg-background">
+      <OfflineBanner />
       {/* Sidebar - desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-card md:flex">
         <div className="border-b px-5 py-5">

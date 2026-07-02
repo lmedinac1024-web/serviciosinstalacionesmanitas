@@ -21,6 +21,7 @@ import {
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useOnline } from "@/hooks/useOnline";
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
@@ -47,6 +48,7 @@ function Detalle() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: me } = useUserRole();
+  const online = useOnline();
   const sendTg = useServerFn(sendJobUpdateToTelegram);
   const startInput = useRef<HTMLInputElement>(null);
   const finalInput = useRef<HTMLInputElement>(null);
@@ -230,7 +232,13 @@ function Detalle() {
         {!isDone && (
           <div className="space-y-2">
             {canStart && (
-              <Button size="lg" className="h-14 w-full text-base" onClick={() => pickPhoto("inicio")} disabled={working}>
+              <Button
+                size="lg"
+                className="h-14 w-full text-base"
+                onClick={() => pickPhoto("inicio")}
+                disabled={working || !online}
+                title={!online ? "Necesitas conexión para iniciar" : undefined}
+              >
                 <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
               </Button>
             )}
@@ -238,14 +246,16 @@ function Detalle() {
               <Button
                 size="lg"
                 className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                onClick={() => pickPhoto("final")} disabled={working}
+                onClick={() => pickPhoto("final")}
+                disabled={working || !online}
+                title={!online ? "Necesitas conexión para finalizar" : undefined}
               >
                 <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
               </Button>
             )}
             <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="h-12 w-full text-destructive" disabled={working}>
+                <Button variant="outline" className="h-12 w-full text-destructive" disabled={working || !online}>
                   <XCircle className="mr-2 h-4 w-4" /> Cancelar trabajo
                 </Button>
               </DialogTrigger>
@@ -254,7 +264,7 @@ function Detalle() {
                 <div className="space-y-2">
                   {CANCEL_REASONS.map((r) => (
                     <Button key={r.value} variant="outline" className="h-12 w-full justify-start"
-                      onClick={() => cancelar(r.value)} disabled={working}>
+                      onClick={() => cancelar(r.value)} disabled={working || !online}>
                       {r.label}
                     </Button>
                   ))}
