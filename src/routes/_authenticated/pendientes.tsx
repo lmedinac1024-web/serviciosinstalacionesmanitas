@@ -34,7 +34,7 @@ function Pendientes() {
     queryFn: async () => {
       let q = supabase.from("servicios").select("*");
       if (filtro === "pendientes") q = q.in("estado", ["pendiente", "en_proceso"]);
-      else if (filtro === "realizados") q = q.in("estado", ["realizado", "cancelado"]);
+      else if (filtro === "realizados") q = q.in("estado", ["realizado", "cancelado_cliente", "cancelado_direccion", "cancelado_no_estaba", "cancelado_otro"]);
       const { data, error } = await q
         .order("fecha", { ascending: false })
         .order("hora_programada", { ascending: true });
