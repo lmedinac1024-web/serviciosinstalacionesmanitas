@@ -138,6 +138,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             </>
           )}
 
+          {me?.isSuperAdmin && (
+            <>
+              <div className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Super admin
+              </div>
+              {SUPER_LINKS.map((item) => (
+                <NavLink key={item.to} item={item} pathname={pathname} />
+              ))}
+            </>
+          )}
+
+
           <div className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Cuenta
           </div>
