@@ -324,7 +324,8 @@ function Detalle() {
   const canFinish = job.estado === "en_proceso";
   const isDone = job.estado === "realizado" || isCancelled(job.estado);
 
-  const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${[job.direccion, job.codigo_postal, job.ciudad].filter(Boolean).join(", ")}.`;
+  const direccionCompleta = [job.direccion, [job.piso && `Piso ${job.piso}`, job.puerta && `Puerta ${job.puerta}`].filter(Boolean).join(" "), job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+  const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${direccionCompleta}.`;
 
   return (
     <AppShell title="Servicio">
@@ -581,6 +582,8 @@ function AdminOverride({
   const [precioLlegada, setPrecioLlegada] = useState<string>(String(job.precio_llegada ?? 0));
   const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
   const [fecha, setFecha] = useState<string>(job.fecha);
+  const [piso, setPiso] = useState<string>(job.piso ?? "");
+  const [puerta, setPuerta] = useState<string>(job.puerta ?? "");
   const [saving, setSaving] = useState(false);
 
   // Anular
@@ -601,6 +604,8 @@ function AdminOverride({
         precio_llegada: Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
+        piso: piso.trim() || null,
+        puerta: puerta.trim() || null,
         hora_fin: estado === "realizado" && !job.hora_fin ? new Date().toISOString() : job.hora_fin,
       };
       const { error } = await supabase.from('servicios').update(patch).eq("id", job.id);
@@ -712,6 +717,19 @@ function AdminOverride({
           <label className="text-xs font-medium">Precio por llegada (€)</label>
           <input type="number" step="0.01" min="0" value={precioLlegada} onChange={(e) => setPrecioLlegada(e.target.value)}
             className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Piso</label>
+          <input type="text" value={piso} onChange={(e) => setPiso(e.target.value)}
+            placeholder="3º" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Puerta</label>
+          <input type="text" value={puerta} onChange={(e) => setPuerta(e.target.value)}
+            placeholder="B" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
       </div>
 

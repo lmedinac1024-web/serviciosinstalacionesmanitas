@@ -40,6 +40,8 @@ function NuevoServicio() {
     telefono: "",
     referencia: "",
     direccion: "",
+    piso: "",
+    puerta: "",
     codigo_postal: "",
     ciudad: "",
     observaciones: "",
@@ -108,6 +110,8 @@ function NuevoServicio() {
         telefono_cliente: form.telefono.trim() || null,
         referencia: form.referencia.trim() || null,
         direccion: form.direccion.trim(),
+        piso: form.piso.trim() || null,
+        puerta: form.puerta.trim() || null,
         codigo_postal: form.codigo_postal.trim() || null,
         ciudad: form.ciudad.trim() || null,
         fecha: form.fecha,
@@ -173,6 +177,10 @@ function NuevoServicio() {
           </div>
           <Field label="Referencia (opcional)"><Input value={form.referencia} onChange={(e) => set("referencia", e.target.value)} placeholder="Nº pedido o interno" /></Field>
           <Field label="Dirección *"><Input required value={form.direccion} onChange={(e) => set("direccion", e.target.value)} placeholder="Calle Mayor 12" /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Piso"><Input value={form.piso} onChange={(e) => setForm((f) => ({ ...f, piso: e.target.value }))} placeholder="3º" /></Field>
+            <Field label="Puerta"><Input value={form.puerta} onChange={(e) => setForm((f) => ({ ...f, puerta: e.target.value }))} placeholder="B" /></Field>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Código postal"><Input value={form.codigo_postal} onChange={(e) => set("codigo_postal", e.target.value)} placeholder="28001" /></Field>
             <Field label="Ciudad"><Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Madrid" /></Field>
