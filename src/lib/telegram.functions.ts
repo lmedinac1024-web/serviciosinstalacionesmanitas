@@ -166,12 +166,12 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     const anyOk = results.some((r) => r.ok);
     if (anyOk) {
       const firstMsgId = results.find((r) => r.ok)?.message_id ?? "";
-      const patch: Record<string, string> =
+      const patch =
         data.fase === "inicio" ? { telegram_inicio_msg_id: firstMsgId }
         : data.fase === "final" ? { telegram_final_msg_id: firstMsgId }
         : data.fase === "cancel" ? { telegram_cancel_msg_id: firstMsgId }
-        : {};
-      if (Object.keys(patch).length > 0) {
+        : null;
+      if (patch) {
         await supabase.from('servicios').update(patch).eq("id", job.id);
       }
     }
