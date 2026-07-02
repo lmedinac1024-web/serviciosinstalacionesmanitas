@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import logoAsset from "@/assets/logo-manitas.png.asset.json";
 
 type NavPath =
   | "/"
