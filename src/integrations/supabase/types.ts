@@ -78,9 +78,16 @@ export type Database = {
           hora: string | null
           id: string
           importe: number
+          lat: number | null
+          llegada_distancia_m: number | null
+          llegada_lat: number | null
+          llegada_lng: number | null
+          llegada_validada: boolean
+          lng: number | null
           motivo_cancelacion: string | null
           observaciones: string | null
           piso: string | null
+          precio_llegada: number
           puerta: string | null
           servicio: string | null
           servicio_id: string | null
@@ -108,9 +115,16 @@ export type Database = {
           hora?: string | null
           id?: string
           importe?: number
+          lat?: number | null
+          llegada_distancia_m?: number | null
+          llegada_lat?: number | null
+          llegada_lng?: number | null
+          llegada_validada?: boolean
+          lng?: number | null
           motivo_cancelacion?: string | null
           observaciones?: string | null
           piso?: string | null
+          precio_llegada?: number
           puerta?: string | null
           servicio?: string | null
           servicio_id?: string | null
@@ -138,9 +152,16 @@ export type Database = {
           hora?: string | null
           id?: string
           importe?: number
+          lat?: number | null
+          llegada_distancia_m?: number | null
+          llegada_lat?: number | null
+          llegada_lng?: number | null
+          llegada_validada?: boolean
+          lng?: number | null
           motivo_cancelacion?: string | null
           observaciones?: string | null
           piso?: string | null
+          precio_llegada?: number
           puerta?: string | null
           servicio?: string | null
           servicio_id?: string | null
