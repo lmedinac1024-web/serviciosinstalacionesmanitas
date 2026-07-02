@@ -60,7 +60,6 @@ function Detalle() {
   const qc = useQueryClient();
   const { data: me } = useUserRole();
   const online = useOnline();
-  const online = useOnline();
   const startInput = useRef<HTMLInputElement>(null);
   const finalInput = useRef<HTMLInputElement>(null);
   const cancelInput = useRef<HTMLInputElement>(null);
