@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertCircle, Send } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useServerFn } from "@tanstack/react-start";
+import { sendTelegramTestMessage } from "@/lib/telegram.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/telegram")({ component: AdminTelegram });
 
