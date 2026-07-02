@@ -294,6 +294,10 @@ function Detalle() {
             gps_final_lat: gpsMeta?.lat ?? null,
             gps_final_lng: gpsMeta?.lng ?? null,
           };
+          if (me?.isAdmin && importeFinal.trim() !== "") {
+            const n = Number(importeFinal);
+            if (!Number.isNaN(n) && n >= 0) patch.importe = n;
+          }
         } else {
           patch = {
             foto_cancelacion: path,
