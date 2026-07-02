@@ -185,8 +185,7 @@ export async function processQueue(): Promise<{ ok: number; failed: number }> {
     const items = (await listAll()).sort((a, b) => a.createdAt - b.createdAt);
     for (const item of items) {
       try {
-        if (item.kind === "cancelar") await processCancel(item);
-        else await processOne(item);
+        await processOne(item);
         await remove(item.id);
         ok++;
       } catch (e) {
