@@ -185,7 +185,7 @@ function NuevoServicio() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Código postal"><Input value={form.codigo_postal} onChange={(e) => set("codigo_postal", e.target.value)} placeholder="28001" /></Field>
-            <Field label="Ciudad"><Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Madrid" /></Field>
+            <Field label="Ciudad"><Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Barcelona" /></Field>
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={tryGeocode} disabled={!form.direccion}>
