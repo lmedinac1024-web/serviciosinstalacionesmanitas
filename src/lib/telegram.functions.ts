@@ -163,3 +163,48 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     }
     return { ok: anyOk, results };
   });
+
+export const sendTelegramTestMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { chatId: string; nombre?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // Solo admin
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) return { ok: false, error: "forbidden" as const };
+
+    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
+    const TELEGRAM_API_KEY = process.env.TELEGRAM_API_KEY;
+    if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {
+      return { ok: false, skipped: true, reason: "telegram_not_connected" as const };
+    }
+
+    const chatId = data.chatId.trim();
+    if (!chatId) return { ok: false, error: "chat_id vacío" };
+
+    const text =
+      `🧪 <b>Mensaje de prueba</b>\n` +
+      (data.nombre ? `<b>Destino:</b> ${escapeHtml(data.nombre)}\n` : "") +
+      `Si ves este mensaje, el destino Telegram está bien configurado ✅\n` +
+      `<i>${new Date().toLocaleString("es-ES")}</i>`;
+
+    try {
+      const r = await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": TELEGRAM_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        return { ok: false, error: j.description ?? `HTTP ${r.status}` };
+      }
+      return { ok: true, message_id: String(j.result?.message_id ?? "") };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+    }
+  });
+
