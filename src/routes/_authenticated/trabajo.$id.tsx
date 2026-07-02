@@ -444,16 +444,51 @@ function Detalle() {
             {canFinish && (
               <>
                 {me?.isAdmin && (
-                  <div className="rounded-md border bg-card p-3">
-                    <label className="text-xs font-medium">Importe final (€) — opcional (admin)</label>
-                    <input
-                      type="number" step="0.01" min="0"
-                      value={importeFinal}
-                      onChange={(e) => setImporteFinal(e.target.value)}
-                      placeholder={String(job.importe ?? 0)}
-                      className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    />
-                    <div className="mt-1 text-[11px] text-muted-foreground">Si lo dejas vacío se mantiene el importe actual ({formatEUR(job.importe)}).</div>
+                  <div className="rounded-md border bg-card p-3 space-y-3">
+                    <div className="text-[11px] uppercase tracking-wider text-primary font-semibold">Ajustes admin (opcional)</div>
+                    <div>
+                      <label className="text-xs font-medium">Importe final (€)</label>
+                      <input
+                        type="number" step="0.01" min="0"
+                        value={importeFinal}
+                        onChange={(e) => setImporteFinal(e.target.value)}
+                        placeholder={String(job.importe ?? 0)}
+                        className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Dirección</label>
+                      <input
+                        type="text"
+                        value={direccionFinal}
+                        onChange={(e) => setDireccionFinal(e.target.value)}
+                        placeholder={job.direccion ?? ""}
+                        className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium">Piso</label>
+                        <input
+                          type="text"
+                          value={pisoFinal}
+                          onChange={(e) => setPisoFinal(e.target.value)}
+                          placeholder={job.piso ?? "3º"}
+                          className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium">Puerta</label>
+                        <input
+                          type="text"
+                          value={puertaFinal}
+                          onChange={(e) => setPuertaFinal(e.target.value)}
+                          placeholder={job.puerta ?? "B"}
+                          className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Los campos vacíos mantienen el valor actual.</div>
                   </div>
                 )}
                 <Button
