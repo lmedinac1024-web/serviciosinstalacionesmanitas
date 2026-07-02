@@ -73,13 +73,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <OfflineBanner />
       {/* Sidebar - desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-card md:flex">
-        <div className="border-b px-5 py-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Briefcase className="h-4 w-4" />
-            </div>
+        <div className="border-b px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo-servihogar.png"
+              alt="ServiHogar"
+              className="h-9 w-auto rounded-md"
+            />
             <div>
-              <div className="text-sm font-bold leading-none">Mis Trabajos</div>
+              <div className="text-sm font-bold leading-none">ServiHogar</div>
               <div className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                 {isAdmin ? "Panel admin" : "Empleado"}
               </div>

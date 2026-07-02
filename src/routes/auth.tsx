@@ -92,11 +92,13 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-sm space-y-5 rounded-2xl border bg-card p-7 shadow-lg">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Briefcase className="h-7 w-7" />
-          </div>
+          <img
+            src="/logo-servihogar.png"
+            alt="ServiHogar"
+            className="h-16 w-auto"
+          />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Mis Trabajos</h1>
+            <h1 className="text-2xl font-bold tracking-tight">ServiHogar</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {mode === "login" ? "Entra con tu usuario" : "Crea tu cuenta de administrador"}
             </p>

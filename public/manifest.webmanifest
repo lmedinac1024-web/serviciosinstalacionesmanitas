@@ -1,13 +1,13 @@
 {
-  "name": "Mis Trabajos",
-  "short_name": "Trabajos",
+  "name": "ServiHogar",
+  "short_name": "ServiHogar",
   "description": "Gestiona tus trabajos diarios, ganancias y fotos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0b1220",
-  "theme_color": "#1e40af",
+  "theme_color": "#1a3a5c",
   "lang": "es",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
