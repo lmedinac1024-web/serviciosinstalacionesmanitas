@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clock, MapPin, Phone } from "lucide-react";
+import { Clock, MapPin, Phone, Briefcase } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatEUR, jobTotal, type Job } from "@/lib/jobs";
 
@@ -14,11 +14,16 @@ export function JobCard({ job }: { job: Job }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>{job.hora ?? "—"}</span>
+            <span className="font-semibold text-foreground">{job.hora ?? "—"}</span>
             <span>·</span>
             <span>{job.fecha}</span>
           </div>
           <div className="mt-1 truncate text-base font-semibold">{job.cliente}</div>
+          {job.servicio && (
+            <div className="mt-0.5 flex items-center gap-1 text-xs text-primary">
+              <Briefcase className="h-3 w-3" /> {job.servicio}
+            </div>
+          )}
           <div className="mt-0.5 flex items-center gap-1 truncate text-sm text-muted-foreground">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">

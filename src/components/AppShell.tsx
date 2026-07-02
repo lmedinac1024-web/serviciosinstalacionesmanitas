@@ -7,7 +7,6 @@ import {
   History,
   Settings,
   Plus,
-  Users,
   Briefcase,
   UserCircle2,
   LogOut,
@@ -27,7 +26,6 @@ type NavPath =
   | "/ganancias"
   | "/historial"
   | "/ajustes"
-  | "/admin/clientes"
   | "/admin/servicios"
   | "/admin/empleados"
   | "/admin/telegram";
@@ -51,8 +49,7 @@ const NAV_ADMIN: NavItem[] = [
 
 const ADMIN_LINKS: NavItem[] = [
   { to: "/admin/empleados", label: "Empleados", icon: UserSquare2 },
-  { to: "/admin/clientes", label: "Clientes", icon: Users },
-  { to: "/admin/servicios", label: "Servicios", icon: Briefcase },
+  { to: "/admin/servicios", label: "Categorías", icon: Briefcase },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
 ];
 
@@ -116,7 +113,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               to="/trabajo/nuevo"
               className="mb-2 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
-              <Plus className="h-4 w-4" /> Nuevo trabajo
+              <Plus className="h-4 w-4" /> Nuevo servicio
             </Link>
           )}
           <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs">

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, Navigation,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, formatEUR, googleMapsUrl, isCancelled,
@@ -23,6 +23,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
 import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
+import { getCurrentPosition, haversineMeters } from "@/lib/geo";
+
+const ARRIVAL_RADIUS_M = 100;
+
+interface ArrivalMeta {
+  lat: number;
+  lng: number;
+  distanceM: number | null;
+  validated: boolean;
+}
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
@@ -58,6 +68,8 @@ function Detalle() {
   const [destOpen, setDestOpen] = useState<"inicio" | "final" | null>(null);
   const [selectedDest, setSelectedDest] = useState<string[]>([]);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [arrivalMeta, setArrivalMeta] = useState<ArrivalMeta | null>(null);
+  const [checkingGps, setCheckingGps] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -130,6 +142,46 @@ function Detalle() {
     else finalInput.current?.click();
   }
 
+  async function handleArrivalTap() {
+    setCheckingGps(true);
+    try {
+      let meta: ArrivalMeta | null = null;
+      try {
+        const pos = await getCurrentPosition();
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (job?.lat != null && job?.lng != null) {
+          const dist = haversineMeters({ lat, lng }, { lat: Number(job.lat), lng: Number(job.lng) });
+          const validated = dist <= ARRIVAL_RADIUS_M;
+          meta = { lat, lng, distanceM: dist, validated };
+          if (!validated) {
+            const ok = window.confirm(
+              `Estás a ${dist} m del cliente (fuera del radio de ${ARRIVAL_RADIUS_M} m). ` +
+              `Se registrará SIN validación (no cobrarás precio por llegada). ¿Continuar?`,
+            );
+            if (!ok) return;
+          } else {
+            toast.success(`Llegada validada (${dist} m)`);
+          }
+        } else {
+          meta = { lat, lng, distanceM: null, validated: false };
+          toast.info("Servicio sin coordenadas — no se puede validar el radio 100 m");
+        }
+      } catch (e) {
+        const ok = window.confirm(
+          `No se pudo obtener el GPS (${e instanceof Error ? e.message : "error"}). ` +
+          `Continuar sin validar la llegada?`,
+        );
+        if (!ok) return;
+        meta = null;
+      }
+      setArrivalMeta(meta);
+      pickPhoto("inicio");
+    } finally {
+      setCheckingGps(false);
+    }
+  }
+
   async function onPhotoSelected(fase: "inicio" | "final", file: File) {
     // Siempre mostrar selector con checkboxes (favoritos premarcados)
     setPendingFile(file);
@@ -155,7 +207,6 @@ function Detalle() {
       if (!userId) throw new Error("No autenticado");
 
       if (!online) {
-        // Encolar acción con foto persistente en IndexedDB
         await enqueueOffline({
           jobId: job!.id,
           userId,
@@ -163,8 +214,11 @@ function Detalle() {
           destinoIds,
           photo: file,
           photoName: file.name,
+          arrivalLat: fase === "inicio" ? arrivalMeta?.lat : undefined,
+          arrivalLng: fase === "inicio" ? arrivalMeta?.lng : undefined,
+          arrivalDistanceM: fase === "inicio" ? arrivalMeta?.distanceM ?? null : undefined,
+          arrivalValidated: fase === "inicio" ? arrivalMeta?.validated ?? false : undefined,
         });
-        // Actualización optimista del cache
         qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
           old ? {
             ...old,
@@ -177,9 +231,16 @@ function Detalle() {
           : "Finalización guardada offline — se subirá al recuperar conexión");
       } else {
         const path = await uploadPhoto(job!.id, fase, file);
-        const patch: Partial<Job> = fase === "inicio"
-          ? { foto_inicio: path, estado: "en_proceso" }
-          : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
+        const patch = fase === "inicio"
+          ? {
+              foto_inicio: path,
+              estado: "en_proceso" as const,
+              llegada_lat: arrivalMeta?.lat ?? null,
+              llegada_lng: arrivalMeta?.lng ?? null,
+              llegada_distancia_m: arrivalMeta?.distanceM ?? null,
+              llegada_validada: arrivalMeta?.validated ?? false,
+            }
+          : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
         const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });
@@ -192,6 +253,7 @@ function Detalle() {
       setWorking(false);
       setPendingFile(null);
       setDestOpen(null);
+      if (fase === "inicio") setArrivalMeta(null);
     }
   }
 
@@ -291,11 +353,15 @@ function Detalle() {
               <Button
                 size="lg"
                 className="h-14 w-full text-base"
-                onClick={() => pickPhoto("inicio")}
-                disabled={working}
+                onClick={handleArrivalTap}
+                disabled={working || checkingGps}
                 title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
-                <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
+                {checkingGps ? (
+                  <><Navigation className="mr-2 h-5 w-5 animate-pulse" /> Comprobando ubicación...</>
+                ) : (
+                  <><Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio</>
+                )}
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}

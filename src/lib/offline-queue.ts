@@ -14,6 +14,10 @@ export interface PendingAction {
   destinoIds?: string[];       // telegram destinos (may be empty)
   photo?: Blob;                // required for inicio / final
   photoName?: string;
+  arrivalLat?: number;         // for kind='inicio': coords captured on tap
+  arrivalLng?: number;
+  arrivalDistanceM?: number | null;
+  arrivalValidated?: boolean;
   createdAt: number;
   attempts: number;
   lastError?: string;
@@ -130,7 +134,14 @@ async function processOne(action: PendingAction): Promise<void> {
   if (!action.photo) throw new Error("Foto no encontrada en cola");
   const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
   const patch = action.kind === "inicio"
-    ? { foto_inicio: path, estado: "en_proceso" as const }
+    ? {
+        foto_inicio: path,
+        estado: "en_proceso" as const,
+        llegada_lat: action.arrivalLat ?? null,
+        llegada_lng: action.arrivalLng ?? null,
+        llegada_distancia_m: action.arrivalDistanceM ?? null,
+        llegada_validada: action.arrivalValidated ?? false,
+      }
     : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
   const { error } = await supabase.from("jobs").update(patch).eq("id", action.jobId);
   if (error) throw error;
