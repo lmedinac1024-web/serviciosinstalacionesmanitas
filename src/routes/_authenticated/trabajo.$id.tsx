@@ -720,6 +720,19 @@ function AdminOverride({
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Piso</label>
+          <input type="text" value={piso} onChange={(e) => setPiso(e.target.value)}
+            placeholder="3º" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Puerta</label>
+          <input type="text" value={puerta} onChange={(e) => setPuerta(e.target.value)}
+            placeholder="B" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
       <label className="flex items-start gap-2 rounded-md border bg-background p-3 text-sm cursor-pointer">
         <Checkbox checked={validada} onCheckedChange={(v) => setValidada(!!v)} className="mt-0.5" />
         <div>
