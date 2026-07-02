@@ -231,16 +231,16 @@ function Detalle() {
           : "Finalización guardada offline — se subirá al recuperar conexión");
       } else {
         const path = await uploadPhoto(job!.id, fase, file);
-        const patch: Record<string, unknown> = fase === "inicio"
+        const patch = fase === "inicio"
           ? {
               foto_inicio: path,
-              estado: "en_proceso",
+              estado: "en_proceso" as const,
               llegada_lat: arrivalMeta?.lat ?? null,
               llegada_lng: arrivalMeta?.lng ?? null,
               llegada_distancia_m: arrivalMeta?.distanceM ?? null,
               llegada_validada: arrivalMeta?.validated ?? false,
             }
-          : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
+          : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
         const { error } = await supabase.from("jobs").update(patch).eq("id", job!.id);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });

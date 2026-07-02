@@ -133,16 +133,16 @@ async function processOne(action: PendingAction): Promise<void> {
 
   if (!action.photo) throw new Error("Foto no encontrada en cola");
   const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
-  const patch: Record<string, unknown> = action.kind === "inicio"
+  const patch = action.kind === "inicio"
     ? {
         foto_inicio: path,
-        estado: "en_proceso",
+        estado: "en_proceso" as const,
         llegada_lat: action.arrivalLat ?? null,
         llegada_lng: action.arrivalLng ?? null,
         llegada_distancia_m: action.arrivalDistanceM ?? null,
         llegada_validada: action.arrivalValidated ?? false,
       }
-    : { foto_final: path, estado: "realizado", finalizado_at: new Date().toISOString() };
+    : { foto_final: path, estado: "realizado" as const, finalizado_at: new Date().toISOString() };
   const { error } = await supabase.from("jobs").update(patch).eq("id", action.jobId);
   if (error) throw error;
 
