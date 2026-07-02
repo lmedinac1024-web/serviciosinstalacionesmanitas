@@ -123,7 +123,7 @@ function ClienteDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
       piso: editing?.piso ?? "",
       puerta: editing?.puerta ?? "",
       codigo_postal: editing?.codigo_postal ?? "",
-      ciudad: editing?.ciudad ?? "",
+      ciudad: editing?.ciudad ?? "Barcelona",
       notas: editing?.notas ?? "",
     });
   }, [editing]);
