@@ -221,18 +221,32 @@ function Detalle() {
     } finally { setCheckingGps(false); }
   }
 
+  async function shareFileNative(file: File, fase: Fase) {
+    const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
+    const text = `${faseTxt} — ${job?.cliente ?? ""} · ${job?.referencia ?? ""}\n${direccionCompleta}`;
+    try {
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
+      if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: faseTxt, text });
+        return;
+      }
+      if (nav.share) {
+        await nav.share({ title: faseTxt, text });
+        toast.info("Tu dispositivo no soporta adjuntar la foto — comparte manualmente");
+        return;
+      }
+      toast.info("Compartir nativo no disponible en este dispositivo");
+    } catch (e) {
+      if ((e as DOMException)?.name !== "AbortError") {
+        toast.error("No se pudo abrir el menú compartir");
+      }
+    }
+  }
+
   async function onPhotoSelected(fase: Fase, file: File) {
     setPendingFile(file);
-    const pre = favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id));
-    const fallbackDefault = userSettings?.telegram_destino_default_id;
-    setSelectedDest(
-      pre.length > 0
-        ? pre
-        : fallbackDefault && destinosDisponibles.some((d) => d.id === fallbackDefault)
-          ? [fallbackDefault]
-          : [],
-    );
-    setDestOpen(fase);
+    await savePhotoAndNotify(fase, file, []);
+    await shareFileNative(file, fase);
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
