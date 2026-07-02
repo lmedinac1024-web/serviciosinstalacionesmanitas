@@ -139,27 +139,32 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <NavLink item={{ to: "/ajustes", label: "Ajustes", icon: Settings }} pathname={pathname} />
         </nav>
 
-        <div className="border-t p-3">
+        <div className="space-y-2 border-t p-3">
           {isAdmin && (
             <Link
               to="/trabajo/nuevo"
-              className="mb-2 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              className="flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               <Plus className="h-4 w-4" /> Nuevo servicio
             </Link>
           )}
-          <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs">
-            <div className="flex items-center gap-2 truncate">
-              <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-              <span className="truncate">{me?.displayName || me?.username || "—"}</span>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="Salir"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex w-full items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-60"
+          >
+            <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+            {syncing ? "Sincronizando..." : pending > 0 ? `Sincronizar (${pending})` : "Sincronizar"}
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4" /> Cerrar sesión
+          </button>
+          <div className="flex items-center gap-2 truncate px-1 pt-1 text-[11px] text-muted-foreground">
+            <UserCircle2 className="h-3.5 w-3.5" />
+            <span className="truncate">{me?.displayName || me?.username || "—"}</span>
           </div>
         </div>
       </aside>
@@ -167,21 +172,43 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       {/* Main */}
       <main className="md:pl-64">
         <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
-          <div className="flex items-center justify-between px-4 py-3 md:px-6">
-            <div>
-              <h1 className="text-base font-semibold md:text-lg">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 md:px-6">
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-semibold md:text-lg">
                 {title ?? (me?.displayName || me?.username || "Mi panel")}
               </h1>
               {isAdmin && <div className="text-[10px] uppercase tracking-wider text-primary">{me?.isSuperAdmin ? "Super Admin" : "Admin"}</div>}
             </div>
-            {isAdmin && (
-              <Link
-                to="/trabajo/nuevo"
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground md:hidden"
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background hover:bg-accent disabled:opacity-60 md:hidden"
+                title="Sincronizar"
               >
-                <Plus className="h-4 w-4" /> Nuevo
-              </Link>
-            )}
+                <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+                {pending > 0 && (
+                  <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                    {pending}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10 md:hidden"
+                title="Cerrar sesión"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+              {isAdmin && (
+                <Link
+                  to="/trabajo/nuevo"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground md:hidden"
+                >
+                  <Plus className="h-4 w-4" /> Nuevo
+                </Link>
+              )}
+            </div>
           </div>
         </header>
         <div className="px-4 pb-24 pt-4 md:px-6 md:pb-8">{children}</div>
