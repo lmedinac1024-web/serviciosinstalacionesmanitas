@@ -60,6 +60,10 @@ const ADMIN_LINKS: NavItem[] = [
   { to: "/admin/telegram", label: "Telegram", icon: Send },
 ];
 
+const SUPER_LINKS: NavItem[] = [
+  { to: "/admin/roles", label: "Roles", icon: UserCircle2 },
+];
+
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: me } = useUserRole();
