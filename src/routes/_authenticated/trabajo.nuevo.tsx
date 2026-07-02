@@ -43,7 +43,7 @@ function NuevoServicio() {
     piso: "",
     puerta: "",
     codigo_postal: "",
-    ciudad: "",
+    ciudad: "Barcelona",
     observaciones: "",
     importe: "",
     precio_llegada: "",
