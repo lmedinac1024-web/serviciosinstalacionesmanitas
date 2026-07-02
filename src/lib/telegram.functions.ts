@@ -31,7 +31,7 @@ async function downloadPhoto(
 
 export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { jobId: string; fase: "inicio" | "final"; destinoIds?: string[] }) => d)
+  .inputValidator((d: { jobId: string; fase: "creado" | "inicio" | "final" | "cancel"; destinoIds?: string[] }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
@@ -41,7 +41,6 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
       return { ok: false, skipped: true, reason: "telegram_not_connected" as const };
     }
 
-    // resolver destinos
     let chatIds: string[] = [];
     if (data.destinoIds && data.destinoIds.length > 0) {
       const { data: dests } = await supabase
@@ -51,7 +50,6 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
         .eq("activo", true);
       chatIds = (dests ?? []).map((d) => d.chat_id).filter(Boolean);
     } else {
-      // usar default del empleado
       const { data: settings } = await supabase
         .from("user_settings")
         .select("telegram_destino_default_id, telegram_chat_id")
@@ -76,39 +74,55 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     const { data: job, error } = await supabase.from('servicios').select("*").eq("id", data.jobId).maybeSingle();
     if (error || !job) return { ok: false, skipped: true, reason: "job_not_found" as const };
 
-    // datos empleado
     const { data: prof } = await supabase
       .from("profiles").select("display_name, username").eq("user_id", job.empleado_id ?? job.user_id).maybeSingle();
     const empleadoName = prof?.display_name || prof?.username || "";
 
     const importe = Number(job.importe ?? 0);
-    const cantidad = Number(job.cantidad ?? 1);
-    const total = importe * cantidad;
+    const precioLlegada = Number(job.precio_llegada ?? 0);
     const address = [job.direccion, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    const hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+
+    const commonHeader =
+      (empleadoName ? `<b>Empleado:</b> ${escapeHtml(empleadoName)}\n` : "") +
+      `<b>Cliente:</b> ${escapeHtml(job.cliente ?? "")}\n` +
+      (job.tipo_servicio ? `<b>Servicio:</b> ${escapeHtml(job.tipo_servicio)}\n` : "") +
+      `<b>Dirección:</b> ${escapeHtml(address)}\n` +
+      (job.telefono_cliente ? `<b>Tel:</b> ${escapeHtml(job.telefono_cliente)}\n` : "") +
+      `<a href="${mapsUrl}">📍 Ver en Google Maps</a>\n`;
 
     let caption = "";
     let photoUrl: string | null = null;
 
-    if (data.fase === "inicio") {
+    if (data.fase === "creado") {
       caption =
-        `🟦 <b>LLEGADA</b>\n` +
-        (empleadoName ? `<b>Empleado:</b> ${escapeHtml(empleadoName)}\n` : "") +
-        `<b>Cliente:</b> ${escapeHtml(job.cliente ?? "")}\n` +
-        `<b>Dirección:</b> ${escapeHtml(address)}\n` +
-        (job.telefono ? `<b>Tel:</b> ${escapeHtml(job.telefono)}\n` : "") +
-        `<b>Hora:</b> ${new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}\n` +
+        `🆕 <b>NUEVO SERVICIO</b>\n` + commonHeader +
+        (job.hora_programada ? `<b>Hora prog.:</b> ${escapeHtml(job.hora_programada)}\n` : "") +
+        (job.observaciones ? `<b>Obs.:</b> ${escapeHtml(job.observaciones)}\n` : "") +
         `<b>Importe:</b> ${fmtEUR(importe)}`;
+    } else if (data.fase === "inicio") {
+      const dist = job.distancia_llegada_metros != null ? ` (${Math.round(Number(job.distancia_llegada_metros))} m)` : "";
+      const val = job.direccion_validada_llegada ? "✅ dentro de rango" : "⚠️ fuera de rango";
+      caption =
+        `🟦 <b>LLEGADA</b>\n` + commonHeader +
+        `<b>Hora:</b> ${hora}\n` +
+        `<b>Validación:</b> ${val}${dist}`;
       photoUrl = job.foto_inicio;
+    } else if (data.fase === "final") {
+      caption =
+        `✅ <b>SERVICIO REALIZADO</b>\n` + commonHeader +
+        `<b>Hora fin:</b> ${hora}\n` +
+        `<b>Importe:</b> ${fmtEUR(importe)}` +
+        (precioLlegada > 0 ? ` + ${fmtEUR(precioLlegada)} llegada` : "");
+      photoUrl = job.foto_final;
     } else {
       caption =
-        `✅ <b>TRABAJO REALIZADO</b>\n` +
-        (empleadoName ? `<b>Empleado:</b> ${escapeHtml(empleadoName)}\n` : "") +
-        `<b>Cliente:</b> ${escapeHtml(job.cliente ?? "")}\n` +
-        `<b>Dirección:</b> ${escapeHtml(address)}\n` +
-        `<b>Hora fin:</b> ${new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}\n` +
-        `<b>Importe:</b> ${fmtEUR(importe)}` +
-        (cantidad > 1 ? ` × ${cantidad} = <b>${fmtEUR(total)}</b>` : "");
-      photoUrl = job.foto_final;
+        `❌ <b>SERVICIO CANCELADO</b>\n` + commonHeader +
+        `<b>Hora:</b> ${hora}\n` +
+        (job.motivo_cancelacion ? `<b>Motivo:</b> ${escapeHtml(job.motivo_cancelacion)}\n` : "") +
+        (precioLlegada > 0 && job.direccion_validada_llegada ? `<b>Cobro llegada:</b> ${fmtEUR(precioLlegada)}` : "");
+      photoUrl = job.foto_cancelacion;
     }
 
     const headers = {
@@ -138,7 +152,7 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
           const r = await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
             method: "POST",
             headers: { ...headers, "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: caption, parse_mode: "HTML" }),
+            body: JSON.stringify({ chat_id: chatId, text: caption, parse_mode: "HTML", disable_web_page_preview: true }),
           });
           const j = await r.json();
           if (!r.ok || !j.ok) results.push({ chat_id: chatId, ok: false, error: j.description ?? `HTTP ${r.status}` });
@@ -152,14 +166,14 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     const anyOk = results.some((r) => r.ok);
     if (anyOk) {
       const firstMsgId = results.find((r) => r.ok)?.message_id ?? "";
-      await supabase
-        .from('servicios')
-        .update(
-          data.fase === "inicio"
-            ? { telegram_inicio_msg_id: firstMsgId }
-            : { telegram_final_msg_id: firstMsgId },
-        )
-        .eq("id", job.id);
+      const patch: Record<string, string> =
+        data.fase === "inicio" ? { telegram_inicio_msg_id: firstMsgId }
+        : data.fase === "final" ? { telegram_final_msg_id: firstMsgId }
+        : data.fase === "cancel" ? { telegram_cancel_msg_id: firstMsgId }
+        : {};
+      if (Object.keys(patch).length > 0) {
+        await supabase.from('servicios').update(patch).eq("id", job.id);
+      }
     }
     return { ok: anyOk, results };
   });
