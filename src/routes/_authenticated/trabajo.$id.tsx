@@ -15,7 +15,7 @@ import {
   Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, Navigation,
 } from "lucide-react";
 import {
-  CANCEL_REASONS, STATUS_LABELS, formatEUR, googleMapsUrl, isCancelled,
+  CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
   jobTotal, telUrl, whatsappUrl, type Job, type JobStatus,
 } from "@/lib/jobs";
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
@@ -665,9 +665,29 @@ function AdminOverride({
   const [precioLlegada, setPrecioLlegada] = useState<string>(String(job.precio_llegada ?? 0));
   const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
   const [fecha, setFecha] = useState<string>(job.fecha);
+  const [hora, setHora] = useState<string>(job.hora_programada ?? "");
+  const [cliente, setCliente] = useState<string>(job.cliente ?? "");
+  const [telefono, setTelefono] = useState<string>(job.telefono_cliente ?? "");
+  const [tipoServicio, setTipoServicio] = useState<string>(job.tipo_servicio ?? "");
+  const [empleadoId, setEmpleadoId] = useState<string>(job.empleado_id ?? job.user_id ?? "");
+  const [direccion, setDireccion] = useState<string>(job.direccion ?? "");
   const [piso, setPiso] = useState<string>(job.piso ?? "");
   const [puerta, setPuerta] = useState<string>(job.puerta ?? "");
+  const [codigoPostal, setCodigoPostal] = useState<string>(job.codigo_postal ?? "");
+  const [ciudad, setCiudad] = useState<string>(job.ciudad ?? "Barcelona");
+  const [observaciones, setObservaciones] = useState<string>(job.observaciones ?? "");
   const [saving, setSaving] = useState(false);
+
+  const { data: empleados = [] } = useQuery({
+    queryKey: ["empleados-list"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "empleado");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (ids.length === 0) return [] as { user_id: string; display_name: string | null; username: string | null }[];
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").in("user_id", ids);
+      return (data ?? []) as { user_id: string; display_name: string | null; username: string | null }[];
+    },
+  });
 
   // Anular
   const [anularOpen, setAnularOpen] = useState(false);
@@ -687,8 +707,18 @@ function AdminOverride({
         precio_llegada: Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
+        hora_programada: hora || null,
+        cliente: cliente.trim() || job.cliente,
+        telefono_cliente: telefono.trim() || null,
+        tipo_servicio: tipoServicio || null,
+        empleado_id: empleadoId || job.empleado_id,
+        user_id: empleadoId || job.user_id,
+        direccion: direccion.trim() || job.direccion,
         piso: piso.trim() || null,
         puerta: puerta.trim() || null,
+        codigo_postal: codigoPostal.trim() || null,
+        ciudad: ciudad.trim() || null,
+        observaciones: observaciones.trim() || null,
         hora_fin: estado === "realizado" && !job.hora_fin ? new Date().toISOString() : job.hora_fin,
       };
       const { error } = await supabase.from('servicios').update(patch).eq("id", job.id);
@@ -805,6 +835,54 @@ function AdminOverride({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
+          <label className="text-xs font-medium">Hora programada</label>
+          <input type="time" value={hora} onChange={(e) => setHora(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Empleado</label>
+          <select value={empleadoId} onChange={(e) => setEmpleadoId(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm">
+            {empleados.map((emp) => (
+              <option key={emp.user_id} value={emp.user_id}>{emp.display_name || emp.username}</option>
+            ))}
+            {!empleados.some((e) => e.user_id === empleadoId) && empleadoId && (
+              <option value={empleadoId}>(actual)</option>
+            )}
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">Tipo de servicio</label>
+        <select value={tipoServicio} onChange={(e) => setTipoServicio(e.target.value)}
+          className="w-full rounded-md border bg-background px-2 py-1.5 text-sm">
+          <option value="">—</option>
+          {TIPO_SERVICIO_OPCIONES.map((s) => (<option key={s} value={s}>{s}</option>))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Cliente</label>
+          <input type="text" value={cliente} onChange={(e) => setCliente(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Teléfono</label>
+          <input type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">Dirección</label>
+        <input type="text" value={direccion} onChange={(e) => setDireccion(e.target.value)}
+          className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
           <label className="text-xs font-medium">Piso</label>
           <input type="text" value={piso} onChange={(e) => setPiso(e.target.value)}
             placeholder="3º" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
@@ -814,6 +892,24 @@ function AdminOverride({
           <input type="text" value={puerta} onChange={(e) => setPuerta(e.target.value)}
             placeholder="B" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Código postal</label>
+          <input type="text" value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)}
+            placeholder="08001" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Ciudad</label>
+          <input type="text" value={ciudad} onChange={(e) => setCiudad(e.target.value)}
+            placeholder="Barcelona" className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium">Observaciones</label>
+        <Textarea rows={2} value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
       </div>
 
       <label className="flex items-start gap-2 rounded-md border bg-background p-3 text-sm cursor-pointer">
