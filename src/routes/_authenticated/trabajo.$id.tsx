@@ -582,6 +582,8 @@ function AdminOverride({
   const [precioLlegada, setPrecioLlegada] = useState<string>(String(job.precio_llegada ?? 0));
   const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
   const [fecha, setFecha] = useState<string>(job.fecha);
+  const [piso, setPiso] = useState<string>(job.piso ?? "");
+  const [puerta, setPuerta] = useState<string>(job.puerta ?? "");
   const [saving, setSaving] = useState(false);
 
   // Anular
