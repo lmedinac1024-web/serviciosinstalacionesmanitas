@@ -97,32 +97,32 @@ function NuevoServicio() {
       const coords = await tryGeocode();
 
       const { data: userData } = await supabase.auth.getUser();
-      const servicioNombre = servicios.find((s) => s.id === form.servicio_id)?.nombre ?? null;
 
       const { data, error } = await supabase.from('servicios').insert({
         user_id: form.empleado_id,
         empleado_id: form.empleado_id,
         assigned_by: userData.user?.id ?? null,
         cliente_id: null,
-        servicio_id: form.servicio_id || null,
-        servicio: servicioNombre,
+        tipo_servicio: form.tipo_servicio || null,
         cliente: form.cliente.trim(),
-        telefono: form.telefono.trim() || null,
+        telefono_cliente: form.telefono.trim() || null,
+        referencia: form.referencia.trim() || null,
         direccion: form.direccion.trim(),
         codigo_postal: form.codigo_postal.trim() || null,
         ciudad: form.ciudad.trim() || null,
         fecha: form.fecha,
-        hora: form.hora || null,
+        hora_programada: form.hora || null,
         importe: Number(form.importe) || 0,
-        cantidad: 1,
         precio_llegada: Number(form.precio_llegada) || 0,
         observaciones: form.observaciones.trim() || null,
-        lat: coords?.lat ?? null,
-        lng: coords?.lng ?? null,
-      } as never).select().single();
+        direccion_lat: coords?.lat ?? null,
+        direccion_lng: coords?.lng ?? null,
+      }).select().single();
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["jobs"] });
       toast.success("Servicio creado");
+      // Aviso Telegram (creación) — fire and forget
+      void sendTg({ data: { jobId: data.id, fase: "creado" } }).catch(() => { /* noop */ });
       navigate({ to: "/trabajo/$id", params: { id: data.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al crear");
