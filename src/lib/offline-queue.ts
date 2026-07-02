@@ -10,11 +10,11 @@ export interface PendingAction {
   jobId: string;
   userId: string;
   kind: PendingKind;
-  motivo?: string;             // for cancelar
-  destinoIds?: string[];       // telegram destinos (may be empty)
-  photo?: Blob;                // required for inicio / final
+  motivo?: string;             // for cancelar: `${estado}|${label}`
+  destinoIds?: string[];
+  photo?: Blob;                // required for inicio / final / cancelar (con foto)
   photoName?: string;
-  arrivalLat?: number;         // for kind='inicio': coords captured on tap
+  arrivalLat?: number;
   arrivalLng?: number;
   arrivalDistanceM?: number | null;
   arrivalValidated?: boolean;
