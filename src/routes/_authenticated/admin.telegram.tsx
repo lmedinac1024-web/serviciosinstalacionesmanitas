@@ -50,6 +50,29 @@ function AdminTelegram() {
   const [form, setForm] = useState({ nombre: "", chat_id: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const sendTest = useServerFn(sendTelegramTestMessage);
+
+  async function probar() {
+    // Validar chat_id sin exigir nombre para pruebas rápidas
+    const parsed = destinoSchema.shape.chat_id.safeParse(form.chat_id);
+    if (!parsed.success) {
+      setErrors((x) => ({ ...x, chat_id: parsed.error.issues[0]?.message ?? "Chat ID inválido" }));
+      toast.error("Chat ID inválido");
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await sendTest({ data: { chatId: parsed.data, nombre: form.nombre } });
+      if (res.ok) toast.success("Mensaje de prueba enviado ✅");
+      else if ("skipped" in res && res.skipped) toast.info("Telegram no conectado.");
+      else toast.error(`Error: ${"error" in res ? res.error : "desconocido"}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error enviando prueba");
+    } finally {
+      setTesting(false);
+    }
+  }
 
   const { data: destinos = [] } = useQuery({
     queryKey: ["telegram-destinos"],
