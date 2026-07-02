@@ -18,8 +18,6 @@ import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
   jobTotal, telUrl, whatsappUrl, type Job, type JobStatus,
 } from "@/lib/jobs";
-import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
-import { useServerFn } from "@tanstack/react-start";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
 import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
@@ -62,7 +60,6 @@ function Detalle() {
   const qc = useQueryClient();
   const { data: me } = useUserRole();
   const online = useOnline();
-  const sendTg = useServerFn(sendJobUpdateToTelegram);
   const startInput = useRef<HTMLInputElement>(null);
   const finalInput = useRef<HTMLInputElement>(null);
   const cancelInput = useRef<HTMLInputElement>(null);
@@ -139,16 +136,6 @@ function Detalle() {
     return <AppShell title="Servicio"><div className="text-sm text-muted-foreground">Cargando...</div></AppShell>;
   }
 
-  async function notifyTelegram(jobId: string, fase: Fase, destinoIds: string[]) {
-    try {
-      const res = await sendTg({ data: { jobId, fase, destinoIds } });
-      if (res.ok) toast.success("Enviado a Telegram");
-      else if (res.skipped) {
-        if (res.reason === "telegram_not_connected") toast.info("Telegram no conectado.");
-        else if (res.reason === "no_chat_id") toast.info("Sin destino Telegram configurado.");
-      } else toast.error(`Telegram: ${"error" in res ? res.error : "error"}`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Error Telegram"); }
-  }
 
   function pickPhoto(fase: Fase) {
     if (fase === "inicio") startInput.current?.click();
@@ -221,18 +208,32 @@ function Detalle() {
     } finally { setCheckingGps(false); }
   }
 
+  async function shareFileNative(file: File, fase: Fase) {
+    const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
+    const text = `${faseTxt} — ${job?.cliente ?? ""} · ${job?.referencia ?? ""}\n${direccionCompleta}`;
+    try {
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
+      if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: faseTxt, text });
+        return;
+      }
+      if (nav.share) {
+        await nav.share({ title: faseTxt, text });
+        toast.info("Tu dispositivo no soporta adjuntar la foto — comparte manualmente");
+        return;
+      }
+      toast.info("Compartir nativo no disponible en este dispositivo");
+    } catch (e) {
+      if ((e as DOMException)?.name !== "AbortError") {
+        toast.error("No se pudo abrir el menú compartir");
+      }
+    }
+  }
+
   async function onPhotoSelected(fase: Fase, file: File) {
     setPendingFile(file);
-    const pre = favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id));
-    const fallbackDefault = userSettings?.telegram_destino_default_id;
-    setSelectedDest(
-      pre.length > 0
-        ? pre
-        : fallbackDefault && destinosDisponibles.some((d) => d.id === fallbackDefault)
-          ? [fallbackDefault]
-          : [],
-    );
-    setDestOpen(fase);
+    await savePhotoAndNotify(fase, file, []);
+    await shareFileNative(file, fase);
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
@@ -320,7 +321,7 @@ function Detalle() {
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: ["jobs"] });
         toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
-        void notifyTelegram(job!.id, fase, destinoIds);
+        void destinoIds;
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error subiendo foto");
@@ -558,67 +559,8 @@ function Detalle() {
         <input ref={cancelInput} type="file" accept="image/*" capture="environment" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("cancel", f); e.target.value = ""; }} />
 
-        <Dialog open={!!destOpen} onOpenChange={(v) => { if (!v) { setDestOpen(null); setPendingFile(null); } }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {destOpen === "inicio" ? "Enviar foto de inicio"
-                  : destOpen === "final" ? "Enviar foto final"
-                  : "Enviar foto de cancelación"}
-              </DialogTitle>
-            </DialogHeader>
-            {destinosDisponibles.length === 0 ? (
-              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                No tienes destinos Telegram permitidos. Puedes guardar sin enviar o configurarlos en <b>Ajustes</b>.
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{selectedDest.length} de {destinosDisponibles.length} seleccionados</span>
-                  <div className="flex gap-3">
-                    <button type="button" className="underline"
-                      onClick={() => setSelectedDest(destinosDisponibles.map((d) => d.id))}>Todos</button>
-                    <button type="button" className="underline"
-                      onClick={() => setSelectedDest([])}>Ninguno</button>
-                    {favoritosIds.length > 0 && (
-                      <button type="button" className="underline"
-                        onClick={() => setSelectedDest(favoritosIds.filter((id) => destinosDisponibles.some((d) => d.id === id)))}>
-                        Solo favoritos
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="max-h-72 space-y-2 overflow-y-auto">
-                  {destinosDisponibles.map((d) => {
-                    const isFav = favoritosIds.includes(d.id);
-                    return (
-                      <label key={d.id} className="flex cursor-pointer items-center gap-3 rounded border p-3 hover:bg-accent">
-                        <Checkbox
-                          checked={selectedDest.includes(d.id)}
-                          onCheckedChange={(v) => setSelectedDest((s) => v ? [...s, d.id] : s.filter((x) => x !== d.id))}
-                        />
-                        <span className="flex-1">{d.nombre}</span>
-                        {isFav && <span className="text-yellow-500" title="Favorito">★</span>}
-                      </label>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-            <DialogFooter className="gap-2 sm:gap-2">
-              <Button variant="outline" disabled={working}
-                onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, [])}>
-                Guardar sin enviar
-              </Button>
-              <Button
-                disabled={working || selectedDest.length === 0}
-                onClick={() => destOpen && pendingFile && savePhotoAndNotify(destOpen, pendingFile, selectedDest)}
-              >
-                Enviar {selectedDest.length > 0 && `(${selectedDest.length})`}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Compartir nativo se dispara automáticamente tras guardar la foto */}
+
 
         {job.observaciones && (
           <div className="rounded-xl border bg-card p-5">
