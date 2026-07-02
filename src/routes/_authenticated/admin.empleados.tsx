@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Key, Euro } from "lucide-react";
+import { Plus, Trash2, Key } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { adminCreateEmployee, adminResetPassword, adminDeleteEmployee } from "@/lib/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,8 +16,6 @@ import { useServerFn } from "@tanstack/react-start";
 export const Route = createFileRoute("/_authenticated/admin/empleados")({ component: AdminEmpleados });
 
 type Profile = { user_id: string; username: string; display_name: string | null };
-type Servicio = { id: string; nombre: string };
-type Tarifa = { id: string; empleado_id: string; servicio_id: string; precio: number };
 
 function AdminEmpleados() {
   const { data: me, isLoading } = useUserRole();
