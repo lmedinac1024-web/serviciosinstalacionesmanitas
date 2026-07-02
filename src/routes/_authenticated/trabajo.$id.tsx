@@ -279,10 +279,11 @@ function Detalle() {
                 size="lg"
                 className="h-14 w-full text-base"
                 onClick={() => pickPhoto("inicio")}
-                disabled={working || !online}
-                title={!online ? "Necesitas conexión para iniciar" : undefined}
+                disabled={working}
+                title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
                 <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
+                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
             {canFinish && (
@@ -290,15 +291,16 @@ function Detalle() {
                 size="lg"
                 className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
                 onClick={() => pickPhoto("final")}
-                disabled={working || !online}
-                title={!online ? "Necesitas conexión para finalizar" : undefined}
+                disabled={working}
+                title={!online ? "Se guardará offline y se subirá al recuperar conexión" : undefined}
               >
                 <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
+                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
             <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="h-12 w-full text-destructive" disabled={working || !online}>
+                <Button variant="outline" className="h-12 w-full text-destructive" disabled={working}>
                   <XCircle className="mr-2 h-4 w-4" /> Cancelar trabajo
                 </Button>
               </DialogTrigger>
@@ -307,7 +309,7 @@ function Detalle() {
                 <div className="space-y-2">
                   {CANCEL_REASONS.map((r) => (
                     <Button key={r.value} variant="outline" className="h-12 w-full justify-start"
-                      onClick={() => cancelar(r.value)} disabled={working || !online}>
+                      onClick={() => cancelar(r.value)} disabled={working}>
                       {r.label}
                     </Button>
                   ))}
