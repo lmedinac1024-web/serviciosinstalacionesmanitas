@@ -484,9 +484,114 @@ function Detalle() {
           <PhotoBox title="Foto final" url={fotoFinalUrl} />
         </div>
 
+        {me?.role === "admin" && (
+          <AdminOverride job={job} onSaved={() => qc.invalidateQueries({ queryKey: ["jobs"] })} />
+        )}
+
         <Button variant="ghost" onClick={() => navigate({ to: "/" })}>← Volver</Button>
       </div>
     </AppShell>
+  );
+}
+
+function AdminOverride({ job, onSaved }: { job: Job; onSaved: () => void }) {
+  const [estado, setEstado] = useState<JobStatus>(job.estado);
+  const [validada, setValidada] = useState<boolean>(job.llegada_validada);
+  const [importe, setImporte] = useState<string>(String(job.importe ?? 0));
+  const [precioLlegada, setPrecioLlegada] = useState<string>(String(job.precio_llegada ?? 0));
+  const [motivo, setMotivo] = useState<string>(job.motivo_cancelacion ?? "");
+  const [fecha, setFecha] = useState<string>(job.fecha);
+  const [saving, setSaving] = useState(false);
+
+  const cancelled = estado.startsWith("cancelado");
+
+  async function save() {
+    setSaving(true);
+    try {
+      const patch = {
+        estado,
+        llegada_validada: validada,
+        importe: Number(importe) || 0,
+        precio_llegada: Number(precioLlegada) || 0,
+        motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
+        fecha,
+        finalizado_at: estado === "realizado" && !job.finalizado_at ? new Date().toISOString() : job.finalizado_at,
+      };
+      const { error } = await supabase.from("jobs").update(patch).eq("id", job.id);
+      if (error) throw error;
+      toast.success("Trabajo actualizado");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-primary font-semibold">Admin — Actualizar trabajo</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Edita trabajos pasados sin GPS ni foto. Marca la llegada como validada para que el empleado cobre.
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Fecha</label>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Estado</label>
+          <select value={estado} onChange={(e) => setEstado(e.target.value as JobStatus)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm">
+            {(Object.keys(STATUS_LABELS) as JobStatus[]).map((s) => (
+              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Importe (€)</label>
+          <input type="number" step="0.01" min="0" value={importe} onChange={(e) => setImporte(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Precio por llegada (€)</label>
+          <input type="number" step="0.01" min="0" value={precioLlegada} onChange={(e) => setPrecioLlegada(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      </div>
+
+      <label className="flex items-start gap-2 rounded-md border bg-background p-3 text-sm cursor-pointer">
+        <Checkbox checked={validada} onCheckedChange={(v) => setValidada(!!v)} className="mt-0.5" />
+        <div>
+          <div className="font-medium">Llegada validada (sin GPS)</div>
+          <div className="text-xs text-muted-foreground">
+            Marca esto para aprobar manualmente la llegada del empleado. Necesario para que cobre el precio por llegada si el trabajo se canceló.
+          </div>
+        </div>
+      </label>
+
+      {cancelled && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Motivo de cancelación</label>
+          <input type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+            placeholder={STATUS_LABELS[estado]}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+        </div>
+      )}
+
+      <Button onClick={save} disabled={saving} className="w-full">
+        {saving ? "Guardando..." : "Guardar cambios (admin)"}
+      </Button>
+    </div>
   );
 }
 
