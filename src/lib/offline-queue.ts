@@ -125,53 +125,60 @@ async function processOne(action: PendingAction): Promise<void> {
     const [estado, ...labelParts] = (action.motivo ?? "cancelado_otro|Cancelado").split("|");
     const label = labelParts.join("|") || "Cancelado";
     type EstadoCancel = "cancelado_cliente" | "cancelado_direccion" | "cancelado_no_estaba" | "cancelado_otro";
-    const patch = {
+    const statusPatch = {
       estado: estado as EstadoCancel,
       motivo_cancelacion: label,
       hora_fin: new Date().toISOString(),
-      foto_cancelacion: null as string | null,
       ...(action.arrivalLat != null ? { gps_cancelacion_lat: action.arrivalLat } : {}),
       ...(action.arrivalLng != null ? { gps_cancelacion_lng: action.arrivalLng } : {}),
     };
+    const { error: statusError } = await supabase.from('servicios').update(statusPatch).eq("id", action.jobId);
+    if (statusError) throw statusError;
+
+    const photoPatch = {
+      foto_cancelacion: null as string | null,
+    };
     if (action.photo) {
-      patch.foto_cancelacion = await uploadPhoto(action.userId, action.jobId, "cancel", action.photo);
+      photoPatch.foto_cancelacion = await uploadPhoto(action.userId, action.jobId, "cancel", action.photo);
+      const { error } = await supabase.from('servicios').update(photoPatch).eq("id", action.jobId);
+      if (error) throw error;
     }
-    const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
-    if (error) throw error;
     return;
   }
 
   if (!action.photo) throw new Error("Foto no encontrada en cola");
-  const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
   const now = new Date().toISOString();
   if (action.kind === "inicio") {
-    const photoPatch = {
-      foto_inicio: path,
+    const statusPatch = {
       hora_llegada: now,
       ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
       ...(action.arrivalLng != null ? { gps_llegada_lng: action.arrivalLng } : {}),
     };
-    const { error } = await supabase.from("servicios").update(photoPatch).eq("id", action.jobId);
-    if (error) throw error;
+    const { error: statusMetaError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
+    if (statusMetaError) throw statusMetaError;
 
     // Do not revert an already finalized/cancelled service back to "en curso"
     // when an old start-photo retry syncs later.
-    await supabase
+    const { error: statusError } = await supabase
       .from("servicios")
       .update({ estado: "en_proceso" as const })
       .eq("id", action.jobId)
       .eq("estado", "pendiente");
+    if (statusError) throw statusError;
+
+    const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
+    const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
+    if (error) throw error;
     return;
   }
 
-  const patch = {
-    foto_final: path,
+  const statusPatch = {
     estado: "realizado" as const,
     hora_fin: now,
     ...(action.arrivalLat != null ? { gps_final_lat: action.arrivalLat } : {}),
     ...(action.arrivalLng != null ? { gps_final_lng: action.arrivalLng } : {}),
   };
-  const { error } = await supabase.from("servicios").update(patch).eq("id", action.jobId);
+  const { error } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
   if (!error) return;
 
   await supabase
@@ -179,8 +186,12 @@ async function processOne(action: PendingAction): Promise<void> {
     .update({ estado: "en_proceso" as const, hora_llegada: now })
     .eq("id", action.jobId)
     .eq("estado", "pendiente");
-  const { error: retryError } = await supabase.from("servicios").update(patch).eq("id", action.jobId);
+  const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
   if (retryError) throw retryError;
+
+  const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
+  const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
+  if (photoError) throw photoError;
 
 }
 
