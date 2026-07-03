@@ -37,6 +37,19 @@ function AdminEmpleados() {
     },
   });
 
+  const { data: passwords = {} } = useQuery({
+    queryKey: ["employee-passwords"],
+    queryFn: async () => {
+      const { data } = await supabase.from("employee_passwords").select("user_id, password_plain");
+      const map: Record<string, string> = {};
+      for (const r of data ?? []) map[r.user_id] = r.password_plain;
+      return map;
+    },
+  });
+
+  const [reveal, setReveal] = useState<Record<string, boolean>>({});
+
+
   if (isLoading) return <AppShell title="Empleados"><div>…</div></AppShell>;
   if (!me?.isAdmin) return <Navigate to="/" />;
 
