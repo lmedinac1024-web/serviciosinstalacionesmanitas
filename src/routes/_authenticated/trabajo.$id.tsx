@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw, Share2,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -25,12 +25,11 @@ import { enqueue as enqueueOffline, listForJob, remove as removeOffline, subscri
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
 
-interface PendingShare {
+interface SharePayload {
   fase: Fase;
   file: File;
   title: string;
   text: string;
-  previewUrl: string;
 }
 
 interface GpsMeta {
