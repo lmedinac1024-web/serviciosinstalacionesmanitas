@@ -641,6 +641,35 @@ function Detalle() {
           </div>
         )}
 
+        {(pendingShare.inicio || pendingShare.final || pendingShare.cancel) && (
+          <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            {(["inicio", "final", "cancel"] as Fase[]).map((f) => {
+              const p = pendingShare[f];
+              if (!p) return null;
+              const label =
+                f === "inicio"
+                  ? "Compartir y marcar llegada"
+                  : f === "final"
+                    ? "Compartir y finalizar tarea"
+                    : "Compartir y cancelar tarea";
+              return (
+                <Button
+                  key={f}
+                  size="lg"
+                  className="h-14 w-full text-base"
+                  onClick={() => { void completePhotoAction(p); }}
+                  disabled={working}
+                >
+                  <Share2 className="mr-2 h-5 w-5" /> {working ? "Abriendo compartir..." : label}
+                </Button>
+              );
+            })}
+            <div className="text-xs text-muted-foreground">
+              La tarea solo cambia de estado después de compartir la foto.
+            </div>
+          </div>
+        )}
+
         {me?.isAdmin && !job.eliminado_logico && job.estado !== "pendiente" && (
           <Button
             variant="outline"
@@ -698,26 +727,6 @@ function Detalle() {
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
             <div className="text-[11px] uppercase text-destructive">Motivo de cancelación</div>
             <div className="mt-1 text-sm">{job.motivo_cancelacion}</div>
-          </div>
-        )}
-
-        {(pendingShare.inicio || pendingShare.final || pendingShare.cancel) && (
-          <div className="space-y-2">
-            {(["inicio", "final", "cancel"] as Fase[]).map((f) => {
-              const p = pendingShare[f];
-              if (!p) return null;
-              const label = f === "inicio" ? "Compartir foto de inicio" : f === "final" ? "Compartir foto final" : "Compartir foto de cancelación";
-              return (
-                <Button
-                  key={f}
-                  size="lg"
-                  className="h-12 w-full bg-[#229ED9] text-white hover:brightness-110"
-                  onClick={() => { void shareFileNative(p); }}
-                >
-                  <Share2 className="mr-2 h-5 w-5" /> {label}
-                </Button>
-              );
-            })}
           </div>
         )}
 
