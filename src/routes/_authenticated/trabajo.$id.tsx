@@ -149,7 +149,7 @@ function Detalle() {
       alive = false;
       unsubscribe();
     };
-  }, [id, qc]);
+  }, [id, qc, job?.id]);
 
   useEffect(() => () => {
     Object.values(localPhotoUrlsRef.current).forEach((url) => {
