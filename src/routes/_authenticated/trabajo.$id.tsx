@@ -315,6 +315,8 @@ function Detalle() {
     // 3) Persist in background (status + photo). Never blocks UI.
     void persistInBackground(fase, file, statusPatch);
   }
+
+  async function persistInBackground(fase: Fase, file: File, statusPatch: Partial<Job>) {
     const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
     const retryAction = userId
       ? {
