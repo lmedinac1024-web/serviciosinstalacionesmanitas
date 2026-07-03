@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw, Share2,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -93,6 +93,7 @@ function Detalle() {
   const [puertaFinal, setPuertaFinal] = useState<string>("");
   const [localPhotoUrls, setLocalPhotoUrls] = useState<Partial<Record<Fase, string>>>({});
   const localPhotoUrlsRef = useRef<Partial<Record<Fase, string>>>({});
+  const [pendingShare, setPendingShare] = useState<Partial<Record<Fase, SharePayload>>>({});
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -296,6 +297,7 @@ function Detalle() {
       localPhotoUrlsRef.current = next;
       return next;
     });
+    setPendingShare((old) => ({ ...old, [fase]: sharePayload }));
 
     // 1) UI advances instantly — never blocked by share or network.
     qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
@@ -681,6 +683,26 @@ function Detalle() {
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
             <div className="text-[11px] uppercase text-destructive">Motivo de cancelación</div>
             <div className="mt-1 text-sm">{job.motivo_cancelacion}</div>
+          </div>
+        )}
+
+        {(pendingShare.inicio || pendingShare.final || pendingShare.cancel) && (
+          <div className="space-y-2">
+            {(["inicio", "final", "cancel"] as Fase[]).map((f) => {
+              const p = pendingShare[f];
+              if (!p) return null;
+              const label = f === "inicio" ? "Compartir foto de inicio" : f === "final" ? "Compartir foto final" : "Compartir foto de cancelación";
+              return (
+                <Button
+                  key={f}
+                  size="lg"
+                  className="h-12 w-full bg-[#229ED9] text-white hover:brightness-110"
+                  onClick={() => { void shareFileNative(p); }}
+                >
+                  <Share2 className="mr-2 h-5 w-5" /> {label}
+                </Button>
+              );
+            })}
           </div>
         )}
 
