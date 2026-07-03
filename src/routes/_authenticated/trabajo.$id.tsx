@@ -567,7 +567,7 @@ function Detalle() {
           </DialogContent>
         </Dialog>
 
-        {/* Compartir nativo se dispara automáticamente tras guardar la foto */}
+        {/* Compartir nativo se dispara automáticamente al seleccionar la foto */}
 
 
         {job.observaciones && (
