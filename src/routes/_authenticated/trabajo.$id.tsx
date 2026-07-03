@@ -305,13 +305,6 @@ function Detalle() {
         });
         toast.success("Guardado offline — se enviará al recuperar conexión");
       } else {
-        await updateServiceWithFinalFallback(statusPatch, fase, now);
-        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-          old ? { ...old, ...statusPatch } : old,
-        );
-        toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
-        void qc.invalidateQueries({ queryKey: ["jobs"] });
-
         const retryAction = {
           jobId: job!.id,
           userId,
@@ -325,6 +318,20 @@ function Detalle() {
           arrivalValidated: gpsMeta?.validated,
           motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
         };
+
+        try {
+          await updateServiceWithFinalFallback(statusPatch, fase, now);
+        } catch (statusError) {
+          await enqueueOffline(retryAction);
+          toast.info("Guardado en cola — se sincronizará automáticamente");
+          return;
+        }
+
+        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+          old ? { ...old, ...statusPatch } : old,
+        );
+        toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
+        void qc.invalidateQueries({ queryKey: ["jobs"] });
 
         void (async () => {
           try {
