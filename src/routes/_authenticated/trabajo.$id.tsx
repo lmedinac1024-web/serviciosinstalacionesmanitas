@@ -164,23 +164,8 @@ function Detalle() {
   async function handleArrivalTap() {
     setCheckingGps(true);
     try {
+      // Validación GPS desactivada temporalmente — se registra la posición si está disponible, sin bloquear
       const meta = await captureGps(true);
-      if (meta && meta.distanceM != null) {
-        if (!meta.validated) {
-          const ok = window.confirm(
-            `Estás a ${Math.round(meta.distanceM)} m de la dirección (fuera del radio de ${ARRIVAL_RADIUS_M} m). ` +
-            `Se registrará SIN validación. ¿Continuar?`,
-          );
-          if (!ok) return;
-        } else {
-          toast.success(`Llegada validada (${Math.round(meta.distanceM)} m)`);
-        }
-      } else if (!meta) {
-        const ok = window.confirm(`No se pudo obtener el GPS. ¿Continuar sin validar?`);
-        if (!ok) return;
-      } else {
-        toast.info("Servicio sin coordenadas — no se puede validar el radio");
-      }
       setGpsMeta(meta);
       pickPhoto("inicio");
     } finally {
