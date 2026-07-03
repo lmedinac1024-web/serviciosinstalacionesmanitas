@@ -19,8 +19,8 @@ import { Briefcase, HelpCircle, UserPlus, Users, Send, ShieldCheck } from "lucid
 import logoAsset from "@/assets/logo-manitas.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getUser();
     if (data.user) throw redirect({ to: "/" });
   },
