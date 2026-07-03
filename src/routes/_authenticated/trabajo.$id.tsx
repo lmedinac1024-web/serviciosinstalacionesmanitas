@@ -686,6 +686,26 @@ function Detalle() {
           </div>
         )}
 
+        {(pendingShare.inicio || pendingShare.final || pendingShare.cancel) && (
+          <div className="space-y-2">
+            {(["inicio", "final", "cancel"] as Fase[]).map((f) => {
+              const p = pendingShare[f];
+              if (!p) return null;
+              const label = f === "inicio" ? "Compartir foto de inicio" : f === "final" ? "Compartir foto final" : "Compartir foto de cancelación";
+              return (
+                <Button
+                  key={f}
+                  size="lg"
+                  className="h-12 w-full bg-[#229ED9] text-white hover:brightness-110"
+                  onClick={() => { void shareFileNative(p); }}
+                >
+                  <Share2 className="mr-2 h-5 w-5" /> {label}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3">
           <PhotoBox title="Foto inicio" url={fotoInicioUrl ?? localPhotoUrls.inicio} />
           <PhotoBox title="Foto final" url={fotoFinalUrl ?? localPhotoUrls.final} />
