@@ -273,3 +273,14 @@ function MiniKpi({ label, value, icon: Icon, tone }: { label: string; value: num
     </div>
   );
 }
+
+function AdminTile({ to, label, icon: Icon }: { to: "/admin/empleados" | "/admin/telegram" | "/admin/solicitudes" | "/admin/roles"; label: string; icon: typeof Trophy }) {
+  return (
+    <Link to={to} className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm hover:bg-accent">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="text-sm font-semibold">{label}</div>
+    </Link>
+  );
+}
