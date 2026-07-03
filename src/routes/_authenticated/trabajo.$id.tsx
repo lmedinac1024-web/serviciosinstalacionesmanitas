@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -26,6 +26,7 @@ import { getCurrentPosition, haversineMeters } from "@/lib/geo";
 const ARRIVAL_RADIUS_M = 100;
 
 type Fase = "inicio" | "final" | "cancel";
+type PhotoSource = "camera" | "gallery";
 
 interface GpsMeta {
   lat: number;
@@ -60,16 +61,17 @@ function Detalle() {
   const qc = useQueryClient();
   const { data: me } = useUserRole();
   const online = useOnline();
-  const startInput = useRef<HTMLInputElement>(null);
-  const finalInput = useRef<HTMLInputElement>(null);
-  const cancelInput = useRef<HTMLInputElement>(null);
+  const startCameraInput = useRef<HTMLInputElement>(null);
+  const startGalleryInput = useRef<HTMLInputElement>(null);
+  const finalCameraInput = useRef<HTMLInputElement>(null);
+  const finalGalleryInput = useRef<HTMLInputElement>(null);
+  const cancelCameraInput = useRef<HTMLInputElement>(null);
+  const cancelGalleryInput = useRef<HTMLInputElement>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelExtra, setCancelExtra] = useState("");
   const [working, setWorking] = useState(false);
-  const [destOpen, setDestOpen] = useState<Fase | null>(null);
-  const [selectedDest, setSelectedDest] = useState<string[]>([]);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [photoPickerOpen, setPhotoPickerOpen] = useState<Fase | null>(null);
   const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
   const [checkingGps, setCheckingGps] = useState(false);
   const [importeFinal, setImporteFinal] = useState<string>("");
@@ -137,10 +139,25 @@ function Detalle() {
   }
 
 
-  function pickPhoto(fase: Fase) {
-    if (fase === "inicio") startInput.current?.click();
-    else if (fase === "final") finalInput.current?.click();
-    else cancelInput.current?.click();
+  function openPhotoPicker(fase: Fase) {
+    setPhotoPickerOpen(fase);
+  }
+
+  function pickPhoto(fase: Fase, source: PhotoSource) {
+    setPhotoPickerOpen(null);
+    const input =
+      fase === "inicio"
+        ? source === "camera" ? startCameraInput.current : startGalleryInput.current
+        : fase === "final"
+          ? source === "camera" ? finalCameraInput.current : finalGalleryInput.current
+          : source === "camera" ? cancelCameraInput.current : cancelGalleryInput.current;
+    window.setTimeout(() => input?.click(), 0);
+  }
+
+  function handleFileInputChange(fase: Fase, e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) void onPhotoSelected(fase, file);
+    e.target.value = "";
   }
 
   async function captureGps(validateAgainstJob: boolean): Promise<GpsMeta | null> {
@@ -167,7 +184,7 @@ function Detalle() {
       // Validación GPS desactivada temporalmente — se registra la posición si está disponible, sin bloquear
       const meta = await captureGps(true);
       setGpsMeta(meta);
-      pickPhoto("inicio");
+      openPhotoPicker("inicio");
     } finally {
       setCheckingGps(false);
     }
@@ -178,7 +195,7 @@ function Detalle() {
     try {
       const meta = await captureGps(false);
       setGpsMeta(meta);
-      pickPhoto("final");
+      openPhotoPicker("final");
     } finally { setCheckingGps(false); }
   }
 
@@ -189,25 +206,25 @@ function Detalle() {
       const meta = await captureGps(false);
       setGpsMeta(meta);
       setCancelOpen(false);
-      pickPhoto("cancel");
+      openPhotoPicker("cancel");
     } finally { setCheckingGps(false); }
   }
 
   async function shareFileNative(file: File, fase: Fase) {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
-    const header = `${faseTxt} — ${job?.cliente ?? ""} · ${job?.referencia ?? ""}`;
-    let text = header;
-    if (fase === "inicio") {
-      text = `${header}\n📍 ${direccionCompleta}`;
-    } else if (fase === "cancel") {
+    const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
+    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    let text = [header, addressLine].filter(Boolean).join("\n");
+    if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
-      text = `${header}\n❌ Motivo: ${motivo}`;
+      text = [header, addressLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
     }
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
-      if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
-        await nav.share({ files: [file], title: faseTxt, text });
+      const shareData: ShareData = { files: [file], title: faseTxt, text };
+      if (nav.share && (!nav.canShare || nav.canShare(shareData))) {
+        await nav.share(shareData);
         return;
       }
       if (nav.share) {
@@ -224,9 +241,9 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: Fase, file: File) {
-    setPendingFile(file);
-    await savePhotoAndNotify(fase, file, []);
+    const savePromise = savePhotoAndNotify(fase, file, []);
     await shareFileNative(file, fase);
+    await savePromise;
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
@@ -320,8 +337,6 @@ function Detalle() {
       toast.error(e instanceof Error ? e.message : "Error subiendo foto");
     } finally {
       setWorking(false);
-      setPendingFile(null);
-      setDestOpen(null);
       setGpsMeta(null);
       if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
     }
