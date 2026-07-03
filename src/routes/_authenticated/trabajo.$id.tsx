@@ -151,7 +151,7 @@ function Detalle() {
         : fase === "final"
           ? source === "camera" ? finalCameraInput.current : finalGalleryInput.current
           : source === "camera" ? cancelCameraInput.current : cancelGalleryInput.current;
-    window.setTimeout(() => input?.click(), 0);
+    input?.click();
   }
 
   function handleFileInputChange(fase: Fase, e: ChangeEvent<HTMLInputElement>) {
@@ -179,35 +179,20 @@ function Detalle() {
   }
 
   async function handleArrivalTap() {
-    setCheckingGps(true);
-    try {
-      // Validación GPS desactivada temporalmente — se registra la posición si está disponible, sin bloquear
-      const meta = await captureGps(true);
-      setGpsMeta(meta);
-      openPhotoPicker("inicio");
-    } finally {
-      setCheckingGps(false);
-    }
+    setGpsMeta(null);
+    openPhotoPicker("inicio");
   }
 
   async function handleFinishTap() {
-    setCheckingGps(true);
-    try {
-      const meta = await captureGps(false);
-      setGpsMeta(meta);
-      openPhotoPicker("final");
-    } finally { setCheckingGps(false); }
+    setGpsMeta(null);
+    openPhotoPicker("final");
   }
 
   async function handleCancelConfirm() {
     if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
-    setCheckingGps(true);
-    try {
-      const meta = await captureGps(false);
-      setGpsMeta(meta);
-      setCancelOpen(false);
-      openPhotoPicker("cancel");
-    } finally { setCheckingGps(false); }
+    setGpsMeta(null);
+    setCancelOpen(false);
+    openPhotoPicker("cancel");
   }
 
   async function shareFileNative(file: File, fase: Fase) {
