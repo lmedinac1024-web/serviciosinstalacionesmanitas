@@ -87,16 +87,13 @@ function Detalle() {
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelExtra, setCancelExtra] = useState("");
   const [working, setWorking] = useState(false);
-  const [photoPickerOpen, setPhotoPickerOpen] = useState<Fase | null>(null);
-  const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
+  const [, setGpsMeta] = useState<GpsMeta | null>(null);
   const [importeFinal, setImporteFinal] = useState<string>("");
   const [direccionFinal, setDireccionFinal] = useState<string>("");
   const [pisoFinal, setPisoFinal] = useState<string>("");
   const [puertaFinal, setPuertaFinal] = useState<string>("");
-  const [pendingShare, setPendingShare] = useState<PendingShare | null>(null);
   const [localPhotoUrls, setLocalPhotoUrls] = useState<Partial<Record<Fase, string>>>({});
   const localPhotoUrlsRef = useRef<Partial<Record<Fase, string>>>({});
-  const [sharing, setSharing] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
