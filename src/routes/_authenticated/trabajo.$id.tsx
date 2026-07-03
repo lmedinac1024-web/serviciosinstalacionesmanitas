@@ -309,41 +309,43 @@ function Detalle() {
         qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
           old ? { ...old, ...statusPatch } : old,
         );
-
-        let patch: Partial<Job> = {};
-        try {
-          const path = await uploadPhoto(job!.id, fase, file);
-          patch =
-            fase === "inicio"
-              ? { foto_inicio: path }
-              : fase === "final"
-                ? { foto_final: path }
-                : { foto_cancelacion: path };
-          const { error } = await supabase.from("servicios").update(patch).eq("id", job!.id);
-          if (error) throw error;
-        } catch (photoError) {
-          await enqueueOffline({
-            jobId: job!.id,
-            userId,
-            kind: fase === "cancel" ? "cancelar" : fase,
-            destinoIds,
-            photo: file,
-            photoName: file.name,
-            arrivalLat: gpsMeta?.lat,
-            arrivalLng: gpsMeta?.lng,
-            arrivalDistanceM: gpsMeta?.distanceM,
-            arrivalValidated: gpsMeta?.validated,
-            motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
-          });
-          toast.info("Estado actualizado; foto pendiente de sincronizar");
-          return;
-        }
-
-        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-          old ? { ...old, ...statusPatch, ...patch } : old,
-        );
-        await qc.invalidateQueries({ queryKey: ["jobs"] });
         toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
+        void qc.invalidateQueries({ queryKey: ["jobs"] });
+
+        const retryAction = {
+          jobId: job!.id,
+          userId,
+          kind: fase === "cancel" ? "cancelar" as const : fase,
+          destinoIds,
+          photo: file,
+          photoName: file.name,
+          arrivalLat: gpsMeta?.lat,
+          arrivalLng: gpsMeta?.lng,
+          arrivalDistanceM: gpsMeta?.distanceM,
+          arrivalValidated: gpsMeta?.validated,
+          motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
+        };
+
+        void (async () => {
+          try {
+            const path = await uploadPhoto(job!.id, fase, file);
+            const patch: Partial<Job> =
+              fase === "inicio"
+                ? { foto_inicio: path }
+                : fase === "final"
+                  ? { foto_final: path }
+                  : { foto_cancelacion: path };
+            const { error } = await supabase.from("servicios").update(patch).eq("id", job!.id);
+            if (error) throw error;
+            qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+              old ? { ...old, ...statusPatch, ...patch } : old,
+            );
+            void qc.invalidateQueries({ queryKey: ["jobs"] });
+          } catch {
+            await enqueueOffline(retryAction);
+            toast.info("Estado actualizado; foto pendiente de sincronizar");
+          }
+        })();
         void destinoIds;
       }
     } catch (e) {
