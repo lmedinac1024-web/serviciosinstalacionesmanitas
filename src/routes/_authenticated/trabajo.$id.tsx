@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, Navigation,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, Navigation, RotateCcw,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -558,6 +558,41 @@ function Detalle() {
               </DialogContent>
             </Dialog>
           </div>
+        )}
+
+        {me?.isAdmin && !job.eliminado_logico && job.estado !== "pendiente" && (
+          <Button
+            variant="outline"
+            className="h-11 w-full border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+            disabled={working}
+            onClick={async () => {
+              if (!confirm(`¿Revertir este servicio a "Pendiente"? Se limpiarán llegada, fin y validación GPS.`)) return;
+              setWorking(true);
+              try {
+                const { error } = await supabase
+                  .from("servicios")
+                  .update({
+                    estado: "pendiente",
+                    hora_llegada: null,
+                    hora_fin: null,
+                    direccion_validada_llegada: false,
+                    distancia_llegada_metros: null,
+                    motivo_cancelacion: null,
+                  })
+                  .eq("id", job.id);
+                if (error) throw error;
+                toast.success("Servicio revertido a pendiente");
+                qc.invalidateQueries({ queryKey: ["jobs"] });
+                qc.invalidateQueries({ queryKey: ["job", job.id] });
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Error al revertir");
+              } finally {
+                setWorking(false);
+              }
+            }}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" /> Revertir a pendiente (admin)
+          </Button>
         )}
 
         <input ref={startInput} type="file" accept="image/*" capture="environment" className="hidden"
