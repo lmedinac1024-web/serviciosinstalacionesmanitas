@@ -211,7 +211,7 @@ function KpiCard({
           <div className="mt-1.5 text-2xl font-bold tabular-nums">{value}</div>
         </div>
         <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-md", toneCls)}>
-          <Icon className="h-4.5 w-4.5" />
+          <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>
