@@ -30,6 +30,7 @@ interface SharePayload {
   file: File;
   title: string;
   text: string;
+  statusPatch: Partial<Job>;
 }
 
 interface GpsMeta {
@@ -205,7 +206,7 @@ function Detalle() {
     pickPhoto("cancel", "camera");
   }
 
-  function buildSharePayload(file: File, fase: Fase): SharePayload {
+  function buildSharePayload(file: File, fase: Fase): Omit<SharePayload, "statusPatch"> {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = fase !== "final" && direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
@@ -218,7 +219,7 @@ function Detalle() {
     return { fase, file, title: faseTxt, text };
   }
 
-  async function shareFileNative(payload: Omit<SharePayload, "fase">): Promise<boolean> {
+  async function shareFileNative(payload: Pick<SharePayload, "file" | "title" | "text">): Promise<boolean> {
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
       if (!nav.share) {
@@ -259,8 +260,7 @@ function Detalle() {
     }
   }
 
-  function onPhotoSelected(fase: Fase, file: File) {
-    const now = new Date().toISOString();
+  function buildStatusPatch(fase: Fase, at = new Date().toISOString()): Partial<Job> {
     const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
     const motivoFinal =
       fase === "cancel"
@@ -273,10 +273,10 @@ function Detalle() {
 
     const statusPatch: Partial<Job> =
       fase === "inicio"
-        ? { estado: "en_proceso", hora_llegada: now }
+        ? { estado: "en_proceso", hora_llegada: at }
         : fase === "final"
-          ? { estado: "realizado", hora_fin: now }
-          : { estado: nextEstado, hora_fin: now, motivo_cancelacion: motivoFinal };
+          ? { estado: "realizado", hora_fin: at }
+          : { estado: nextEstado, hora_fin: at, motivo_cancelacion: motivoFinal };
 
     if (fase === "final" && me?.isAdmin) {
       if (importeFinal.trim() !== "") {
@@ -287,8 +287,12 @@ function Detalle() {
       if (pisoFinal.trim() !== "") statusPatch.piso = pisoFinal.trim();
       if (puertaFinal.trim() !== "") statusPatch.puerta = puertaFinal.trim();
     }
+    return statusPatch;
+  }
 
-    const sharePayload = buildSharePayload(file, fase);
+  function onPhotoSelected(fase: Fase, file: File) {
+    const statusPatch = buildStatusPatch(fase);
+    const sharePayload: SharePayload = { ...buildSharePayload(file, fase), statusPatch };
     const localUrl = URL.createObjectURL(file);
     setLocalPhotoUrls((old) => {
       const previous = old[fase];
@@ -298,23 +302,44 @@ function Detalle() {
       return next;
     });
     setPendingShare((old) => ({ ...old, [fase]: sharePayload }));
-
-    // 1) UI advances instantly — never blocked by share or network.
-    qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-      old ? { ...old, ...statusPatch } : old,
-    );
-    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     toast.success(
-      (fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado") +
-      (offline ? " · en cola offline" : "")
+      fase === "inicio"
+        ? "Foto de inicio lista. Toca Compartir y marcar llegada."
+        : fase === "final"
+          ? "Foto final lista. Toca Compartir y finalizar tarea."
+          : "Foto de cancelación lista. Toca Compartir y cancelar."
     );
-    if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
+  }
 
-    // 2) Fire native share immediately (still within user-activation stack).
-    void shareFileNative(sharePayload);
+  async function completePhotoAction(payload: SharePayload) {
+    if (working) return;
+    setWorking(true);
+    try {
+      const shared = await shareFileNative(payload);
+      if (!shared) {
+        toast.info("Comparte la foto para avanzar el servicio");
+        return;
+      }
 
-    // 3) Persist in background (status + photo). Never blocks UI.
-    void persistInBackground(fase, file, statusPatch);
+      qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+        old ? { ...old, ...payload.statusPatch } : old,
+      );
+      setPendingShare((old) => {
+        const next = { ...old };
+        delete next[payload.fase];
+        return next;
+      });
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      toast.success(
+        (payload.fase === "inicio" ? "Llegada marcada" : payload.fase === "final" ? "Tarea realizada" : "Tarea cancelada") +
+        (offline ? " · en cola offline" : "")
+      );
+      if (payload.fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
+
+      void persistInBackground(payload.fase, payload.file, payload.statusPatch);
+    } finally {
+      setWorking(false);
+    }
   }
 
   async function persistInBackground(fase: Fase, file: File, statusPatch: Partial<Job>) {
@@ -352,27 +377,6 @@ function Detalle() {
     }
 
     try {
-      const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
-      if (error) {
-        if (fase !== "final") throw error;
-        // If the start update was paused while the native share sheet was open,
-        // the row can still be pending. Move it to en curso first, then finish it.
-        const { error: startError } = await supabase
-          .from("servicios")
-          .update({ estado: "en_proceso" as const, hora_llegada: job!.hora_llegada ?? new Date().toISOString() })
-          .eq("id", job!.id)
-          .eq("estado", "pendiente");
-        if (startError) throw error;
-        const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
-        if (retryError) throw retryError;
-      }
-      void qc.invalidateQueries({ queryKey: ["jobs"] });
-    } catch {
-      if (retryAction) toast.info("Guardado en cola para sincronizar");
-      return;
-    }
-
-    try {
       const path = await uploadPhoto(job!.id, fase, file, userId ?? undefined);
       const photoPatch: Partial<Job> =
         fase === "inicio"
@@ -380,10 +384,21 @@ function Detalle() {
           : fase === "final"
             ? { foto_final: path }
             : { foto_cancelacion: path };
-      const { error } = await supabase.from("servicios").update(photoPatch).eq("id", job!.id);
-      if (error) throw error;
+      const combinedPatch = { ...statusPatch, ...photoPatch };
+      const { error } = await supabase.from("servicios").update(combinedPatch).eq("id", job!.id);
+      if (error) {
+        if (fase !== "final") throw error;
+        const { error: startError } = await supabase
+          .from("servicios")
+          .update({ estado: "en_proceso" as const, hora_llegada: job!.hora_llegada ?? new Date().toISOString() })
+          .eq("id", job!.id)
+          .eq("estado", "pendiente");
+        if (startError) throw error;
+        const { error: retryError } = await supabase.from("servicios").update(combinedPatch).eq("id", job!.id);
+        if (retryError) throw retryError;
+      }
       qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-        old ? { ...old, ...photoPatch } : old,
+        old ? { ...old, ...combinedPatch } : old,
       );
       if (queuedId) await removeOffline(queuedId);
       void qc.invalidateQueries({ queryKey: ["jobs"] });
@@ -626,6 +641,35 @@ function Detalle() {
           </div>
         )}
 
+        {(pendingShare.inicio || pendingShare.final || pendingShare.cancel) && (
+          <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            {(["inicio", "final", "cancel"] as Fase[]).map((f) => {
+              const p = pendingShare[f];
+              if (!p) return null;
+              const label =
+                f === "inicio"
+                  ? "Compartir y marcar llegada"
+                  : f === "final"
+                    ? "Compartir y finalizar tarea"
+                    : "Compartir y cancelar tarea";
+              return (
+                <Button
+                  key={f}
+                  size="lg"
+                  className="h-14 w-full text-base"
+                  onClick={() => { void completePhotoAction(p); }}
+                  disabled={working}
+                >
+                  <Share2 className="mr-2 h-5 w-5" /> {working ? "Abriendo compartir..." : label}
+                </Button>
+              );
+            })}
+            <div className="text-xs text-muted-foreground">
+              La tarea solo cambia de estado después de compartir la foto.
+            </div>
+          </div>
+        )}
+
         {me?.isAdmin && !job.eliminado_logico && job.estado !== "pendiente" && (
           <Button
             variant="outline"
@@ -683,26 +727,6 @@ function Detalle() {
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
             <div className="text-[11px] uppercase text-destructive">Motivo de cancelación</div>
             <div className="mt-1 text-sm">{job.motivo_cancelacion}</div>
-          </div>
-        )}
-
-        {(pendingShare.inicio || pendingShare.final || pendingShare.cancel) && (
-          <div className="space-y-2">
-            {(["inicio", "final", "cancel"] as Fase[]).map((f) => {
-              const p = pendingShare[f];
-              if (!p) return null;
-              const label = f === "inicio" ? "Compartir foto de inicio" : f === "final" ? "Compartir foto final" : "Compartir foto de cancelación";
-              return (
-                <Button
-                  key={f}
-                  size="lg"
-                  className="h-12 w-full bg-[#229ED9] text-white hover:brightness-110"
-                  onClick={() => { void shareFileNative(p); }}
-                >
-                  <Share2 className="mr-2 h-5 w-5" /> {label}
-                </Button>
-              );
-            })}
           </div>
         )}
 

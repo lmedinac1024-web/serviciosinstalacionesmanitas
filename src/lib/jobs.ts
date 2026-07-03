@@ -94,7 +94,6 @@ export function formatEUR(n: number | string | null | undefined): string {
 
 export function jobTotal(j: Pick<Job, "ganancia" | "importe" | "precio_llegada" | "estado" | "eliminado_logico">): number {
   if (isVoided(j)) return 0;
-  if (j.ganancia != null) return Number(j.ganancia);
   if (j.estado === "realizado") return Number(j.importe ?? 0) + Number(j.precio_llegada ?? 0);
   if (isCancelled(j.estado)) return Number(j.precio_llegada ?? 0);
   return 0;
