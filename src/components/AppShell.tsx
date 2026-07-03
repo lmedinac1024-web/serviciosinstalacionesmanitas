@@ -15,6 +15,7 @@ import {
   Send,
   UserSquare2,
   RefreshCw,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -35,6 +36,7 @@ type NavPath =
   | "/admin/servicios"
   | "/admin/empleados"
   | "/admin/telegram"
+  | "/admin/solicitudes"
   | "/admin/roles";
 
 type NavItem = { to: NavPath; label: string; icon: typeof LayoutDashboard; exact?: boolean };
@@ -58,7 +60,9 @@ const ADMIN_LINKS: NavItem[] = [
   { to: "/admin/empleados", label: "Empleados", icon: UserSquare2 },
   { to: "/admin/servicios", label: "Categorías", icon: Briefcase },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
+  { to: "/admin/solicitudes", label: "Solicitudes", icon: KeyRound },
 ];
+
 
 const SUPER_LINKS: NavItem[] = [
   { to: "/admin/roles", label: "Roles", icon: UserCircle2 },

@@ -35,7 +35,35 @@ function AuthPage() {
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetUsername, setResetUsername] = useState("");
+  const [resetNota, setResetNota] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
+
+  async function submitReset(e: React.FormEvent) {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      const uname = resetUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+      if (!uname) throw new Error("Usuario inválido");
+      const { error } = await supabase.from("password_reset_requests").insert({
+        username: uname,
+        nota: resetNota.trim() || null,
+        estado: "pendiente",
+      });
+      if (error) throw error;
+      toast.success("Solicitud enviada. Espera a que el administrador la apruebe.");
+      setResetOpen(false);
+      setResetUsername("");
+      setResetNota("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo enviar la solicitud");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
 
   async function submitLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -154,7 +182,15 @@ function AuthPage() {
             <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            <button
+              type="button"
+              onClick={() => { setResetUsername(username); setResetOpen(true); }}
+              className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           </form>
+
         ) : (
           <form onSubmit={submitSignup} className="space-y-4">
             <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
@@ -198,6 +234,46 @@ function AuthPage() {
             </Button>
           </form>
         )}
+
+        <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Recuperar contraseña</DialogTitle>
+              <DialogDescription>
+                Envía una solicitud al administrador. Cuando la apruebe, te dará la nueva contraseña.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submitReset} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="resetUsername">Usuario</Label>
+                <Input
+                  id="resetUsername"
+                  required
+                  placeholder="user1"
+                  value={resetUsername}
+                  onChange={(e) => setResetUsername(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="resetNota">Nota (opcional)</Label>
+                <Input
+                  id="resetNota"
+                  placeholder="La olvidé…"
+                  value={resetNota}
+                  onChange={(e) => setResetNota(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setResetOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={resetLoading}>
+                  {resetLoading ? "Enviando..." : "Enviar solicitud"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+
 
         <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
           <DialogTrigger asChild>

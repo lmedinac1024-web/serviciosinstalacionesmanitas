@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Key } from "lucide-react";
+import { Plus, Trash2, Key, Eye, EyeOff } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { adminCreateEmployee, adminResetPassword, adminDeleteEmployee } from "@/lib/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -37,6 +37,19 @@ function AdminEmpleados() {
     },
   });
 
+  const { data: passwords = {} } = useQuery({
+    queryKey: ["employee-passwords"],
+    queryFn: async () => {
+      const { data } = await supabase.from("employee_passwords").select("user_id, password_plain");
+      const map: Record<string, string> = {};
+      for (const r of data ?? []) map[r.user_id] = r.password_plain;
+      return map;
+    },
+  });
+
+  const [reveal, setReveal] = useState<Record<string, boolean>>({});
+
+
   if (isLoading) return <AppShell title="Empleados"><div>…</div></AppShell>;
   if (!me?.isAdmin) return <Navigate to="/" />;
 
@@ -62,22 +75,46 @@ function AdminEmpleados() {
           </div>
         ) : (
           <div className="divide-y rounded-lg border bg-card">
-            {empleados.map((p) => (
-              <div key={p.user_id} className="flex items-center justify-between p-4">
-                <div>
-                  <div className="font-semibold">{p.display_name || p.username}</div>
-                  <div className="text-xs text-muted-foreground">@{p.username}</div>
+            {empleados.map((p) => {
+              const pw = passwords[p.user_id];
+              const shown = reveal[p.user_id];
+              return (
+                <div key={p.user_id} className="flex items-center justify-between gap-2 p-4">
+                  <div className="min-w-0">
+                    <div className="font-semibold">{p.display_name || p.username}</div>
+                    <div className="text-xs text-muted-foreground">@{p.username}</div>
+                    {pw ? (
+                      <div className="mt-1 flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">Contraseña:</span>
+                        <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+                          {shown ? pw : "••••••••"}
+                        </code>
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setReveal((r) => ({ ...r, [p.user_id]: !r[p.user_id] }))}
+                        >
+                          {shown ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-xs text-muted-foreground italic">
+                        Contraseña no registrada (resetéala para verla)
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => setPwOpen(p)}>
+                      <Key className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => borrar(p)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => setPwOpen(p)}>
-                    <Key className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => borrar(p)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+
           </div>
         )}
 
@@ -89,10 +126,12 @@ function AdminEmpleados() {
               await createFn({ data: form });
               toast.success(`Empleado ${form.username} creado`);
               qc.invalidateQueries({ queryKey: ["empleados-list"] });
+              qc.invalidateQueries({ queryKey: ["employee-passwords"] });
               setCreateOpen(false);
             } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
           }}
         />
+
 
         <PasswordDialog
           profile={pwOpen}
@@ -102,10 +141,12 @@ function AdminEmpleados() {
             try {
               await resetFn({ data: { userId: pwOpen.user_id, password } });
               toast.success("Contraseña actualizada");
+              qc.invalidateQueries({ queryKey: ["employee-passwords"] });
               setPwOpen(null);
             } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
           }}
         />
+
 
       </div>
     </AppShell>

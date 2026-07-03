@@ -22,6 +22,7 @@ import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTrabajoNuevoRouteImport } from './routes/_authenticated/trabajo.nuevo'
 import { Route as AuthenticatedTrabajoIdRouteImport } from './routes/_authenticated/trabajo.$id'
 import { Route as AuthenticatedAdminTelegramRouteImport } from './routes/_authenticated/admin.telegram'
+import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin.solicitudes'
 import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated/admin.roles'
 import { Route as AuthenticatedAdminEmpleadosRouteImport } from './routes/_authenticated/admin.empleados'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
@@ -92,6 +93,12 @@ const AuthenticatedAdminTelegramRoute =
     path: '/admin/telegram',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSolicitudesRoute =
+  AuthenticatedAdminSolicitudesRouteImport.update({
+    id: '/admin/solicitudes',
+    path: '/admin/solicitudes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminRolesRoute = AuthenticatedAdminRolesRouteImport.update({
   id: '/admin/roles',
   path: '/admin/roles',
@@ -123,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
+  '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
@@ -140,6 +148,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
+  '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
@@ -159,6 +168,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
   '/_authenticated/admin/roles': typeof AuthenticatedAdminRolesRoute
+  '/_authenticated/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/_authenticated/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/_authenticated/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/_authenticated/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/empleados'
     | '/admin/roles'
+    | '/admin/solicitudes'
     | '/admin/telegram'
     | '/trabajo/$id'
     | '/trabajo/nuevo'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/empleados'
     | '/admin/roles'
+    | '/admin/solicitudes'
     | '/admin/telegram'
     | '/trabajo/$id'
     | '/trabajo/nuevo'
@@ -213,6 +225,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/empleados'
     | '/_authenticated/admin/roles'
+    | '/_authenticated/admin/solicitudes'
     | '/_authenticated/admin/telegram'
     | '/_authenticated/trabajo/$id'
     | '/_authenticated/trabajo/nuevo'
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTelegramRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/solicitudes': {
+      id: '/_authenticated/admin/solicitudes'
+      path: '/admin/solicitudes'
+      fullPath: '/admin/solicitudes'
+      preLoaderRoute: typeof AuthenticatedAdminSolicitudesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/roles': {
       id: '/_authenticated/admin/roles'
       path: '/admin/roles'
@@ -352,6 +372,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminEmpleadosRoute: typeof AuthenticatedAdminEmpleadosRoute
   AuthenticatedAdminRolesRoute: typeof AuthenticatedAdminRolesRoute
+  AuthenticatedAdminSolicitudesRoute: typeof AuthenticatedAdminSolicitudesRoute
   AuthenticatedAdminTelegramRoute: typeof AuthenticatedAdminTelegramRoute
   AuthenticatedTrabajoIdRoute: typeof AuthenticatedTrabajoIdRoute
   AuthenticatedTrabajoNuevoRoute: typeof AuthenticatedTrabajoNuevoRoute
@@ -369,6 +390,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminEmpleadosRoute: AuthenticatedAdminEmpleadosRoute,
   AuthenticatedAdminRolesRoute: AuthenticatedAdminRolesRoute,
+  AuthenticatedAdminSolicitudesRoute: AuthenticatedAdminSolicitudesRoute,
   AuthenticatedAdminTelegramRoute: AuthenticatedAdminTelegramRoute,
   AuthenticatedTrabajoIdRoute: AuthenticatedTrabajoIdRoute,
   AuthenticatedTrabajoNuevoRoute: AuthenticatedTrabajoNuevoRoute,
@@ -384,13 +406,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
