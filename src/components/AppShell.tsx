@@ -111,13 +111,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-card md:flex">
         <div className="border-b px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <img
-              src={logoAsset.url}
-              alt="Servicios de Manitas"
-              className="h-10 w-auto"
-            />
-            <div>
-              <div className="text-sm font-bold leading-none">ServiHogar</div>
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+              <Wrench className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold leading-none">ServiHogar</div>
               <div className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                 {isAdmin ? "Panel admin" : "Empleado"}
               </div>
