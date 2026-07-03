@@ -50,7 +50,10 @@ export function useUserRole() {
         supabase.from("user_roles").select("role").eq("user_id", u.id),
         supabase.from("profiles").select("username, display_name").eq("user_id", u.id).maybeSingle(),
       ]);
-      if (rolesRes.error && cached) return cached;
+      if (rolesRes.error) {
+        if (cached) return cached;
+        throw rolesRes.error;
+      }
       const roles = (rolesRes.data ?? []).map((r) => r.role as string);
       const isSuperAdmin = roles.includes("super_admin");
       const isAdmin = isSuperAdmin || roles.includes("admin");
