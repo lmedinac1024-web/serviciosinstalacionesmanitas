@@ -180,11 +180,12 @@ async function processOne(action: PendingAction): Promise<void> {
   };
   const { error } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
   if (error) {
-    await supabase
+    const { error: startError } = await supabase
       .from("servicios")
       .update({ estado: "en_proceso" as const, hora_llegada: now })
       .eq("id", action.jobId)
       .eq("estado", "pendiente");
+    if (startError) throw error;
     const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
     if (retryError) throw retryError;
   }
