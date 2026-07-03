@@ -259,22 +259,6 @@ function Detalle() {
     }
   }
 
-  function closePendingShare() {
-    if (pendingShare?.previewUrl) URL.revokeObjectURL(pendingShare.previewUrl);
-    setPendingShare(null);
-  }
-
-  async function sharePendingPhoto() {
-    if (!pendingShare) return;
-    setSharing(true);
-    try {
-      const ok = await shareFileNative(pendingShare);
-      if (ok) closePendingShare();
-    } finally {
-      setSharing(false);
-    }
-  }
-
   function onPhotoSelected(fase: Fase, file: File) {
     const now = new Date().toISOString();
     const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
@@ -306,7 +290,6 @@ function Detalle() {
 
     const sharePayload = buildSharePayload(file, fase);
     const localUrl = URL.createObjectURL(file);
-    const previewUrl = URL.createObjectURL(file);
     setLocalPhotoUrls((old) => {
       const previous = old[fase];
       if (previous) URL.revokeObjectURL(previous);
@@ -314,27 +297,24 @@ function Detalle() {
       localPhotoUrlsRef.current = next;
       return next;
     });
-    setPendingShare((old) => {
-      if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl);
-      return { ...sharePayload, previewUrl };
-    });
 
     // 1) UI advances instantly — never blocked by share or network.
     qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
       old ? { ...old, ...statusPatch } : old,
     );
-    toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    toast.success(
+      (fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado") +
+      (offline ? " · en cola offline" : "")
+    );
     if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
-    // 2) Try native share immediately; if the browser blocks it after camera/gallery,
-    // the visible dialog keeps a real tap target to open Telegram/WhatsApp sharing.
+    // 2) Fire native share immediately (still within user-activation stack).
     void shareFileNative(sharePayload);
 
     // 3) Persist in background (status + photo). Never blocks UI.
     void persistInBackground(fase, file, statusPatch);
   }
-
-  async function persistInBackground(fase: Fase, file: File, statusPatch: Partial<Job>) {
     const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
     const retryAction = userId
       ? {
