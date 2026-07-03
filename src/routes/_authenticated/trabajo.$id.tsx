@@ -648,10 +648,10 @@ function Detalle() {
               if (!p) return null;
               const label =
                 f === "inicio"
-                  ? "Compartir y marcar llegada"
+                  ? "Compartir dirección + foto (marcar llegada)"
                   : f === "final"
-                    ? "Compartir y finalizar tarea"
-                    : "Compartir y cancelar tarea";
+                    ? "Compartir foto final + dirección (finalizar)"
+                    : "Compartir foto + dirección (cancelar)";
               return (
                 <Button
                   key={f}
@@ -665,8 +665,9 @@ function Detalle() {
               );
             })}
             <div className="text-xs text-muted-foreground">
-              La tarea solo cambia de estado después de compartir la foto.
+              Se comparte la dirección con la foto y el servicio pasa al siguiente estado.
             </div>
+
           </div>
         )}
 
