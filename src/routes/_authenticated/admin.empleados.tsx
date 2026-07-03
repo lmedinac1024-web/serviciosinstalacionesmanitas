@@ -135,10 +135,11 @@ function AdminEmpleados() {
         <CreateDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
+          canCreateAdmin={!!me?.isSuperAdmin}
           onCreate={async (form) => {
             try {
               await createFn({ data: form });
-              toast.success(`Empleado ${form.username} creado`);
+              toast.success(`Usuario ${form.username} creado`);
               qc.invalidateQueries({ queryKey: ["empleados-list"] });
               qc.invalidateQueries({ queryKey: ["employee-passwords"] });
               setCreateOpen(false);
