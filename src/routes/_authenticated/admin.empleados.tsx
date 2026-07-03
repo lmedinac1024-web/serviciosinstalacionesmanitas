@@ -40,12 +40,15 @@ function AdminEmpleados() {
   const { data: passwords = {} } = useQuery({
     queryKey: ["employee-passwords"],
     queryFn: async () => {
-      const { data } = await supabase.from("employee_passwords").select("user_id, password_plain");
+      const { data } = await supabase.rpc("admin_list_employee_passwords");
       const map: Record<string, string> = {};
-      for (const r of data ?? []) map[r.user_id] = r.password_plain;
+      for (const r of (data ?? []) as Array<{ user_id: string; password_plain: string }>) {
+        map[r.user_id] = r.password_plain;
+      }
       return map;
     },
   });
+
 
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
 
