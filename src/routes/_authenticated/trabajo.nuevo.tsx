@@ -16,7 +16,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
 import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
-import { MapPin, AlertCircle } from "lucide-react";
+import { MapPin, AlertCircle, Navigation } from "lucide-react";
+import { haversineMeters } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
 
