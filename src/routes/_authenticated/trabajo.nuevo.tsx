@@ -87,6 +87,45 @@ function NuevoServicio() {
     },
   });
 
+  // Última ubicación conocida de cada empleado (a partir de sus servicios con coords).
+  const { data: ultimasUbicaciones = {} } = useQuery({
+    queryKey: ["empleados-ultima-ubicacion"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("servicios")
+        .select("empleado_id, direccion_lat, direccion_lng, fecha, hora_programada")
+        .not("direccion_lat", "is", null)
+        .not("direccion_lng", "is", null)
+        .order("fecha", { ascending: false })
+        .order("hora_programada", { ascending: false })
+        .limit(500);
+      const map: Record<string, { lat: number; lng: number }> = {};
+      for (const r of data ?? []) {
+        if (!r.empleado_id || r.direccion_lat == null || r.direccion_lng == null) continue;
+        if (!map[r.empleado_id]) map[r.empleado_id] = { lat: Number(r.direccion_lat), lng: Number(r.direccion_lng) };
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  const empleadosOrdenados = (() => {
+    if (geo.status !== "ok" || geo.lat == null || geo.lng == null) return empleados.map((e) => ({ e, dist: null as number | null }));
+    const origen = { lat: geo.lat, lng: geo.lng };
+    return empleados
+      .map((e) => {
+        const loc = ultimasUbicaciones[e.user_id];
+        const dist = loc ? haversineMeters(origen, loc) : null;
+        return { e, dist };
+      })
+      .sort((a, b) => {
+        if (a.dist == null && b.dist == null) return 0;
+        if (a.dist == null) return 1;
+        if (b.dist == null) return -1;
+        return a.dist - b.dist;
+      });
+  })();
+
   useEffect(() => {
     try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* noop */ }
   }, [form]);
