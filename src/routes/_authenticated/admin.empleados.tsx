@@ -126,10 +126,12 @@ function AdminEmpleados() {
               await createFn({ data: form });
               toast.success(`Empleado ${form.username} creado`);
               qc.invalidateQueries({ queryKey: ["empleados-list"] });
+              qc.invalidateQueries({ queryKey: ["employee-passwords"] });
               setCreateOpen(false);
             } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
           }}
         />
+
 
         <PasswordDialog
           profile={pwOpen}
