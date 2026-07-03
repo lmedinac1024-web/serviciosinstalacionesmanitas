@@ -161,6 +161,19 @@ function Dashboard() {
             </div>
           </section>
 
+          {/* Accesos admin (visibles también en móvil) */}
+          {isAdmin && (
+            <section className="md:hidden">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Administración</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <AdminTile to="/admin/empleados" label="Empleados" icon={UserSquare2} />
+                <AdminTile to="/admin/telegram" label="Telegram" icon={Send} />
+                <AdminTile to="/admin/solicitudes" label="Solicitudes" icon={KeyRound} />
+                {me?.isSuperAdmin && <AdminTile to="/admin/roles" label="Roles" icon={UserCircle2} />}
+              </div>
+            </section>
+          )}
+
           {/* Ranking empleados (admin) */}
           {isAdmin && (
             <section>
