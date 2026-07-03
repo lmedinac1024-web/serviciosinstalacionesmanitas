@@ -311,14 +311,31 @@ function Detalle() {
     );
   }
 
+  function patchJobInCaches(statusPatch: Partial<Job>) {
+    const terminal = statusPatch.estado === "realizado" || (statusPatch.estado ? isCancelled(statusPatch.estado) : false);
+    qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+      old ? { ...old, ...statusPatch } : old,
+    );
+
+    qc.getQueryCache().findAll({ queryKey: ["jobs", "lista"] }).forEach((query) => {
+      const key = query.queryKey as readonly unknown[];
+      const filtro = key[2];
+      qc.setQueryData(query.queryKey, (old: Job[] | undefined) => {
+        if (!old) return old;
+        if (filtro === "pendientes" && terminal) {
+          return old.filter((item) => item.id !== job!.id);
+        }
+        return old.map((item) => (item.id === job!.id ? { ...item, ...statusPatch } : item));
+      });
+    });
+  }
+
   async function completePhotoAction(payload: SharePayload) {
     if (working) return;
     setWorking(true);
     try {
       // 1) Cambiar estado YA (llegada / realizado / cancelado) sin esperar al share
-      qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-        old ? { ...old, ...payload.statusPatch } : old,
-      );
+      patchJobInCaches(payload.statusPatch);
       setPendingShare((old) => {
         const next = { ...old };
         delete next[payload.fase];
@@ -332,20 +349,46 @@ function Detalle() {
       if (payload.fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
       // 2) Persistir en background
-      void persistInBackground(payload.fase, payload.file, payload.statusPatch);
+      const persistPromise = persistInBackground(payload.fase, payload.file, payload.statusPatch);
 
       // 3) Abrir compartir nativo (dirección + foto)
       await shareFileNative(payload);
 
-      // 4) Si es final o cancelación, volver a Pendientes
+      // 4) Si es final o cancelación, asegurar estado terminal antes de volver.
+      // La foto puede quedarse subiendo en cola, pero el estado debe cambiar ya.
       if (payload.fase === "final" || payload.fase === "cancel") {
-        void qc.invalidateQueries({ queryKey: ["jobs"] });
+        if (typeof navigator === "undefined" || navigator.onLine !== false) {
+          try {
+            await persistStatusPatch(payload.fase, payload.statusPatch);
+            patchJobInCaches(payload.statusPatch);
+          } catch (e) {
+            toast.info("No se pudo confirmar al momento; queda en cola y se sincroniza automático");
+          }
+        }
+        void persistPromise.catch(() => undefined);
         navigate({ to: "/pendientes" });
       }
     } finally {
 
       setWorking(false);
     }
+  }
+
+
+  async function persistStatusPatch(fase: Fase, statusPatch: Partial<Job>) {
+    const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
+    if (!error) return;
+
+    if (fase !== "final") throw error;
+    const { error: startError } = await supabase
+      .from("servicios")
+      .update({ estado: "en_proceso" as const, hora_llegada: job!.hora_llegada ?? new Date().toISOString() })
+      .eq("id", job!.id)
+      .eq("estado", "pendiente");
+    if (startError) throw error;
+
+    const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
+    if (retryError) throw retryError;
   }
 
 
@@ -366,17 +409,29 @@ function Detalle() {
         }
       : null;
 
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     let queuedId: string | null = null;
+
+    if (!offline) {
+      try {
+        await persistStatusPatch(fase, statusPatch);
+        patchJobInCaches(statusPatch);
+      } catch {
+        // If the immediate status update cannot finish, the queued action below
+        // will retry it automatically. The UI already moved forward.
+      }
+    }
+
     if (retryAction) {
       try {
         const queued = await enqueueOffline(retryAction);
         queuedId = queued.id;
-        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        if (offline) {
           toast.info("Sin conexión: guardado en cola");
           return;
         }
       } catch {
-        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        if (offline) {
           toast.error("No se pudo guardar en cola offline");
           return;
         }
@@ -391,21 +446,10 @@ function Detalle() {
           : fase === "final"
             ? { foto_final: path }
             : { foto_cancelacion: path };
-      const combinedPatch = { ...statusPatch, ...photoPatch };
-      const { error } = await supabase.from("servicios").update(combinedPatch).eq("id", job!.id);
-      if (error) {
-        if (fase !== "final") throw error;
-        const { error: startError } = await supabase
-          .from("servicios")
-          .update({ estado: "en_proceso" as const, hora_llegada: job!.hora_llegada ?? new Date().toISOString() })
-          .eq("id", job!.id)
-          .eq("estado", "pendiente");
-        if (startError) throw error;
-        const { error: retryError } = await supabase.from("servicios").update(combinedPatch).eq("id", job!.id);
-        if (retryError) throw retryError;
-      }
+      const { error } = await supabase.from("servicios").update(photoPatch).eq("id", job!.id);
+      if (error) throw error;
       qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-        old ? { ...old, ...combinedPatch } : old,
+        old ? { ...old, ...photoPatch } : old,
       );
       if (queuedId) await removeOffline(queuedId);
       void qc.invalidateQueries({ queryKey: ["jobs"] });
