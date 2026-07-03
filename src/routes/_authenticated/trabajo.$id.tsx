@@ -667,60 +667,8 @@ function Detalle() {
         <input ref={cancelCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
         <input ref={cancelGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
 
-        <Dialog open={!!photoPickerOpen} onOpenChange={(open) => { if (!open) setPhotoPickerOpen(null); }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Seleccionar foto</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-28 flex-col gap-2"
-                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "camera")}
-              >
-                <Camera className="h-7 w-7" />
-                Cámara
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-28 flex-col gap-2"
-                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "gallery")}
-              >
-                <ImageIcon className="h-7 w-7" />
-                Galería
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Al guardar la foto se abrirá el compartir nativo para enviarla por Telegram, WhatsApp u otra app.
-            </p>
-          </DialogContent>
-        </Dialog>
 
-        {pendingShare && (
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 shadow-sm">
-            <div className="flex gap-3">
-              <img
-                src={pendingShare.previewUrl}
-                alt="Foto seleccionada del servicio"
-                className="h-20 w-20 rounded-lg border object-cover"
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="text-sm font-semibold">Foto lista</div>
-                <div className="line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{pendingShare.text}</div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={sharePendingPhoto} disabled={sharing}>
-                    <Share2 className="mr-2 h-4 w-4" /> Compartir
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={closePendingShare} disabled={sharing}>
-                    Quitar aviso
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
 
         {job.observaciones && (
