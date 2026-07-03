@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -23,15 +23,10 @@ export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ componen
 
 type Empleado = { user_id: string; username: string; display_name: string | null };
 
-function NuevoServicio() {
-  const { data: me, isLoading } = useUserRole();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [saving, setSaving] = useState(false);
-  const geocode = useServerFn(geocodeAddress);
-  const [geo, setGeo] = useState<{ status: "idle" | "ok" | "fail"; msg?: string; lat?: number; lng?: number }>({ status: "idle" });
+const DRAFT_KEY = "servihogar-nuevo-servicio-draft-v1";
 
-  const [form, setForm] = useState({
+function createInitialForm() {
+  return {
     fecha: new Date().toISOString().slice(0, 10),
     hora: "",
     empleado_id: "",
@@ -47,7 +42,36 @@ function NuevoServicio() {
     observaciones: "",
     importe: "",
     precio_llegada: "",
-  });
+  };
+}
+
+function restoreDraft() {
+  const initial = createInitialForm();
+  if (typeof window === "undefined") return initial;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return initial;
+    const saved = JSON.parse(raw) as Partial<ReturnType<typeof createInitialForm>>;
+    return { ...initial, ...saved, fecha: saved.fecha || initial.fecha };
+  } catch {
+    return initial;
+  }
+}
+
+function clearDraft() {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
+}
+
+function NuevoServicio() {
+  const { data: me, isLoading, isError } = useUserRole();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const geocode = useServerFn(geocodeAddress);
+  const [geo, setGeo] = useState<{ status: "idle" | "ok" | "fail"; msg?: string; lat?: number; lng?: number }>({ status: "idle" });
+
+  const [form, setForm] = useState(restoreDraft);
 
   const sendTg = useServerFn(sendJobUpdateToTelegram);
 
@@ -62,12 +86,25 @@ function NuevoServicio() {
     },
   });
 
+  useEffect(() => {
+    try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* noop */ }
+  }, [form]);
+
   function set<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
     if (k === "direccion" || k === "codigo_postal" || k === "ciudad") setGeo({ status: "idle" });
   }
 
   if (isLoading) return <AppShell title="Nuevo servicio"><div>…</div></AppShell>;
+  if (!me && isError) {
+    return (
+      <AppShell title="Nuevo servicio">
+        <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          Recuperando la sesión… No se perderá lo escrito.
+        </div>
+      </AppShell>
+    );
+  }
   if (!me?.isAdmin) return <Navigate to="/" />;
 
   async function tryGeocode() {
@@ -98,12 +135,10 @@ function NuevoServicio() {
       // Geocodificar (si no falla, guardamos coords para validar 100m luego)
       const coords = await tryGeocode();
 
-      const { data: userData } = await supabase.auth.getUser();
-
       const { data, error } = await supabase.from('servicios').insert({
         user_id: form.empleado_id,
         empleado_id: form.empleado_id,
-        assigned_by: userData.user?.id ?? null,
+        assigned_by: me.userId,
         cliente_id: null,
         tipo_servicio: form.tipo_servicio || null,
         cliente: form.cliente.trim(),
@@ -124,6 +159,7 @@ function NuevoServicio() {
       }).select().single();
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["jobs"] });
+      clearDraft();
       toast.success("Servicio creado");
       // Aviso Telegram (creación) — fire and forget
       void sendTg({ data: { jobId: data.id, fase: "creado" } }).catch(() => { /* noop */ });
@@ -220,7 +256,7 @@ function NuevoServicio() {
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Crear servicio"}</Button>
-          <Button type="button" variant="outline" onClick={() => navigate({ to: "/" })}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={() => { clearDraft(); navigate({ to: "/" }); }}>Cancelar</Button>
         </div>
       </form>
     </AppShell>
