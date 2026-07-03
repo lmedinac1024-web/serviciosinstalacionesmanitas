@@ -180,8 +180,25 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: Fase, file: File) {
+    const now = new Date().toISOString();
+    const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
+    const nextEstado: JobStatus =
+      fase === "inicio" ? "en_proceso"
+      : fase === "final" ? "realizado"
+      : (reasonEntry?.status ?? "cancelado_otro");
+    qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+      old
+        ? {
+            ...old,
+            estado: nextEstado,
+            hora_llegada: fase === "inicio" ? now : old.hora_llegada,
+            hora_fin: fase !== "inicio" ? now : old.hora_fin,
+          }
+        : old,
+    );
+    const savePromise = savePhotoAndNotify(fase, file, []);
     await shareFileNative(file, fase);
-    await savePhotoAndNotify(fase, file, []);
+    await savePromise;
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
@@ -201,6 +218,16 @@ function Detalle() {
         fase === "inicio" ? "en_proceso"
         : fase === "final" ? "realizado"
         : (reasonEntry?.status ?? "cancelado_otro");
+      const optimisticPatch: Partial<Job> =
+        fase === "inicio"
+          ? { estado: "en_proceso", hora_llegada: now }
+          : fase === "final"
+            ? { estado: "realizado", hora_fin: now }
+            : { estado: nextEstado, hora_fin: now, motivo_cancelacion: motivoFinal };
+
+      qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+        old ? { ...old, ...optimisticPatch } : old,
+      );
 
       if (!online) {
         await enqueueOffline({
@@ -212,18 +239,10 @@ function Detalle() {
           photoName: file.name,
           arrivalLat: gpsMeta?.lat,
           arrivalLng: gpsMeta?.lng,
-          arrivalDistanceM: gpsMeta?.distanceM ?? null,
-          arrivalValidated: gpsMeta?.validated ?? false,
+          arrivalDistanceM: gpsMeta?.distanceM,
+          arrivalValidated: gpsMeta?.validated,
           motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
         });
-        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-          old ? {
-            ...old,
-            estado: nextEstado,
-            hora_fin: fase !== "inicio" ? now : old.hora_fin,
-            motivo_cancelacion: fase === "cancel" ? motivoFinal : old.motivo_cancelacion,
-          } : old,
-        );
         toast.success("Guardado offline — se enviará al recuperar conexión");
       } else {
         const path = await uploadPhoto(job!.id, fase, file);
@@ -233,19 +252,21 @@ function Detalle() {
             foto_inicio: path,
             estado: "en_proceso",
             hora_llegada: now,
-            gps_llegada_lat: gpsMeta?.lat ?? null,
-            gps_llegada_lng: gpsMeta?.lng ?? null,
-            distancia_llegada_metros: gpsMeta?.distanceM ?? null,
-            direccion_validada_llegada: gpsMeta?.validated ?? false,
           };
+          if (gpsMeta) {
+            patch.gps_llegada_lat = gpsMeta.lat;
+            patch.gps_llegada_lng = gpsMeta.lng;
+          }
         } else if (fase === "final") {
           patch = {
             foto_final: path,
             estado: "realizado",
             hora_fin: now,
-            gps_final_lat: gpsMeta?.lat ?? null,
-            gps_final_lng: gpsMeta?.lng ?? null,
           };
+          if (gpsMeta) {
+            patch.gps_final_lat = gpsMeta.lat;
+            patch.gps_final_lng = gpsMeta.lng;
+          }
           if (me?.isAdmin) {
             if (importeFinal.trim() !== "") {
               const n = Number(importeFinal);
@@ -261,12 +282,17 @@ function Detalle() {
             estado: nextEstado,
             hora_fin: now,
             motivo_cancelacion: motivoFinal,
-            gps_cancelacion_lat: gpsMeta?.lat ?? null,
-            gps_cancelacion_lng: gpsMeta?.lng ?? null,
           };
+          if (gpsMeta) {
+            patch.gps_cancelacion_lat = gpsMeta.lat;
+            patch.gps_cancelacion_lng = gpsMeta.lng;
+          }
         }
         const { error } = await supabase.from('servicios').update(patch).eq("id", job!.id);
         if (error) throw error;
+        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+          old ? { ...old, ...patch } : old,
+        );
         await qc.invalidateQueries({ queryKey: ["jobs"] });
         toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
         void destinoIds;
