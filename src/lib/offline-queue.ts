@@ -83,7 +83,7 @@ export async function count(): Promise<number> {
   return tx<number>("readonly", (s) => s.count());
 }
 
-async function remove(id: string): Promise<void> {
+export async function remove(id: string): Promise<void> {
   await tx("readwrite", (s) => s.delete(id));
   notifyListeners();
 }

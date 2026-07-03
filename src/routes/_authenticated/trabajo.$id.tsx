@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -20,7 +20,7 @@ import {
 } from "@/lib/jobs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
-import { enqueue as enqueueOffline } from "@/lib/offline-queue";
+import { enqueue as enqueueOffline, listForJob, remove as removeOffline, subscribe as subscribeOffline } from "@/lib/offline-queue";
 
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
@@ -108,6 +108,46 @@ function Detalle() {
     refetchOnWindowFocus: false,
     staleTime: 30_000,
   });
+
+  useEffect(() => {
+    let alive = true;
+    const applyQueuedState = async () => {
+      const queued = await listForJob(id);
+      if (!alive || queued.length === 0) return;
+
+      const optimisticPatch = queued
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .reduce<Partial<Job>>((patch, action) => {
+          const at = new Date(action.createdAt).toISOString();
+          if (action.kind === "inicio") {
+            return { ...patch, estado: "en_proceso", hora_llegada: patch.hora_llegada ?? at };
+          }
+          if (action.kind === "final") {
+            return { ...patch, estado: "realizado", hora_fin: at };
+          }
+          const [estado, ...motivoParts] = (action.motivo ?? "cancelado_otro|Cancelado").split("|");
+          return {
+            ...patch,
+            estado: estado as JobStatus,
+            hora_fin: at,
+            motivo_cancelacion: motivoParts.join("|") || "Cancelado",
+          };
+        }, {});
+
+      if (Object.keys(optimisticPatch).length > 0) {
+        qc.setQueryData(["jobs", id], (old: Job | undefined) =>
+          old ? { ...old, ...optimisticPatch } : old,
+        );
+      }
+    };
+
+    void applyQueuedState();
+    const unsubscribe = subscribeOffline(() => { void applyQueuedState(); });
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [id, qc]);
 
 
   const { data: empleado } = useQuery({
@@ -290,14 +330,7 @@ function Detalle() {
 
     // 2) Try native share immediately; if the browser blocks it after camera/gallery,
     // the visible dialog keeps a real tap target to open Telegram/WhatsApp sharing.
-    void shareFileNative(sharePayload).then((ok) => {
-      if (ok) {
-        setPendingShare((old) => {
-          if (old?.previewUrl === previewUrl) URL.revokeObjectURL(old.previewUrl);
-          return old?.previewUrl === previewUrl ? null : old;
-        });
-      }
-    });
+    void shareFileNative(sharePayload);
 
     // 3) Persist in background (status + photo). Never blocks UI.
     void persistInBackground(fase, file, statusPatch);
@@ -320,6 +353,23 @@ function Detalle() {
         }
       : null;
 
+    let queuedId: string | null = null;
+    if (retryAction) {
+      try {
+        const queued = await enqueueOffline(retryAction);
+        queuedId = queued.id;
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          toast.info("Sin conexión: guardado en cola");
+          return;
+        }
+      } catch {
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          toast.error("No se pudo guardar en cola offline");
+          return;
+        }
+      }
+    }
+
     try {
       const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
       if (error) {
@@ -337,10 +387,7 @@ function Detalle() {
       }
       void qc.invalidateQueries({ queryKey: ["jobs"] });
     } catch {
-      if (retryAction) {
-        await enqueueOffline(retryAction);
-        toast.info("Sin conexión: guardado en cola");
-      }
+      if (retryAction) toast.info("Guardado en cola para sincronizar");
       return;
     }
 
@@ -357,12 +404,10 @@ function Detalle() {
       qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
         old ? { ...old, ...photoPatch } : old,
       );
+      if (queuedId) await removeOffline(queuedId);
       void qc.invalidateQueries({ queryKey: ["jobs"] });
     } catch {
-      if (retryAction) {
-        await enqueueOffline(retryAction);
-        toast.info("Foto pendiente de sincronizar");
-      }
+      if (retryAction) toast.info("Foto pendiente de sincronizar");
     }
   }
 
@@ -653,29 +698,29 @@ function Detalle() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!pendingShare} onOpenChange={(open) => { if (!open) closePendingShare(); }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Compartir foto</DialogTitle>
-            </DialogHeader>
-            {pendingShare && (
-              <div className="space-y-3">
-                <img
-                  src={pendingShare.previewUrl}
-                  alt="Foto seleccionada del servicio"
-                  className="max-h-64 w-full rounded-lg border object-cover"
-                />
-                <div className="rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">{pendingShare.text}</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={closePendingShare} disabled={sharing}>Continuar</Button>
-                  <Button onClick={sharePendingPhoto} disabled={sharing}>
+        {pendingShare && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 shadow-sm">
+            <div className="flex gap-3">
+              <img
+                src={pendingShare.previewUrl}
+                alt="Foto seleccionada del servicio"
+                className="h-20 w-20 rounded-lg border object-cover"
+              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="text-sm font-semibold">Foto lista</div>
+                <div className="line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{pendingShare.text}</div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={sharePendingPhoto} disabled={sharing}>
                     <Share2 className="mr-2 h-4 w-4" /> Compartir
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={closePendingShare} disabled={sharing}>
+                    Quitar aviso
                   </Button>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          </div>
+        )}
 
 
         {job.observaciones && (
