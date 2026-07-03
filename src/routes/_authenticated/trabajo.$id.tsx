@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw, Share2,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -25,12 +25,11 @@ import { enqueue as enqueueOffline, listForJob, remove as removeOffline, subscri
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
 
-interface PendingShare {
+interface SharePayload {
   fase: Fase;
   file: File;
   title: string;
   text: string;
-  previewUrl: string;
 }
 
 interface GpsMeta {
@@ -87,16 +86,13 @@ function Detalle() {
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelExtra, setCancelExtra] = useState("");
   const [working, setWorking] = useState(false);
-  const [photoPickerOpen, setPhotoPickerOpen] = useState<Fase | null>(null);
-  const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
+  const [, setGpsMeta] = useState<GpsMeta | null>(null);
   const [importeFinal, setImporteFinal] = useState<string>("");
   const [direccionFinal, setDireccionFinal] = useState<string>("");
   const [pisoFinal, setPisoFinal] = useState<string>("");
   const [puertaFinal, setPuertaFinal] = useState<string>("");
-  const [pendingShare, setPendingShare] = useState<PendingShare | null>(null);
   const [localPhotoUrls, setLocalPhotoUrls] = useState<Partial<Record<Fase, string>>>({});
   const localPhotoUrlsRef = useRef<Partial<Record<Fase, string>>>({});
-  const [sharing, setSharing] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -185,12 +181,7 @@ function Detalle() {
   }
 
 
-  function openPhotoPicker(fase: Fase) {
-    setPhotoPickerOpen(fase);
-  }
-
   function pickPhoto(fase: Fase, source: PhotoSource) {
-    setPhotoPickerOpen(null);
     const input =
       fase === "inicio"
         ? source === "camera" ? startCameraInput.current : startGalleryInput.current
@@ -206,24 +197,14 @@ function Detalle() {
     e.target.value = "";
   }
 
-  async function handleArrivalTap() {
-    setGpsMeta(null);
-    openPhotoPicker("inicio");
-  }
-
-  async function handleFinishTap() {
-    setGpsMeta(null);
-    openPhotoPicker("final");
-  }
-
   async function handleCancelConfirm() {
     if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
     setGpsMeta(null);
     setCancelOpen(false);
-    openPhotoPicker("cancel");
+    pickPhoto("cancel", "camera");
   }
 
-  function buildSharePayload(file: File, fase: Fase): Omit<PendingShare, "previewUrl"> {
+  function buildSharePayload(file: File, fase: Fase): SharePayload {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = fase !== "final" && direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
@@ -236,7 +217,7 @@ function Detalle() {
     return { fase, file, title: faseTxt, text };
   }
 
-  async function shareFileNative(payload: Omit<PendingShare, "fase" | "previewUrl">): Promise<boolean> {
+  async function shareFileNative(payload: Omit<SharePayload, "fase">): Promise<boolean> {
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
       if (!nav.share) {
@@ -277,22 +258,6 @@ function Detalle() {
     }
   }
 
-  function closePendingShare() {
-    if (pendingShare?.previewUrl) URL.revokeObjectURL(pendingShare.previewUrl);
-    setPendingShare(null);
-  }
-
-  async function sharePendingPhoto() {
-    if (!pendingShare) return;
-    setSharing(true);
-    try {
-      const ok = await shareFileNative(pendingShare);
-      if (ok) closePendingShare();
-    } finally {
-      setSharing(false);
-    }
-  }
-
   function onPhotoSelected(fase: Fase, file: File) {
     const now = new Date().toISOString();
     const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
@@ -324,7 +289,6 @@ function Detalle() {
 
     const sharePayload = buildSharePayload(file, fase);
     const localUrl = URL.createObjectURL(file);
-    const previewUrl = URL.createObjectURL(file);
     setLocalPhotoUrls((old) => {
       const previous = old[fase];
       if (previous) URL.revokeObjectURL(previous);
@@ -332,20 +296,19 @@ function Detalle() {
       localPhotoUrlsRef.current = next;
       return next;
     });
-    setPendingShare((old) => {
-      if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl);
-      return { ...sharePayload, previewUrl };
-    });
 
     // 1) UI advances instantly — never blocked by share or network.
     qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
       old ? { ...old, ...statusPatch } : old,
     );
-    toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    toast.success(
+      (fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado") +
+      (offline ? " · en cola offline" : "")
+    );
     if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
-    // 2) Try native share immediately; if the browser blocks it after camera/gallery,
-    // the visible dialog keeps a real tap target to open Telegram/WhatsApp sharing.
+    // 2) Fire native share immediately (still within user-activation stack).
     void shareFileNative(sharePayload);
 
     // 3) Persist in background (status + photo). Never blocks UI.
@@ -521,15 +484,26 @@ function Detalle() {
         {!isDone && (
           <div className="space-y-2">
             {canStart && (
-              <Button
-                size="lg"
-                className="h-14 w-full text-base"
-                onClick={handleArrivalTap}
-                disabled={working}
-              >
-                <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
-                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-              </Button>
+              <>
+                <Button
+                  size="lg"
+                  className="h-14 w-full text-base"
+                  onClick={() => pickPhoto("inicio", "camera")}
+                  disabled={working}
+                >
+                  <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
+                  {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => pickPhoto("inicio", "gallery")}
+                  disabled={working}
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
+                </Button>
+              </>
             )}
             {canFinish && (
               <>
@@ -584,11 +558,20 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={handleFinishTap}
+                  onClick={() => pickPhoto("final", "camera")}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => pickPhoto("final", "gallery")}
+                  disabled={working}
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
                 </Button>
               </>
             )}
@@ -683,60 +666,8 @@ function Detalle() {
         <input ref={cancelCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
         <input ref={cancelGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
 
-        <Dialog open={!!photoPickerOpen} onOpenChange={(open) => { if (!open) setPhotoPickerOpen(null); }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Seleccionar foto</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-28 flex-col gap-2"
-                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "camera")}
-              >
-                <Camera className="h-7 w-7" />
-                Cámara
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-28 flex-col gap-2"
-                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "gallery")}
-              >
-                <ImageIcon className="h-7 w-7" />
-                Galería
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Al guardar la foto se abrirá el compartir nativo para enviarla por Telegram, WhatsApp u otra app.
-            </p>
-          </DialogContent>
-        </Dialog>
 
-        {pendingShare && (
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 shadow-sm">
-            <div className="flex gap-3">
-              <img
-                src={pendingShare.previewUrl}
-                alt="Foto seleccionada del servicio"
-                className="h-20 w-20 rounded-lg border object-cover"
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="text-sm font-semibold">Foto lista</div>
-                <div className="line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{pendingShare.text}</div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={sharePendingPhoto} disabled={sharing}>
-                    <Share2 className="mr-2 h-4 w-4" /> Compartir
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={closePendingShare} disabled={sharing}>
-                    Quitar aviso
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
 
         {job.observaciones && (
