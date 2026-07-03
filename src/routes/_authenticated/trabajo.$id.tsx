@@ -20,7 +20,7 @@ import {
 } from "@/lib/jobs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
-import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
+import { enqueue as enqueueOffline } from "@/lib/offline-queue";
 
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
@@ -194,173 +194,93 @@ function Detalle() {
   function onPhotoSelected(fase: Fase, file: File) {
     const now = new Date().toISOString();
     const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
+    const motivoFinal =
+      fase === "cancel"
+        ? [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ")
+        : null;
     const nextEstado: JobStatus =
       fase === "inicio" ? "en_proceso"
       : fase === "final" ? "realizado"
       : (reasonEntry?.status ?? "cancelado_otro");
-    qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-      old
-        ? {
-            ...old,
-            estado: nextEstado,
-            hora_llegada: fase === "inicio" ? now : old.hora_llegada,
-            hora_fin: fase !== "inicio" ? now : old.hora_fin,
-          }
-        : old,
-    );
-    // Start sharing synchronously from the file-picker gesture, but do not wait
-    // for Telegram/WhatsApp to return before saving and advancing the service.
-    void shareFileNative(file, fase);
-    void savePhotoAndNotify(fase, file, []);
-  }
 
-  async function updateServiceWithFinalFallback(patch: Partial<Job>, fase: Fase, now: string) {
-    const { error } = await supabase.from("servicios").update(patch).eq("id", job!.id);
-    if (!error) return;
+    const statusPatch: Partial<Job> =
+      fase === "inicio"
+        ? { estado: "en_proceso", hora_llegada: now }
+        : fase === "final"
+          ? { estado: "realizado", hora_fin: now }
+          : { estado: nextEstado, hora_fin: now, motivo_cancelacion: motivoFinal };
 
-    // If the first photo did not finish saving before the user tries to close
-    // the job, the backend can still be in "pendiente". Advance it first, then
-    // retry the final status so the worker is not blocked in the street.
-    if (fase === "final") {
-      const { error: startError } = await supabase
-        .from("servicios")
-        .update({ estado: "en_proceso", hora_llegada: job!.hora_llegada ?? now })
-        .eq("id", job!.id)
-        .eq("estado", "pendiente");
-      if (!startError) {
-        const { error: retryError } = await supabase.from("servicios").update(patch).eq("id", job!.id);
-        if (!retryError) return;
-        throw retryError;
+    if (fase === "final" && me?.isAdmin) {
+      if (importeFinal.trim() !== "") {
+        const n = Number(importeFinal);
+        if (!Number.isNaN(n) && n >= 0) statusPatch.importe = n;
       }
+      if (direccionFinal.trim() !== "") statusPatch.direccion = direccionFinal.trim();
+      if (pisoFinal.trim() !== "") statusPatch.piso = pisoFinal.trim();
+      if (puertaFinal.trim() !== "") statusPatch.puerta = puertaFinal.trim();
     }
 
-    throw error;
+    // 1) UI advances instantly — never blocked by share or network.
+    qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+      old ? { ...old, ...statusPatch } : old,
+    );
+    toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
+    if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
+
+    // 2) Kick off native share from the same user-gesture tick.
+    void shareFileNative(file, fase);
+
+    // 3) Persist in background (status + photo). Never blocks UI.
+    void persistInBackground(fase, file, statusPatch);
   }
 
-  async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
-    setWorking(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) throw new Error("No autenticado");
-
-      const now = new Date().toISOString();
-      const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
-      const motivoFinal =
-        fase === "cancel"
-          ? [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ")
-          : null;
-      const nextEstado: JobStatus =
-        fase === "inicio" ? "en_proceso"
-        : fase === "final" ? "realizado"
-        : (reasonEntry?.status ?? "cancelado_otro");
-      const statusPatch: Partial<Job> =
-        fase === "inicio"
-          ? { estado: "en_proceso", hora_llegada: now }
-          : fase === "final"
-            ? { estado: "realizado", hora_fin: now }
-            : { estado: nextEstado, hora_fin: now, motivo_cancelacion: motivoFinal };
-
-      if (fase === "inicio" && gpsMeta) {
-        statusPatch.gps_llegada_lat = gpsMeta.lat;
-        statusPatch.gps_llegada_lng = gpsMeta.lng;
-      }
-      if (fase === "final") {
-        if (gpsMeta) {
-          statusPatch.gps_final_lat = gpsMeta.lat;
-          statusPatch.gps_final_lng = gpsMeta.lng;
-        }
-        if (me?.isAdmin) {
-          if (importeFinal.trim() !== "") {
-            const n = Number(importeFinal);
-            if (!Number.isNaN(n) && n >= 0) statusPatch.importe = n;
-          }
-          if (direccionFinal.trim() !== "") statusPatch.direccion = direccionFinal.trim();
-          if (pisoFinal.trim() !== "") statusPatch.piso = pisoFinal.trim();
-          if (puertaFinal.trim() !== "") statusPatch.puerta = puertaFinal.trim();
-        }
-      }
-      if (fase === "cancel" && gpsMeta) {
-        statusPatch.gps_cancelacion_lat = gpsMeta.lat;
-        statusPatch.gps_cancelacion_lng = gpsMeta.lng;
-      }
-
-      qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-        old ? { ...old, ...statusPatch } : old,
-      );
-
-      if (!online) {
-        await enqueueOffline({
-          jobId: job!.id,
-          userId,
-          kind: fase === "cancel" ? "cancelar" : fase,
-          destinoIds,
-          photo: file,
-          photoName: file.name,
-          arrivalLat: gpsMeta?.lat,
-          arrivalLng: gpsMeta?.lng,
-          arrivalDistanceM: gpsMeta?.distanceM,
-          arrivalValidated: gpsMeta?.validated,
-          motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
-        });
-        toast.success("Guardado offline — se enviará al recuperar conexión");
-      } else {
-        const retryAction = {
+  async function persistInBackground(fase: Fase, file: File, statusPatch: Partial<Job>) {
+    const userId = me?.userId;
+    const retryAction = userId
+      ? {
           jobId: job!.id,
           userId,
           kind: fase === "cancel" ? "cancelar" as const : fase,
-          destinoIds,
+          destinoIds: [] as string[],
           photo: file,
           photoName: file.name,
-          arrivalLat: gpsMeta?.lat,
-          arrivalLng: gpsMeta?.lng,
-          arrivalDistanceM: gpsMeta?.distanceM,
-          arrivalValidated: gpsMeta?.validated,
-          motivo: fase === "cancel" ? `${nextEstado}|${motivoFinal}` : undefined,
-        };
-
-        try {
-          await updateServiceWithFinalFallback(statusPatch, fase, now);
-        } catch (statusError) {
-          await enqueueOffline(retryAction);
-          toast.info("Guardado en cola — se sincronizará automáticamente");
-          return;
+          motivo:
+            fase === "cancel" && statusPatch.motivo_cancelacion
+              ? `${statusPatch.estado}|${statusPatch.motivo_cancelacion}`
+              : undefined,
         }
+      : null;
 
-        qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-          old ? { ...old, ...statusPatch } : old,
-        );
-        toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
-        void qc.invalidateQueries({ queryKey: ["jobs"] });
-
-        void (async () => {
-          try {
-            const path = await uploadPhoto(job!.id, fase, file);
-            const patch: Partial<Job> =
-              fase === "inicio"
-                ? { foto_inicio: path }
-                : fase === "final"
-                  ? { foto_final: path }
-                  : { foto_cancelacion: path };
-            const { error } = await supabase.from("servicios").update(patch).eq("id", job!.id);
-            if (error) throw error;
-            qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
-              old ? { ...old, ...statusPatch, ...patch } : old,
-            );
-            void qc.invalidateQueries({ queryKey: ["jobs"] });
-          } catch {
-            await enqueueOffline(retryAction);
-            toast.info("Estado actualizado; foto pendiente de sincronizar");
-          }
-        })();
-        void destinoIds;
+    try {
+      const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
+      if (error) throw error;
+    } catch {
+      if (retryAction) {
+        await enqueueOffline(retryAction);
+        toast.info("Sin conexión: guardado en cola");
       }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error subiendo foto");
-    } finally {
-      setWorking(false);
-      setGpsMeta(null);
-      if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
+      return;
+    }
+
+    try {
+      const path = await uploadPhoto(job!.id, fase, file);
+      const photoPatch: Partial<Job> =
+        fase === "inicio"
+          ? { foto_inicio: path }
+          : fase === "final"
+            ? { foto_final: path }
+            : { foto_cancelacion: path };
+      const { error } = await supabase.from("servicios").update(photoPatch).eq("id", job!.id);
+      if (error) throw error;
+      qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+        old ? { ...old, ...photoPatch } : old,
+      );
+      void qc.invalidateQueries({ queryKey: ["jobs"] });
+    } catch {
+      if (retryAction) {
+        await enqueueOffline(retryAction);
+        toast.info("Foto pendiente de sincronizar");
+      }
     }
   }
 
