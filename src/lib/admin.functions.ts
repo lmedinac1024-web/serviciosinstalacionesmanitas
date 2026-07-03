@@ -10,9 +10,15 @@ async function ensureAdmin(ctx: { supabase: import("@supabase/supabase-js").Supa
 
 export const adminCreateEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { username: string; password: string; displayName?: string }) => d)
+  .inputValidator((d: { username: string; password: string; displayName?: string; role?: "empleado" | "admin" | "super_admin" }) => d)
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
+    const requestedRole = data.role ?? "empleado";
+    if (requestedRole !== "empleado") {
+      // Only super_admin can create admins / super_admins
+      const { data: isSuper } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" });
+      if (!isSuper) throw new Error("Solo un super admin puede crear administradores");
+    }
     const username = data.username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (!username) throw new Error("Usuario inválido");
     if (!data.password || data.password.length < 4) throw new Error("Contraseña muy corta (mín 4)");
@@ -34,7 +40,7 @@ export const adminCreateEmployee = createServerFn({ method: "POST" })
       display_name: data.displayName || username,
     });
     await supabaseAdmin.from("user_roles").upsert(
-      { user_id: userId, role: "empleado" },
+      { user_id: userId, role: requestedRole },
       { onConflict: "user_id,role" },
     );
     await supabaseAdmin.from("employee_passwords").upsert({

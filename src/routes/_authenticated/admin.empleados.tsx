@@ -29,11 +29,17 @@ function AdminEmpleados() {
   const { data: empleados = [] } = useQuery({
     queryKey: ["empleados-list"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "empleado");
-      const ids = (roles ?? []).map((r) => r.user_id);
-      if (ids.length === 0) return [] as Profile[];
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+      const roleMap = new Map<string, string[]>();
+      for (const r of roles ?? []) {
+        const arr = roleMap.get(r.user_id) ?? [];
+        arr.push(r.role as string);
+        roleMap.set(r.user_id, arr);
+      }
+      const ids = Array.from(roleMap.keys());
+      if (ids.length === 0) return [] as (Profile & { roles: string[] })[];
       const { data } = await supabase.from("profiles").select("user_id, username, display_name").in("user_id", ids);
-      return (data ?? []) as Profile[];
+      return ((data ?? []) as Profile[]).map((p) => ({ ...p, roles: roleMap.get(p.user_id) ?? [] }));
     },
   });
 
@@ -66,10 +72,10 @@ function AdminEmpleados() {
   }
 
   return (
-    <AppShell title="Empleados">
+    <AppShell title="Usuarios">
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="flex justify-end">
-          <Button onClick={() => setCreateOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> Nuevo empleado</Button>
+          <Button onClick={() => setCreateOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> Nuevo usuario</Button>
         </div>
 
         {empleados.length === 0 ? (
@@ -84,7 +90,12 @@ function AdminEmpleados() {
               return (
                 <div key={p.user_id} className="flex items-center justify-between gap-2 p-4">
                   <div className="min-w-0">
-                    <div className="font-semibold">{p.display_name || p.username}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-semibold">{p.display_name || p.username}</span>
+                      {p.roles.includes("super_admin") && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">SUPER</span>}
+                      {p.roles.includes("admin") && !p.roles.includes("super_admin") && <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-bold">ADMIN</span>}
+                      {p.roles.includes("empleado") && <span className="rounded border px-1.5 py-0.5 text-[10px]">EMPLEADO</span>}
+                    </div>
                     <div className="text-xs text-muted-foreground">@{p.username}</div>
                     {pw ? (
                       <div className="mt-1 flex items-center gap-2 text-xs">
@@ -110,7 +121,7 @@ function AdminEmpleados() {
                     <Button variant="ghost" size="sm" onClick={() => setPwOpen(p)}>
                       <Key className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => borrar(p)}>
+                    <Button variant="ghost" size="sm" onClick={() => borrar(p)} disabled={p.user_id === me?.userId}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -124,10 +135,11 @@ function AdminEmpleados() {
         <CreateDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
+          canCreateAdmin={!!me?.isSuperAdmin}
           onCreate={async (form) => {
             try {
               await createFn({ data: form });
-              toast.success(`Empleado ${form.username} creado`);
+              toast.success(`Usuario ${form.username} creado`);
               qc.invalidateQueries({ queryKey: ["empleados-list"] });
               qc.invalidateQueries({ queryKey: ["employee-passwords"] });
               setCreateOpen(false);
@@ -156,16 +168,24 @@ function AdminEmpleados() {
   );
 }
 
-function CreateDialog({ open, onOpenChange, onCreate }: { open: boolean; onOpenChange: (v: boolean) => void; onCreate: (f: { username: string; password: string; displayName?: string }) => void }) {
-  const [f, setF] = useState({ username: "", password: "", displayName: "" });
+function CreateDialog({ open, onOpenChange, onCreate, canCreateAdmin }: { open: boolean; onOpenChange: (v: boolean) => void; canCreateAdmin: boolean; onCreate: (f: { username: string; password: string; displayName?: string; role: "empleado" | "admin" }) => void }) {
+  const [f, setF] = useState<{ username: string; password: string; displayName: string; role: "empleado" | "admin" }>({ username: "", password: "", displayName: "", role: "empleado" });
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Nuevo empleado</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Nuevo usuario</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); onCreate(f); }} className="space-y-3">
           <div><Label>Usuario *</Label><Input required placeholder="user1" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></div>
           <div><Label>Nombre visible</Label><Input placeholder="Juan Pérez" value={f.displayName} onChange={(e) => setF({ ...f, displayName: e.target.value })} /></div>
           <div><Label>Contraseña *</Label><Input required minLength={4} placeholder="1984" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></div>
+          <div>
+            <Label>Rol *</Label>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setF({ ...f, role: "empleado" })} className={`rounded-md border px-3 py-2 text-sm font-medium ${f.role === "empleado" ? "border-primary bg-primary/10 text-primary" : "bg-background"}`}>Empleado</button>
+              <button type="button" disabled={!canCreateAdmin} onClick={() => setF({ ...f, role: "admin" })} className={`rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed ${f.role === "admin" ? "border-primary bg-primary/10 text-primary" : "bg-background"}`}>Admin</button>
+            </div>
+            {!canCreateAdmin && <div className="mt-1 text-[11px] text-muted-foreground">Solo un super admin puede crear administradores.</div>}
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit">Crear</Button>
