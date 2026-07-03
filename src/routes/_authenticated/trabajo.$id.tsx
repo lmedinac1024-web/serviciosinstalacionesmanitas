@@ -93,6 +93,7 @@ function Detalle() {
   const [puertaFinal, setPuertaFinal] = useState<string>("");
   const [localPhotoUrls, setLocalPhotoUrls] = useState<Partial<Record<Fase, string>>>({});
   const localPhotoUrlsRef = useRef<Partial<Record<Fase, string>>>({});
+  const [pendingShare, setPendingShare] = useState<Partial<Record<Fase, SharePayload>>>({});
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
