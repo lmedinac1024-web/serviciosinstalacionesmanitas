@@ -126,13 +126,41 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    // Persistir caché de React Query en localStorage para trabajar sin conexión.
+    // Sólo en cliente y sólo una vez.
+    let cancelled = false;
+    (async () => {
+      try {
+        const [{ persistQueryClient }, { createSyncStoragePersister }] = await Promise.all([
+          import("@tanstack/react-query-persist-client"),
+          import("@tanstack/query-sync-storage-persister"),
+        ]);
+        if (cancelled || typeof window === "undefined") return;
+        const persister = createSyncStoragePersister({
+          storage: window.localStorage,
+          key: "servihogar-rq-cache-v1",
+          throttleTime: 1000,
+        });
+        persistQueryClient({
+          queryClient,
+          persister,
+          maxAge: 1000 * 60 * 60 * 24 * 7,
+        });
+      } catch {
+        /* si no carga el persister, seguimos sin persistencia */
+      }
+    })();
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (event === "SIGNED_OUT" && typeof window !== "undefined") {
+        try { window.localStorage.removeItem("servihogar-rq-cache-v1"); } catch { /* noop */ }
+      }
     });
     import("@/lib/register-sw").then((m) => m.registerServiceWorker()).catch(() => {});
-    return () => sub.subscription.unsubscribe();
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, [router, queryClient]);
 
   return (
