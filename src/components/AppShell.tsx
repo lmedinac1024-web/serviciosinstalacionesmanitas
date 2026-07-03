@@ -9,7 +9,6 @@ import {
   History,
   Settings,
   Plus,
-  Briefcase,
   UserCircle2,
   LogOut,
   Send,
@@ -33,7 +32,6 @@ type NavPath =
   | "/ganancias"
   | "/historial"
   | "/ajustes"
-  | "/admin/servicios"
   | "/admin/empleados"
   | "/admin/telegram"
   | "/admin/solicitudes"
@@ -58,7 +56,6 @@ const NAV_ADMIN: NavItem[] = [
 
 const ADMIN_LINKS: NavItem[] = [
   { to: "/admin/empleados", label: "Empleados", icon: UserSquare2 },
-  { to: "/admin/servicios", label: "Categorías", icon: Briefcase },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
   { to: "/admin/solicitudes", label: "Solicitudes", icon: KeyRound },
 ];
