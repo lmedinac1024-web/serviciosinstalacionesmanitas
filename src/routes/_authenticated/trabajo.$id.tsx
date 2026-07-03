@@ -182,12 +182,7 @@ function Detalle() {
   }
 
 
-  function openPhotoPicker(fase: Fase) {
-    setPhotoPickerOpen(fase);
-  }
-
   function pickPhoto(fase: Fase, source: PhotoSource) {
-    setPhotoPickerOpen(null);
     const input =
       fase === "inicio"
         ? source === "camera" ? startCameraInput.current : startGalleryInput.current
@@ -203,21 +198,11 @@ function Detalle() {
     e.target.value = "";
   }
 
-  async function handleArrivalTap() {
-    setGpsMeta(null);
-    openPhotoPicker("inicio");
-  }
-
-  async function handleFinishTap() {
-    setGpsMeta(null);
-    openPhotoPicker("final");
-  }
-
   async function handleCancelConfirm() {
     if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
     setGpsMeta(null);
     setCancelOpen(false);
-    openPhotoPicker("cancel");
+    pickPhoto("cancel", "camera");
   }
 
   function buildSharePayload(file: File, fase: Fase): Omit<PendingShare, "previewUrl"> {
