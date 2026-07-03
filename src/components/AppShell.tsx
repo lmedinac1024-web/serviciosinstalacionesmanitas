@@ -33,6 +33,7 @@ type NavPath =
   | "/ganancias"
   | "/historial"
   | "/ajustes"
+  | "/admin"
   | "/admin/empleados"
   | "/admin/telegram"
   | "/admin/solicitudes"
@@ -49,13 +50,14 @@ const NAV_EMPLEADO: NavItem[] = [
 ];
 
 const NAV_ADMIN: NavItem[] = [
-  { to: "/", label: "Panel", icon: LayoutDashboard, exact: true },
+  { to: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
   { to: "/pendientes", label: "Trabajos", icon: ListChecks },
   { to: "/ganancias", label: "Ganancias", icon: Wallet },
   { to: "/historial", label: "Historial", icon: History },
 ];
 
 const ADMIN_LINKS: NavItem[] = [
+  { to: "/admin", label: "Panel admin", icon: ShieldCheck },
   { to: "/admin/empleados", label: "Usuarios", icon: UserSquare2 },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
   { to: "/admin/solicitudes", label: "Solicitudes", icon: KeyRound },
