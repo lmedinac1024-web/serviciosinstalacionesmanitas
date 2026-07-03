@@ -595,11 +595,11 @@ function Detalle() {
           </Button>
         )}
 
-        <input ref={startInput} type="file" accept="image/*" capture="environment" className="hidden"
+        <input ref={startInput} type="file" accept="image/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("inicio", f); e.target.value = ""; }} />
-        <input ref={finalInput} type="file" accept="image/*" capture="environment" className="hidden"
+        <input ref={finalInput} type="file" accept="image/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("final", f); e.target.value = ""; }} />
-        <input ref={cancelInput} type="file" accept="image/*" capture="environment" className="hidden"
+        <input ref={cancelInput} type="file" accept="image/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("cancel", f); e.target.value = ""; }} />
 
         {/* Compartir nativo se dispara automáticamente tras guardar la foto */}
