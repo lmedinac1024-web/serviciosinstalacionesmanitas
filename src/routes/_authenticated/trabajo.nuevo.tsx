@@ -138,7 +138,7 @@ function NuevoServicio() {
       const { data, error } = await supabase.from('servicios').insert({
         user_id: form.empleado_id,
         empleado_id: form.empleado_id,
-        assigned_by: me.userId,
+        assigned_by: me?.userId ?? null,
         cliente_id: null,
         tipo_servicio: form.tipo_servicio || null,
         cliente: form.cliente.trim(),
