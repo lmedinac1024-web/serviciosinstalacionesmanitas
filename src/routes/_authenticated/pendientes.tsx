@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
-import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { enqueue, listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pendientes")({
@@ -31,6 +31,7 @@ function Pendientes() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("pendientes");
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
+  const [instantPatches, setInstantPatches] = useState<Record<string, Partial<Job>>>({});
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["jobs", "lista", filtro],
@@ -86,8 +87,8 @@ function Pendientes() {
         patchesByJob.set(action.jobId, { ...(patchesByJob.get(action.jobId) ?? {}), ...patch });
       });
 
-    return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
-  }, [data, queuedActions]);
+    return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}), ...(instantPatches[job.id] ?? {}) }));
+  }, [data, queuedActions, instantPatches]);
 
   const effectiveData = useMemo(
     () => effectiveAllData.filter((job) => {
@@ -98,23 +99,56 @@ function Pendientes() {
     [effectiveAllData, filtro],
   );
 
-  async function marcarRealizadoSinFoto(job: Job) {
-    if (!confirm(`¿Marcar como realizado el servicio de ${job.cliente} (${job.fecha}) sin foto?`)) return;
+  async function marcarRealizadoDirecto(job: Job) {
     setBusyId(job.id);
+    const now = new Date().toISOString();
+    const instantPatch: Partial<Job> = {
+      estado: "realizado" as JobStatus,
+      hora_llegada: job.hora_llegada ?? now,
+      hora_fin: now,
+    };
+    setInstantPatches((prev) => ({ ...prev, [job.id]: { ...(prev[job.id] ?? {}), ...instantPatch } }));
     try {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        if (!me?.userId) throw new Error("Usuario no disponible para guardar en cola");
+        await enqueue({ jobId: job.id, userId: me.userId, kind: "final" });
+        toast.success("Servicio realizado · queda en cola");
+        return;
+      }
+
+      if (job.estado === "pendiente") {
+        const { error: startError } = await supabase
+          .from("servicios")
+          .update({ estado: "en_proceso", hora_llegada: job.hora_llegada ?? now })
+          .eq("id", job.id);
+        if (startError) throw startError;
+      }
+
       const { error } = await supabase
         .from("servicios")
         .update({
           estado: "realizado",
-          direccion_validada_llegada: true,
-          hora_llegada: job.hora_llegada ?? new Date().toISOString(),
-          hora_fin: new Date().toISOString(),
+          hora_fin: now,
         })
         .eq("id", job.id);
       if (error) throw error;
       toast.success("Servicio marcado como realizado");
       qc.invalidateQueries({ queryKey: ["jobs"] });
     } catch (e) {
+      if (me?.userId) {
+        try {
+          await enqueue({ jobId: job.id, userId: me.userId, kind: "final" });
+          toast.info("No se confirmó ahora; queda en cola y desaparece de Pendientes");
+          return;
+        } catch {
+          // fall through to visible error
+        }
+      }
+      setInstantPatches((prev) => {
+        const next = { ...prev };
+        delete next[job.id];
+        return next;
+      });
       toast.error(e instanceof Error ? e.message : "Error al actualizar");
     } finally {
       setBusyId(null);
@@ -147,12 +181,6 @@ function Pendientes() {
         ))}
       </div>
 
-      {me?.isAdmin && filtro !== "realizados" && (
-        <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
-          <span className="font-semibold text-primary">Modo admin:</span> puedes marcar servicios de hoy o días anteriores como <b>realizados sin foto</b>.
-        </div>
-      )}
-
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : effectiveData.length === 0 ? (
@@ -170,16 +198,15 @@ function Pendientes() {
             return (
               <div key={j.id} className="space-y-1.5">
                 <JobCard job={j} />
-                {me?.isAdmin && esPendiente && isPastOrToday(j.fecha) && (
+                {esPendiente && isPastOrToday(j.fecha) && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    onClick={() => marcarRealizadoSinFoto(j)}
+                    onClick={() => marcarRealizadoDirecto(j)}
                     disabled={busyId === j.id}
-                    className="w-full border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+                    className="w-full"
                   >
                     <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                    {busyId === j.id ? "Guardando..." : "Marcar realizado sin foto (admin)"}
+                    {busyId === j.id ? "Guardando..." : "Realizado"}
                   </Button>
                 )}
               </div>

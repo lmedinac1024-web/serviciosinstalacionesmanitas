@@ -146,9 +146,11 @@ async function processOne(action: PendingAction): Promise<void> {
     return;
   }
 
-  if (!action.photo) throw new Error("Foto no encontrada en cola");
+  if (action.kind === "inicio" && !action.photo) throw new Error("Foto no encontrada en cola");
   const now = new Date().toISOString();
   if (action.kind === "inicio") {
+    const photo = action.photo;
+    if (!photo) throw new Error("Foto no encontrada en cola");
     const statusPatch = {
       hora_llegada: now,
       ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
@@ -166,7 +168,7 @@ async function processOne(action: PendingAction): Promise<void> {
       .eq("estado", "pendiente");
     if (statusError) throw statusError;
 
-    const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
+    const path = await uploadPhoto(action.userId, action.jobId, action.kind, photo);
     const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
     if (error) throw error;
     return;
@@ -190,9 +192,11 @@ async function processOne(action: PendingAction): Promise<void> {
     if (retryError) throw retryError;
   }
 
-  const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
-  const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
-  if (photoError) throw photoError;
+  if (action.photo) {
+    const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
+    const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
+    if (photoError) throw photoError;
+  }
 
 }
 
