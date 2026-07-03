@@ -235,6 +235,46 @@ function AuthPage() {
           </form>
         )}
 
+        <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Recuperar contraseña</DialogTitle>
+              <DialogDescription>
+                Envía una solicitud al administrador. Cuando la apruebe, te dará la nueva contraseña.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submitReset} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="resetUsername">Usuario</Label>
+                <Input
+                  id="resetUsername"
+                  required
+                  placeholder="user1"
+                  value={resetUsername}
+                  onChange={(e) => setResetUsername(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="resetNota">Nota (opcional)</Label>
+                <Input
+                  id="resetNota"
+                  placeholder="La olvidé…"
+                  value={resetNota}
+                  onChange={(e) => setResetNota(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setResetOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={resetLoading}>
+                  {resetLoading ? "Enviando..." : "Enviar solicitud"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+
+
         <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
           <DialogTrigger asChild>
             <Button variant="ghost" className="w-full gap-2 text-sm">
