@@ -388,7 +388,8 @@ function Detalle() {
           }
         }
         void persistPromise.catch(() => undefined);
-        navigate({ to: "/pendientes" });
+        // Nos quedamos en la ficha para que el trabajador vea la confirmación
+        // y la foto local; ya no saltamos a /pendientes automáticamente.
       }
     } finally {
 
