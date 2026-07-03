@@ -353,7 +353,7 @@ function Detalle() {
   }
 
   async function persistInBackground(fase: Fase, file: File, statusPatch: Partial<Job>) {
-    const userId = me?.userId;
+    const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
     const retryAction = userId
       ? {
           jobId: job!.id,
