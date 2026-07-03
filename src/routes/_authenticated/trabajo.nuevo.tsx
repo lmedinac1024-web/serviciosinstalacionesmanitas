@@ -96,7 +96,7 @@ function NuevoServicio() {
   }
 
   if (isLoading) return <AppShell title="Nuevo servicio"><div>…</div></AppShell>;
-  if (!me && isError) {
+  if (!me) {
     return (
       <AppShell title="Nuevo servicio">
         <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
@@ -105,7 +105,7 @@ function NuevoServicio() {
       </AppShell>
     );
   }
-  if (!me?.isAdmin) return <Navigate to="/" />;
+  if (!me.isAdmin) return <Navigate to="/" />;
 
   async function tryGeocode() {
     if (!form.direccion.trim()) return null;
