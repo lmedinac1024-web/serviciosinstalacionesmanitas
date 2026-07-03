@@ -336,7 +336,14 @@ function Detalle() {
 
       // 3) Abrir compartir nativo (dirección + foto)
       await shareFileNative(payload);
+
+      // 4) Si es final o cancelación, volver a Pendientes
+      if (payload.fase === "final" || payload.fase === "cancel") {
+        void qc.invalidateQueries({ queryKey: ["jobs"] });
+        navigate({ to: "/pendientes" });
+      }
     } finally {
+
       setWorking(false);
     }
   }
