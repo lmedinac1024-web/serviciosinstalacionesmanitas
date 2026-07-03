@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
-import { formatEUR, jobTotal, type Job } from "@/lib/jobs";
+import { formatEUR, jobTotal, type Job, type JobStatus } from "@/lib/jobs";
+import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Trophy, Users, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,7 @@ function todayStr(): string {
 function Dashboard() {
   const { data: me } = useUserRole();
   const isAdmin = me?.isAdmin;
+  const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
 
   const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "all"],
@@ -40,9 +43,6 @@ function Dashboard() {
     },
   });
 
-  // Excluir servicios anulados (soft-deleted) de todas las métricas y listados.
-  const jobs = allJobs.filter((j) => !j.eliminado_logico);
-
   const { data: profiles = [] } = useQuery({
     queryKey: ["all-profiles"],
     enabled: isAdmin,
@@ -51,6 +51,45 @@ function Dashboard() {
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    let alive = true;
+    const loadQueued = async () => {
+      const queued = await listAll();
+      if (alive) setQueuedActions(queued);
+    };
+    void loadQueued();
+    const unsubscribe = subscribeOffline(() => { void loadQueued(); });
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const jobs = useMemo(() => {
+    const patchesByJob = new Map<string, Partial<Job>>();
+    queuedActions
+      .slice()
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .forEach((action) => {
+        const at = new Date(action.createdAt).toISOString();
+        const patch: Partial<Job> =
+          action.kind === "inicio"
+            ? { estado: "en_proceso", hora_llegada: at }
+            : action.kind === "final"
+              ? { estado: "realizado", hora_fin: at }
+              : {
+                  estado: ((action.motivo ?? "cancelado_otro|Cancelado").split("|")[0] || "cancelado_otro") as JobStatus,
+                  hora_fin: at,
+                  motivo_cancelacion: (action.motivo ?? "cancelado_otro|Cancelado").split("|").slice(1).join("|") || "Cancelado",
+                };
+        patchesByJob.set(action.jobId, { ...(patchesByJob.get(action.jobId) ?? {}), ...patch });
+      });
+
+    return allJobs
+      .map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }))
+      .filter((j) => !j.eliminado_logico);
+  }, [allJobs, queuedActions]);
 
   const today = todayStr();
   const weekStart = startOfWeekISO();
