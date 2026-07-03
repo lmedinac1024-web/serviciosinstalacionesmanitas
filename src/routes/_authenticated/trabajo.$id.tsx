@@ -42,9 +42,13 @@ interface GpsMeta {
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
-async function uploadPhoto(jobId: string, fase: Fase, file: File) {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error("No autenticado");
+async function uploadPhoto(jobId: string, fase: Fase, file: File, cachedUserId?: string) {
+  let userId = cachedUserId;
+  if (!userId) {
+    const { data: userData } = await supabase.auth.getUser();
+    userId = userData.user?.id;
+  }
+  if (!userId) throw new Error("No autenticado");
   const ext = file.type.includes("png")
     ? "png"
     : file.type.includes("webp")
@@ -52,7 +56,7 @@ async function uploadPhoto(jobId: string, fase: Fase, file: File) {
       : file.type.includes("heic") || file.type.includes("heif")
         ? "heic"
         : "jpg";
-  const path = `${userData.user.id}/${jobId}/${fase}-${Date.now()}.${ext}`;
+  const path = `${userId}/${jobId}/${fase}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
     .from("job-photos")
     .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
@@ -341,7 +345,7 @@ function Detalle() {
     }
 
     try {
-      const path = await uploadPhoto(job!.id, fase, file);
+      const path = await uploadPhoto(job!.id, fase, file, userId ?? undefined);
       const photoPatch: Partial<Job> =
         fase === "inicio"
           ? { foto_inicio: path }
