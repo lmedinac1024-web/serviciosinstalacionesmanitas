@@ -19,13 +19,18 @@ import { Route as AuthenticatedHistorialRouteImport } from './routes/_authentica
 import { Route as AuthenticatedGananciasRouteImport } from './routes/_authenticated/ganancias'
 import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authenticated/cancelados'
 import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticated/ajustes'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedTrabajoNuevoRouteImport } from './routes/_authenticated/trabajo.nuevo'
 import { Route as AuthenticatedTrabajoIdRouteImport } from './routes/_authenticated/trabajo.$id'
 import { Route as AuthenticatedAdminTelegramRouteImport } from './routes/_authenticated/admin.telegram'
 import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin.solicitudes'
 import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated/admin.roles'
+import { Route as AuthenticatedAdminObrasRouteImport } from './routes/_authenticated/admin.obras'
 import { Route as AuthenticatedAdminEmpleadosRouteImport } from './routes/_authenticated/admin.empleados'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
+import { Route as AuthenticatedAdminObrasNuevaRouteImport } from './routes/_authenticated/admin.obras.nueva'
+import { Route as AuthenticatedAdminObrasIdRouteImport } from './routes/_authenticated/admin.obras.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -76,6 +81,16 @@ const AuthenticatedAjustesRoute = AuthenticatedAjustesRouteImport.update({
   path: '/ajustes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedTrabajoNuevoRoute =
   AuthenticatedTrabajoNuevoRouteImport.update({
     id: '/trabajo/nuevo',
@@ -89,37 +104,55 @@ const AuthenticatedTrabajoIdRoute = AuthenticatedTrabajoIdRouteImport.update({
 } as any)
 const AuthenticatedAdminTelegramRoute =
   AuthenticatedAdminTelegramRouteImport.update({
-    id: '/admin/telegram',
-    path: '/admin/telegram',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/telegram',
+    path: '/telegram',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminSolicitudesRoute =
   AuthenticatedAdminSolicitudesRouteImport.update({
-    id: '/admin/solicitudes',
-    path: '/admin/solicitudes',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/solicitudes',
+    path: '/solicitudes',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminRolesRoute = AuthenticatedAdminRolesRouteImport.update({
-  id: '/admin/roles',
-  path: '/admin/roles',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminObrasRoute = AuthenticatedAdminObrasRouteImport.update({
+  id: '/obras',
+  path: '/obras',
+  getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const AuthenticatedAdminEmpleadosRoute =
   AuthenticatedAdminEmpleadosRouteImport.update({
-    id: '/admin/empleados',
-    path: '/admin/empleados',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/empleados',
+    path: '/empleados',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminClientesRoute =
   AuthenticatedAdminClientesRouteImport.update({
-    id: '/admin/clientes',
-    path: '/admin/clientes',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/clientes',
+    path: '/clientes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminObrasNuevaRoute =
+  AuthenticatedAdminObrasNuevaRouteImport.update({
+    id: '/nueva',
+    path: '/nueva',
+    getParentRoute: () => AuthenticatedAdminObrasRoute,
+  } as any)
+const AuthenticatedAdminObrasIdRoute =
+  AuthenticatedAdminObrasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminObrasRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/ajustes': typeof AuthenticatedAjustesRoute
   '/cancelados': typeof AuthenticatedCanceladosRoute
   '/ganancias': typeof AuthenticatedGananciasRoute
@@ -129,11 +162,15 @@ export interface FileRoutesByFullPath {
   '/realizados': typeof AuthenticatedRealizadosRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
+  '/admin/obras': typeof AuthenticatedAdminObrasRouteWithChildren
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
   '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/obras/$id': typeof AuthenticatedAdminObrasIdRoute
+  '/admin/obras/nueva': typeof AuthenticatedAdminObrasNuevaRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -147,16 +184,21 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
+  '/admin/obras': typeof AuthenticatedAdminObrasRouteWithChildren
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
   '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/obras/$id': typeof AuthenticatedAdminObrasIdRoute
+  '/admin/obras/nueva': typeof AuthenticatedAdminObrasNuevaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/ajustes': typeof AuthenticatedAjustesRoute
   '/_authenticated/cancelados': typeof AuthenticatedCanceladosRoute
   '/_authenticated/ganancias': typeof AuthenticatedGananciasRoute
@@ -167,17 +209,22 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
+  '/_authenticated/admin/obras': typeof AuthenticatedAdminObrasRouteWithChildren
   '/_authenticated/admin/roles': typeof AuthenticatedAdminRolesRoute
   '/_authenticated/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/_authenticated/admin/telegram': typeof AuthenticatedAdminTelegramRoute
   '/_authenticated/trabajo/$id': typeof AuthenticatedTrabajoIdRoute
   '/_authenticated/trabajo/nuevo': typeof AuthenticatedTrabajoNuevoRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/obras/$id': typeof AuthenticatedAdminObrasIdRoute
+  '/_authenticated/admin/obras/nueva': typeof AuthenticatedAdminObrasNuevaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/ajustes'
     | '/cancelados'
     | '/ganancias'
@@ -187,11 +234,15 @@ export interface FileRouteTypes {
     | '/realizados'
     | '/admin/clientes'
     | '/admin/empleados'
+    | '/admin/obras'
     | '/admin/roles'
     | '/admin/solicitudes'
     | '/admin/telegram'
     | '/trabajo/$id'
     | '/trabajo/nuevo'
+    | '/admin/'
+    | '/admin/obras/$id'
+    | '/admin/obras/nueva'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -205,15 +256,20 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/clientes'
     | '/admin/empleados'
+    | '/admin/obras'
     | '/admin/roles'
     | '/admin/solicitudes'
     | '/admin/telegram'
     | '/trabajo/$id'
     | '/trabajo/nuevo'
+    | '/admin'
+    | '/admin/obras/$id'
+    | '/admin/obras/nueva'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/admin'
     | '/_authenticated/ajustes'
     | '/_authenticated/cancelados'
     | '/_authenticated/ganancias'
@@ -224,11 +280,15 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/empleados'
+    | '/_authenticated/admin/obras'
     | '/_authenticated/admin/roles'
     | '/_authenticated/admin/solicitudes'
     | '/_authenticated/admin/telegram'
     | '/_authenticated/trabajo/$id'
     | '/_authenticated/trabajo/nuevo'
+    | '/_authenticated/admin/'
+    | '/_authenticated/admin/obras/$id'
+    | '/_authenticated/admin/obras/nueva'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -308,6 +368,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAjustesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/trabajo/nuevo': {
       id: '/_authenticated/trabajo/nuevo'
       path: '/trabajo/nuevo'
@@ -324,43 +398,104 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/telegram': {
       id: '/_authenticated/admin/telegram'
-      path: '/admin/telegram'
+      path: '/telegram'
       fullPath: '/admin/telegram'
       preLoaderRoute: typeof AuthenticatedAdminTelegramRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/solicitudes': {
       id: '/_authenticated/admin/solicitudes'
-      path: '/admin/solicitudes'
+      path: '/solicitudes'
       fullPath: '/admin/solicitudes'
       preLoaderRoute: typeof AuthenticatedAdminSolicitudesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/roles': {
       id: '/_authenticated/admin/roles'
-      path: '/admin/roles'
+      path: '/roles'
       fullPath: '/admin/roles'
       preLoaderRoute: typeof AuthenticatedAdminRolesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/obras': {
+      id: '/_authenticated/admin/obras'
+      path: '/obras'
+      fullPath: '/admin/obras'
+      preLoaderRoute: typeof AuthenticatedAdminObrasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/empleados': {
       id: '/_authenticated/admin/empleados'
-      path: '/admin/empleados'
+      path: '/empleados'
       fullPath: '/admin/empleados'
       preLoaderRoute: typeof AuthenticatedAdminEmpleadosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/clientes': {
       id: '/_authenticated/admin/clientes'
-      path: '/admin/clientes'
+      path: '/clientes'
       fullPath: '/admin/clientes'
       preLoaderRoute: typeof AuthenticatedAdminClientesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/obras/nueva': {
+      id: '/_authenticated/admin/obras/nueva'
+      path: '/nueva'
+      fullPath: '/admin/obras/nueva'
+      preLoaderRoute: typeof AuthenticatedAdminObrasNuevaRouteImport
+      parentRoute: typeof AuthenticatedAdminObrasRoute
+    }
+    '/_authenticated/admin/obras/$id': {
+      id: '/_authenticated/admin/obras/$id'
+      path: '/$id'
+      fullPath: '/admin/obras/$id'
+      preLoaderRoute: typeof AuthenticatedAdminObrasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminObrasRoute
     }
   }
 }
 
+interface AuthenticatedAdminObrasRouteChildren {
+  AuthenticatedAdminObrasIdRoute: typeof AuthenticatedAdminObrasIdRoute
+  AuthenticatedAdminObrasNuevaRoute: typeof AuthenticatedAdminObrasNuevaRoute
+}
+
+const AuthenticatedAdminObrasRouteChildren: AuthenticatedAdminObrasRouteChildren =
+  {
+    AuthenticatedAdminObrasIdRoute: AuthenticatedAdminObrasIdRoute,
+    AuthenticatedAdminObrasNuevaRoute: AuthenticatedAdminObrasNuevaRoute,
+  }
+
+const AuthenticatedAdminObrasRouteWithChildren =
+  AuthenticatedAdminObrasRoute._addFileChildren(
+    AuthenticatedAdminObrasRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
+  AuthenticatedAdminEmpleadosRoute: typeof AuthenticatedAdminEmpleadosRoute
+  AuthenticatedAdminObrasRoute: typeof AuthenticatedAdminObrasRouteWithChildren
+  AuthenticatedAdminRolesRoute: typeof AuthenticatedAdminRolesRoute
+  AuthenticatedAdminSolicitudesRoute: typeof AuthenticatedAdminSolicitudesRoute
+  AuthenticatedAdminTelegramRoute: typeof AuthenticatedAdminTelegramRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
+  AuthenticatedAdminEmpleadosRoute: AuthenticatedAdminEmpleadosRoute,
+  AuthenticatedAdminObrasRoute: AuthenticatedAdminObrasRouteWithChildren,
+  AuthenticatedAdminRolesRoute: AuthenticatedAdminRolesRoute,
+  AuthenticatedAdminSolicitudesRoute: AuthenticatedAdminSolicitudesRoute,
+  AuthenticatedAdminTelegramRoute: AuthenticatedAdminTelegramRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedAjustesRoute: typeof AuthenticatedAjustesRoute
   AuthenticatedCanceladosRoute: typeof AuthenticatedCanceladosRoute
   AuthenticatedGananciasRoute: typeof AuthenticatedGananciasRoute
@@ -369,16 +504,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPendientesRoute: typeof AuthenticatedPendientesRoute
   AuthenticatedRealizadosRoute: typeof AuthenticatedRealizadosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
-  AuthenticatedAdminEmpleadosRoute: typeof AuthenticatedAdminEmpleadosRoute
-  AuthenticatedAdminRolesRoute: typeof AuthenticatedAdminRolesRoute
-  AuthenticatedAdminSolicitudesRoute: typeof AuthenticatedAdminSolicitudesRoute
-  AuthenticatedAdminTelegramRoute: typeof AuthenticatedAdminTelegramRoute
   AuthenticatedTrabajoIdRoute: typeof AuthenticatedTrabajoIdRoute
   AuthenticatedTrabajoNuevoRoute: typeof AuthenticatedTrabajoNuevoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedAjustesRoute: AuthenticatedAjustesRoute,
   AuthenticatedCanceladosRoute: AuthenticatedCanceladosRoute,
   AuthenticatedGananciasRoute: AuthenticatedGananciasRoute,
@@ -387,11 +518,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPendientesRoute: AuthenticatedPendientesRoute,
   AuthenticatedRealizadosRoute: AuthenticatedRealizadosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
-  AuthenticatedAdminEmpleadosRoute: AuthenticatedAdminEmpleadosRoute,
-  AuthenticatedAdminRolesRoute: AuthenticatedAdminRolesRoute,
-  AuthenticatedAdminSolicitudesRoute: AuthenticatedAdminSolicitudesRoute,
-  AuthenticatedAdminTelegramRoute: AuthenticatedAdminTelegramRoute,
   AuthenticatedTrabajoIdRoute: AuthenticatedTrabajoIdRoute,
   AuthenticatedTrabajoNuevoRoute: AuthenticatedTrabajoNuevoRoute,
 }
