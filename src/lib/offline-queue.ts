@@ -179,15 +179,15 @@ async function processOne(action: PendingAction): Promise<void> {
     ...(action.arrivalLng != null ? { gps_final_lng: action.arrivalLng } : {}),
   };
   const { error } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
-  if (!error) return;
-
-  await supabase
-    .from("servicios")
-    .update({ estado: "en_proceso" as const, hora_llegada: now })
-    .eq("id", action.jobId)
-    .eq("estado", "pendiente");
-  const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
-  if (retryError) throw retryError;
+  if (error) {
+    await supabase
+      .from("servicios")
+      .update({ estado: "en_proceso" as const, hora_llegada: now })
+      .eq("id", action.jobId)
+      .eq("estado", "pendiente");
+    const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
+    if (retryError) throw retryError;
+  }
 
   const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
   const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
