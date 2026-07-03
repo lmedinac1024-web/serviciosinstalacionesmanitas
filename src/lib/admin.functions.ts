@@ -37,6 +37,12 @@ export const adminCreateEmployee = createServerFn({ method: "POST" })
       { user_id: userId, role: "empleado" },
       { onConflict: "user_id,role" },
     );
+    await supabaseAdmin.from("employee_passwords").upsert({
+      user_id: userId,
+      password_plain: data.password,
+      updated_at: new Date().toISOString(),
+      updated_by: context.userId,
+    });
     return { ok: true, userId };
   });
 
@@ -51,8 +57,62 @@ export const adminResetPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw error;
+    await supabaseAdmin.from("employee_passwords").upsert({
+      user_id: data.userId,
+      password_plain: data.password,
+      updated_at: new Date().toISOString(),
+      updated_by: context.userId,
+    });
     return { ok: true };
   });
+
+export const adminResolveResetRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { requestId: string; action: "aprobar" | "rechazar"; newPassword?: string }) => d)
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: req, error: qErr } = await supabaseAdmin
+      .from("password_reset_requests")
+      .select("id, username, estado")
+      .eq("id", data.requestId)
+      .maybeSingle();
+    if (qErr) throw qErr;
+    if (!req) throw new Error("Solicitud no encontrada");
+    if (req.estado !== "pendiente") throw new Error("Solicitud ya resuelta");
+
+    if (data.action === "aprobar") {
+      if (!data.newPassword || data.newPassword.length < 4) throw new Error("Contraseña muy corta (mín 4)");
+      const uname = req.username.trim().toLowerCase();
+      const { data: prof } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .eq("username", uname)
+        .maybeSingle();
+      if (!prof?.user_id) throw new Error("Usuario no existe");
+      const { error: upErr } = await supabaseAdmin.auth.admin.updateUserById(prof.user_id, {
+        password: data.newPassword,
+      });
+      if (upErr) throw upErr;
+      await supabaseAdmin.from("employee_passwords").upsert({
+        user_id: prof.user_id,
+        password_plain: data.newPassword,
+        updated_at: new Date().toISOString(),
+        updated_by: context.userId,
+      });
+    }
+
+    await supabaseAdmin
+      .from("password_reset_requests")
+      .update({
+        estado: data.action === "aprobar" ? "aprobada" : "rechazada",
+        resolved_at: new Date().toISOString(),
+        resolved_by: context.userId,
+      })
+      .eq("id", data.requestId);
+    return { ok: true };
+  });
+
 
 export const adminDeleteEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
