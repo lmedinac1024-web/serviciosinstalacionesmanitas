@@ -201,11 +201,11 @@ function Detalle() {
     e.target.value = "";
   }
 
-  async function handleCancelConfirm() {
+  async function handleCancelConfirm(source: PhotoSource) {
     if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
     setGpsMeta(null);
     setCancelOpen(false);
-    pickPhoto("cancel", "camera");
+    pickPhoto("cancel", source);
   }
 
   function buildSharePayload(file: File, fase: Fase): Omit<SharePayload, "statusPatch"> {
@@ -345,19 +345,17 @@ function Detalle() {
 
   async function completePhotoAction(payload: SharePayload) {
     if (working) return;
+    setWorking(true);
+
+    // Invocar el compartir nativo inmediatamente desde el toque del usuario,
+    // pero NO esperar a que Telegram/WhatsApp cierre. En varios móviles la
+    // promesa de navigator.share puede tardar o no resolver hasta volver a la
+    // app; el servicio debe avanzar igual para no dejar al trabajador pegado.
+    const sharePromise = shareFileNative(payload);
+
     try {
-      // 1) Abrir compartir nativo primero. Debe ocurrir directamente desde el toque
-      // del usuario; si antes hacemos redirecciones, subidas o cambios fuertes de UI,
-      // Android/iOS pueden bloquear el menú nativo.
-      const shareResult = await shareFileNative(payload);
-      if (!shareResult) {
-        toast.info("No se marcó el servicio. Toca Compartir para continuar.");
-        return;
-      }
-
-      setWorking(true);
-
-      // 2) Después de compartir: cambiar estado YA (llegada / realizado / cancelado)
+      // Cambiar estado YA (llegada / realizado / cancelado). El envío de la foto
+      // y la subida a Supabase quedan desacoplados para que la calle sea ágil.
       patchJobInCaches(payload.statusPatch);
       setPendingShare((old) => {
         const next = { ...old };
@@ -371,10 +369,14 @@ function Detalle() {
       );
       if (payload.fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
-      // 3) Persistir en background
+      void sharePromise.then((shareResult) => {
+        if (!shareResult) toast.info("Si no se envió, compártela manualmente; el estado ya quedó guardado");
+      });
+
+      // Persistir en background
       const persistPromise = persistInBackground(payload.fase, payload.file, payload.statusPatch);
 
-      // 4) Si es final o cancelación, asegurar estado terminal antes de volver.
+      // Si es final o cancelación, asegurar estado terminal antes de volver.
       // La foto puede quedarse subiendo en cola, pero el estado debe cambiar ya.
       if (payload.fase === "final" || payload.fase === "cancel") {
         if (typeof navigator === "undefined" || navigator.onLine !== false) {
@@ -431,16 +433,7 @@ function Detalle() {
 
     const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     let queuedId: string | null = null;
-
-    if (!offline) {
-      try {
-        await persistStatusPatch(fase, statusPatch);
-        patchJobInCaches(statusPatch);
-      } catch {
-        // If the immediate status update cannot finish, the queued action below
-        // will retry it automatically. The UI already moved forward.
-      }
-    }
+    let statusPersisted = false;
 
     if (retryAction) {
       try {
@@ -448,7 +441,6 @@ function Detalle() {
         queuedId = queued.id;
         if (offline) {
           toast.info("Sin conexión: guardado en cola");
-          return;
         }
       } catch {
         if (offline) {
@@ -457,6 +449,19 @@ function Detalle() {
         }
       }
     }
+
+    if (!offline) {
+      try {
+        await persistStatusPatch(fase, statusPatch);
+        patchJobInCaches(statusPatch);
+        statusPersisted = true;
+      } catch {
+        // If the immediate status update cannot finish, the queued action below
+        // will retry it automatically. The UI already moved forward.
+      }
+    }
+
+    if (offline) return;
 
     try {
       const path = await uploadPhoto(job!.id, fase, file, userId ?? undefined);
@@ -471,7 +476,8 @@ function Detalle() {
       qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
         old ? { ...old, ...photoPatch } : old,
       );
-      if (queuedId) await removeOffline(queuedId);
+      if (queuedId && statusPersisted) await removeOffline(queuedId);
+      if (queuedId && !statusPersisted) toast.info("Estado pendiente de sincronizar");
       void qc.invalidateQueries({ queryKey: ["jobs"] });
     } catch {
       if (retryAction) toast.info("Foto pendiente de sincronizar");
@@ -663,7 +669,7 @@ function Detalle() {
                 </Button>
               </>
             )}
-            <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (!v) { setCancelReason(null); setCancelExtra(""); } }}>
+            <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (v) { setCancelReason(null); setCancelExtra(""); } }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-12 w-full text-destructive" disabled={working}>
                   <XCircle className="mr-2 h-4 w-4" /> Cancelar trabajo
@@ -699,12 +705,18 @@ function Detalle() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setCancelOpen(false)}>Volver</Button>
+                  <Button variant="outline" onClick={() => { setCancelOpen(false); setCancelReason(null); setCancelExtra(""); }}>Volver</Button>
                   <Button
                     variant="destructive"
-                    onClick={handleCancelConfirm}
+                    onClick={() => handleCancelConfirm("camera")}
                     disabled={!cancelReason}>
-                    Continuar y elegir foto
+                    Cámara
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleCancelConfirm("gallery")}
+                    disabled={!cancelReason}>
+                    Galería
                   </Button>
                 </DialogFooter>
               </DialogContent>

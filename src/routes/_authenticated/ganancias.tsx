@@ -2,12 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { formatEUR, jobTotal, isPaid, type Job } from "@/lib/jobs";
+import { formatEUR, jobTotal, isPaid, type Job, type JobStatus } from "@/lib/jobs";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 
 export const Route = createFileRoute("/_authenticated/ganancias")({
   component: Ganancias,
@@ -38,23 +39,60 @@ function endOfMonth(d: Date) {
 type Rango = "dia" | "semana" | "mes" | "custom";
 
 function Ganancias() {
+  const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
   const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "pagables"],
     queryFn: async () => {
-      // Traer realizados + cancelados por trabajador. Excluye anulados.
+      // Traer todos para poder aplicar encima los estados que estén en cola offline.
       const { data, error } = await supabase
         .from("servicios")
         .select("*")
         .eq("eliminado_logico", false)
-        .in("estado", ["realizado", "cancelado_cliente", "cancelado_no_estaba", "cancelado_direccion", "cancelado_otro"])
         .order("fecha", { ascending: false });
       if (error) throw error;
       return data as Job[];
     },
   });
 
-  // Solo servicios que "pagan" (por si acaso).
-  const jobs = useMemo(() => allJobs.filter(isPaid), [allJobs]);
+  useEffect(() => {
+    let alive = true;
+    const loadQueued = async () => {
+      const queued = await listAll();
+      if (alive) setQueuedActions(queued);
+    };
+    void loadQueued();
+    const unsubscribe = subscribeOffline(() => { void loadQueued(); });
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const effectiveJobs = useMemo(() => {
+    const patchesByJob = new Map<string, Partial<Job>>();
+    queuedActions
+      .slice()
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .forEach((action) => {
+        const at = new Date(action.createdAt).toISOString();
+        const patch: Partial<Job> =
+          action.kind === "inicio"
+            ? { estado: "en_proceso", hora_llegada: at }
+            : action.kind === "final"
+              ? { estado: "realizado", hora_fin: at }
+              : {
+                  estado: ((action.motivo ?? "cancelado_otro|Cancelado").split("|")[0] || "cancelado_otro") as JobStatus,
+                  hora_fin: at,
+                  motivo_cancelacion: (action.motivo ?? "cancelado_otro|Cancelado").split("|").slice(1).join("|") || "Cancelado",
+                };
+        patchesByJob.set(action.jobId, { ...(patchesByJob.get(action.jobId) ?? {}), ...patch });
+      });
+
+    return allJobs.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
+  }, [allJobs, queuedActions]);
+
+  // Solo servicios que "pagan": realizado o cancelado, no en curso.
+  const jobs = useMemo(() => effectiveJobs.filter(isPaid), [effectiveJobs]);
 
   const [rango, setRango] = useState<Rango>("dia");
   const [dia, setDia] = useState<string>(toISODate(new Date()));
