@@ -139,10 +139,12 @@ function AdminEmpleados() {
             try {
               await resetFn({ data: { userId: pwOpen.user_id, password } });
               toast.success("Contraseña actualizada");
+              qc.invalidateQueries({ queryKey: ["employee-passwords"] });
               setPwOpen(null);
             } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
           }}
         />
+
 
       </div>
     </AppShell>
