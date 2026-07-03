@@ -206,7 +206,7 @@ function Detalle() {
     pickPhoto("cancel", "camera");
   }
 
-  function buildSharePayload(file: File, fase: Fase): SharePayload {
+  function buildSharePayload(file: File, fase: Fase): Omit<SharePayload, "statusPatch"> {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = fase !== "final" && direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
@@ -261,7 +261,6 @@ function Detalle() {
   }
 
   function buildStatusPatch(fase: Fase, at = new Date().toISOString()): Partial<Job> {
-    const now = new Date().toISOString();
     const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
     const motivoFinal =
       fase === "cancel"
