@@ -29,11 +29,17 @@ function AdminEmpleados() {
   const { data: empleados = [] } = useQuery({
     queryKey: ["empleados-list"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "empleado");
-      const ids = (roles ?? []).map((r) => r.user_id);
-      if (ids.length === 0) return [] as Profile[];
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+      const roleMap = new Map<string, string[]>();
+      for (const r of roles ?? []) {
+        const arr = roleMap.get(r.user_id) ?? [];
+        arr.push(r.role as string);
+        roleMap.set(r.user_id, arr);
+      }
+      const ids = Array.from(roleMap.keys());
+      if (ids.length === 0) return [] as (Profile & { roles: string[] })[];
       const { data } = await supabase.from("profiles").select("user_id, username, display_name").in("user_id", ids);
-      return (data ?? []) as Profile[];
+      return ((data ?? []) as Profile[]).map((p) => ({ ...p, roles: roleMap.get(p.user_id) ?? [] }));
     },
   });
 
