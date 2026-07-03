@@ -7,7 +7,7 @@ import { JobCard } from "@/components/JobCard";
 import { formatEUR, jobTotal, type Job, type JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Trophy, Users, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Trophy, Users, TrendingUp, CheckCircle2, Clock, XCircle, UserSquare2, Send, KeyRound, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
