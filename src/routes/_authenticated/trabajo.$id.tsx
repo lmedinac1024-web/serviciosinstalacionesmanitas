@@ -94,6 +94,7 @@ function Detalle() {
   const [pisoFinal, setPisoFinal] = useState<string>("");
   const [puertaFinal, setPuertaFinal] = useState<string>("");
   const [pendingShare, setPendingShare] = useState<PendingShare | null>(null);
+  const [localPhotoUrls, setLocalPhotoUrls] = useState<Partial<Record<Fase, string>>>({});
   const [sharing, setSharing] = useState(false);
 
   const { data: job, isLoading } = useQuery({
@@ -148,6 +149,14 @@ function Detalle() {
       unsubscribe();
     };
   }, [id, qc]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(localPhotoUrls).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [localPhotoUrls]);
 
 
   const { data: empleado } = useQuery({
@@ -316,6 +325,11 @@ function Detalle() {
 
     const sharePayload = buildSharePayload(file, fase);
     const previewUrl = URL.createObjectURL(file);
+    setLocalPhotoUrls((old) => {
+      const previous = old[fase];
+      if (previous) URL.revokeObjectURL(previous);
+      return { ...old, [fase]: previewUrl };
+    });
     setPendingShare((old) => {
       if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl);
       return { ...sharePayload, previewUrl };
@@ -738,9 +752,9 @@ function Detalle() {
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          <PhotoBox title="Foto inicio" url={fotoInicioUrl} />
-          <PhotoBox title="Foto final" url={fotoFinalUrl} />
-          <PhotoBox title="Foto cancel." url={fotoCancelUrl} />
+          <PhotoBox title="Foto inicio" url={fotoInicioUrl ?? localPhotoUrls.inicio} />
+          <PhotoBox title="Foto final" url={fotoFinalUrl ?? localPhotoUrls.final} />
+          <PhotoBox title="Foto cancel." url={fotoCancelUrl ?? localPhotoUrls.cancel} />
         </div>
 
         {me?.isAdmin && (
