@@ -196,9 +196,10 @@ function Detalle() {
           }
         : old,
     );
-    const savePromise = savePhotoAndNotify(fase, file, []);
+    // Share first — navigator.share requires the transient user activation
+    // from the file-picker gesture; any awaited work before it consumes activation.
     await shareFileNative(file, fase);
-    await savePromise;
+    await savePhotoAndNotify(fase, file, []);
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
