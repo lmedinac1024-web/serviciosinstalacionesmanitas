@@ -204,7 +204,7 @@ function Detalle() {
     pickPhoto("cancel", "camera");
   }
 
-  function buildSharePayload(file: File, fase: Fase): Omit<PendingShare, "previewUrl"> {
+  function buildSharePayload(file: File, fase: Fase): SharePayload {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = fase !== "final" && direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
@@ -217,7 +217,7 @@ function Detalle() {
     return { fase, file, title: faseTxt, text };
   }
 
-  async function shareFileNative(payload: Omit<PendingShare, "fase" | "previewUrl">): Promise<boolean> {
+  async function shareFileNative(payload: Omit<SharePayload, "fase">): Promise<boolean> {
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
       if (!nav.share) {
