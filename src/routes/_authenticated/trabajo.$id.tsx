@@ -345,7 +345,6 @@ function Detalle() {
 
   async function completePhotoAction(payload: SharePayload) {
     if (working) return;
-    setWorking(true);
     try {
       // 1) Abrir compartir nativo primero. Debe ocurrir directamente desde el toque
       // del usuario; si antes hacemos redirecciones, subidas o cambios fuertes de UI,
@@ -355,6 +354,8 @@ function Detalle() {
         toast.info("No se marcó el servicio. Toca Compartir para continuar.");
         return;
       }
+
+      setWorking(true);
 
       // 2) Después de compartir: cambiar estado YA (llegada / realizado / cancelado)
       patchJobInCaches(payload.statusPatch);
