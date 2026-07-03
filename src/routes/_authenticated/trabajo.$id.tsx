@@ -354,12 +354,18 @@ function Detalle() {
       // 3) Abrir compartir nativo (dirección + foto)
       await shareFileNative(payload);
 
-      // 4) Si es final o cancelación, volver a Pendientes
+      // 4) Si es final o cancelación, asegurar estado terminal antes de volver.
+      // La foto puede quedarse subiendo en cola, pero el estado debe cambiar ya.
       if (payload.fase === "final" || payload.fase === "cancel") {
-        await Promise.race([
-          persistPromise.catch(() => undefined),
-          new Promise((resolve) => setTimeout(resolve, 900)),
-        ]);
+        if (typeof navigator === "undefined" || navigator.onLine !== false) {
+          try {
+            await persistStatusPatch(payload.fase, payload.statusPatch);
+            patchJobInCaches(payload.statusPatch);
+          } catch (e) {
+            toast.info("No se pudo confirmar al momento; queda en cola y se sincroniza automático");
+          }
+        }
+        void persistPromise.catch(() => undefined);
         navigate({ to: "/pendientes" });
       }
     } finally {
