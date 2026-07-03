@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw, Share2,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -24,6 +24,14 @@ import { enqueue as enqueueOffline } from "@/lib/offline-queue";
 
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
+
+interface PendingShare {
+  fase: Fase;
+  file: File;
+  title: string;
+  text: string;
+  previewUrl: string;
+}
 
 interface GpsMeta {
   lat: number;
@@ -81,6 +89,8 @@ function Detalle() {
   const [direccionFinal, setDireccionFinal] = useState<string>("");
   const [pisoFinal, setPisoFinal] = useState<string>("");
   const [puertaFinal, setPuertaFinal] = useState<string>("");
+  const [pendingShare, setPendingShare] = useState<PendingShare | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["jobs", id],
@@ -161,33 +171,73 @@ function Detalle() {
     openPhotoPicker("cancel");
   }
 
-  async function shareFileNative(file: File, fase: Fase) {
+  function buildSharePayload(file: File, fase: Fase): Omit<PendingShare, "previewUrl"> {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
-    const addressLine = fase !== "final" && direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    const addressLine = fase !== "final" && direccionCompleta ? `📍 ${direccionCompleta}` : "";
     let text = [header, addressLine].filter(Boolean).join("\n");
     if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
       text = [header, addressLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
     }
+    return { fase, file, title: faseTxt, text };
+  }
+
+  async function shareFileNative(payload: Omit<PendingShare, "fase" | "previewUrl">): Promise<boolean> {
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
-      const shareData: ShareData = { files: [file], title: faseTxt, text };
-      if (nav.share && (!nav.canShare || nav.canShare(shareData))) {
-        await nav.share(shareData);
-        return;
+      if (!nav.share) {
+        toast.info("Compartir nativo no disponible en este dispositivo");
+        return false;
       }
-      if (nav.share) {
-        await nav.share({ title: faseTxt, text });
-        toast.info("Tu dispositivo no soporta adjuntar la foto — comparte manualmente");
-        return;
+
+      const shareFile = payload.file.type
+        ? payload.file
+        : new File([payload.file], payload.file.name || "foto-servicio.jpg", { type: "image/jpeg" });
+      const variants: ShareData[] = [
+        { files: [shareFile], title: payload.title, text: payload.text },
+        { files: [shareFile], text: payload.text },
+        { files: [shareFile], title: payload.title },
+        { title: payload.title, text: payload.text },
+      ];
+
+      for (const data of variants) {
+        if (data.files && nav.canShare && !nav.canShare(data)) continue;
+        try {
+          await nav.share(data);
+          if (!data.files) toast.info("Tu móvil no permitió adjuntar la foto; se compartió el texto");
+          return true;
+        } catch (e) {
+          const name = (e as DOMException)?.name;
+          if (name === "AbortError" || name === "NotAllowedError") return false;
+          if (name !== "TypeError") throw e;
+        }
       }
-      toast.info("Compartir nativo no disponible en este dispositivo");
+
+      toast.info("Tu móvil no permite adjuntar esta foto; prueba con Galería");
+      return false;
     } catch (e) {
       if ((e as DOMException)?.name !== "AbortError") {
         toast.error("No se pudo abrir el menú compartir");
       }
+      return false;
+    }
+  }
+
+  function closePendingShare() {
+    if (pendingShare?.previewUrl) URL.revokeObjectURL(pendingShare.previewUrl);
+    setPendingShare(null);
+  }
+
+  async function sharePendingPhoto() {
+    if (!pendingShare) return;
+    setSharing(true);
+    try {
+      const ok = await shareFileNative(pendingShare);
+      if (ok) closePendingShare();
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -220,6 +270,13 @@ function Detalle() {
       if (puertaFinal.trim() !== "") statusPatch.puerta = puertaFinal.trim();
     }
 
+    const sharePayload = buildSharePayload(file, fase);
+    const previewUrl = URL.createObjectURL(file);
+    setPendingShare((old) => {
+      if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl);
+      return { ...sharePayload, previewUrl };
+    });
+
     // 1) UI advances instantly — never blocked by share or network.
     qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
       old ? { ...old, ...statusPatch } : old,
@@ -227,8 +284,16 @@ function Detalle() {
     toast.success(fase === "inicio" ? "Trabajo iniciado" : fase === "final" ? "Trabajo finalizado" : "Trabajo cancelado");
     if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
-    // 2) Kick off native share from the same user-gesture tick.
-    void shareFileNative(file, fase);
+    // 2) Try native share immediately; if the browser blocks it after camera/gallery,
+    // the visible dialog keeps a real tap target to open Telegram/WhatsApp sharing.
+    void shareFileNative(sharePayload).then((ok) => {
+      if (ok) {
+        setPendingShare((old) => {
+          if (old?.previewUrl === previewUrl) URL.revokeObjectURL(old.previewUrl);
+          return old?.previewUrl === previewUrl ? null : old;
+        });
+      }
+    });
 
     // 3) Persist in background (status + photo). Never blocks UI.
     void persistInBackground(fase, file, statusPatch);
@@ -253,7 +318,20 @@ function Detalle() {
 
     try {
       const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
-      if (error) throw error;
+      if (error) {
+        if (fase !== "final") throw error;
+        // If the start update was paused while the native share sheet was open,
+        // the row can still be pending. Move it to en curso first, then finish it.
+        const { error: startError } = await supabase
+          .from("servicios")
+          .update({ estado: "en_proceso" as const, hora_llegada: job!.hora_llegada ?? new Date().toISOString() })
+          .eq("id", job!.id)
+          .eq("estado", "pendiente");
+        if (startError) throw error;
+        const { error: retryError } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
+        if (retryError) throw retryError;
+      }
+      void qc.invalidateQueries({ queryKey: ["jobs"] });
     } catch {
       if (retryAction) {
         await enqueueOffline(retryAction);
@@ -571,7 +649,29 @@ function Detalle() {
           </DialogContent>
         </Dialog>
 
-        {/* Compartir nativo se dispara automáticamente al seleccionar la foto */}
+        <Dialog open={!!pendingShare} onOpenChange={(open) => { if (!open) closePendingShare(); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Compartir foto</DialogTitle>
+            </DialogHeader>
+            {pendingShare && (
+              <div className="space-y-3">
+                <img
+                  src={pendingShare.previewUrl}
+                  alt="Foto seleccionada del servicio"
+                  className="max-h-64 w-full rounded-lg border object-cover"
+                />
+                <div className="rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">{pendingShare.text}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={closePendingShare} disabled={sharing}>Continuar</Button>
+                  <Button onClick={sharePendingPhoto} disabled={sharing}>
+                    <Share2 className="mr-2 h-4 w-4" /> Compartir
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
 
         {job.observaciones && (
