@@ -543,7 +543,7 @@ function Detalle() {
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b> y se guardará tu <b>ubicación GPS</b>. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
+                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
                   </div>
                 </div>
                 <DialogFooter>
@@ -552,7 +552,7 @@ function Detalle() {
                     variant="destructive"
                     onClick={handleCancelConfirm}
                     disabled={!cancelReason || checkingGps}>
-                    {checkingGps ? "Ubicación..." : "Continuar y tomar foto"}
+                    {checkingGps ? "Preparando..." : "Continuar y elegir foto"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -595,12 +595,43 @@ function Detalle() {
           </Button>
         )}
 
-        <input ref={startInput} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("inicio", f); e.target.value = ""; }} />
-        <input ref={finalInput} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("final", f); e.target.value = ""; }} />
-        <input ref={cancelInput} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("cancel", f); e.target.value = ""; }} />
+        <input ref={startCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("inicio", e)} />
+        <input ref={startGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("inicio", e)} />
+        <input ref={finalCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("final", e)} />
+        <input ref={finalGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("final", e)} />
+        <input ref={cancelCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
+        <input ref={cancelGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
+
+        <Dialog open={!!photoPickerOpen} onOpenChange={(open) => { if (!open) setPhotoPickerOpen(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Seleccionar foto</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-28 flex-col gap-2"
+                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "camera")}
+              >
+                <Camera className="h-7 w-7" />
+                Cámara
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-28 flex-col gap-2"
+                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "gallery")}
+              >
+                <ImageIcon className="h-7 w-7" />
+                Galería
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Al guardar la foto se abrirá el compartir nativo para enviarla por Telegram, WhatsApp u otra app.
+            </p>
+          </DialogContent>
+        </Dialog>
 
         {/* Compartir nativo se dispara automáticamente tras guardar la foto */}
 
