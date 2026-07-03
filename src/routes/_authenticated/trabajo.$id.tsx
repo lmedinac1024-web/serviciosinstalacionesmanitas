@@ -20,7 +20,7 @@ import {
 } from "@/lib/jobs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
-import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
+import { enqueue as enqueueOffline } from "@/lib/offline-queue";
 
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
