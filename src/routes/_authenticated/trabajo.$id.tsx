@@ -95,6 +95,7 @@ function Detalle() {
   const [puertaFinal, setPuertaFinal] = useState<string>("");
   const [pendingShare, setPendingShare] = useState<PendingShare | null>(null);
   const [localPhotoUrls, setLocalPhotoUrls] = useState<Partial<Record<Fase, string>>>({});
+  const localPhotoUrlsRef = useRef<Partial<Record<Fase, string>>>({});
   const [sharing, setSharing] = useState(false);
 
   const { data: job, isLoading } = useQuery({
@@ -150,13 +151,11 @@ function Detalle() {
     };
   }, [id, qc]);
 
-  useEffect(() => {
-    return () => {
-      Object.values(localPhotoUrls).forEach((url) => {
-        if (url) URL.revokeObjectURL(url);
-      });
-    };
-  }, [localPhotoUrls]);
+  useEffect(() => () => {
+    Object.values(localPhotoUrlsRef.current).forEach((url) => {
+      if (url) URL.revokeObjectURL(url);
+    });
+  }, []);
 
 
   const { data: empleado } = useQuery({
@@ -324,11 +323,14 @@ function Detalle() {
     }
 
     const sharePayload = buildSharePayload(file, fase);
+    const localUrl = URL.createObjectURL(file);
     const previewUrl = URL.createObjectURL(file);
     setLocalPhotoUrls((old) => {
       const previous = old[fase];
       if (previous) URL.revokeObjectURL(previous);
-      return { ...old, [fase]: previewUrl };
+      const next = { ...old, [fase]: localUrl };
+      localPhotoUrlsRef.current = next;
+      return next;
     });
     setPendingShare((old) => {
       if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl);
