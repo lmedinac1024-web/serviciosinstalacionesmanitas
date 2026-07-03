@@ -90,7 +90,12 @@ function AdminEmpleados() {
               return (
                 <div key={p.user_id} className="flex items-center justify-between gap-2 p-4">
                   <div className="min-w-0">
-                    <div className="font-semibold">{p.display_name || p.username}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-semibold">{p.display_name || p.username}</span>
+                      {p.roles.includes("super_admin") && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">SUPER</span>}
+                      {p.roles.includes("admin") && !p.roles.includes("super_admin") && <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-bold">ADMIN</span>}
+                      {p.roles.includes("empleado") && <span className="rounded border px-1.5 py-0.5 text-[10px]">EMPLEADO</span>}
+                    </div>
                     <div className="text-xs text-muted-foreground">@{p.username}</div>
                     {pw ? (
                       <div className="mt-1 flex items-center gap-2 text-xs">
@@ -116,7 +121,7 @@ function AdminEmpleados() {
                     <Button variant="ghost" size="sm" onClick={() => setPwOpen(p)}>
                       <Key className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => borrar(p)}>
+                    <Button variant="ghost" size="sm" onClick={() => borrar(p)} disabled={p.user_id === me?.userId}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
