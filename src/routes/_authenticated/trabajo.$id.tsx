@@ -174,7 +174,7 @@ function Detalle() {
   function buildSharePayload(file: File, fase: Fase): Omit<PendingShare, "previewUrl"> {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
-    const addressLine = fase !== "final" && direccionCompleta ? `📍 ${direccionCompleta}` : "";
+    const addressLine = fase !== "final" && direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
     let text = [header, addressLine].filter(Boolean).join("\n");
     if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
