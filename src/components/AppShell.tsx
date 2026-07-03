@@ -55,7 +55,7 @@ const NAV_ADMIN: NavItem[] = [
 ];
 
 const ADMIN_LINKS: NavItem[] = [
-  { to: "/admin/empleados", label: "Empleados", icon: UserSquare2 },
+  { to: "/admin/empleados", label: "Usuarios", icon: UserSquare2 },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
   { to: "/admin/solicitudes", label: "Solicitudes", icon: KeyRound },
 ];
