@@ -403,17 +403,29 @@ function Detalle() {
         }
       : null;
 
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     let queuedId: string | null = null;
+
+    if (!offline) {
+      try {
+        await persistStatusPatch(fase, statusPatch);
+        patchJobInCaches(statusPatch);
+      } catch {
+        // If the immediate status update cannot finish, the queued action below
+        // will retry it automatically. The UI already moved forward.
+      }
+    }
+
     if (retryAction) {
       try {
         const queued = await enqueueOffline(retryAction);
         queuedId = queued.id;
-        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        if (offline) {
           toast.info("Sin conexión: guardado en cola");
           return;
         }
       } catch {
-        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        if (offline) {
           toast.error("No se pudo guardar en cola offline");
           return;
         }
@@ -421,9 +433,6 @@ function Detalle() {
     }
 
     try {
-      await persistStatusPatch(fase, statusPatch);
-      patchJobInCaches(statusPatch);
-
       const path = await uploadPhoto(job!.id, fase, file, userId ?? undefined);
       const photoPatch: Partial<Job> =
         fase === "inicio"
