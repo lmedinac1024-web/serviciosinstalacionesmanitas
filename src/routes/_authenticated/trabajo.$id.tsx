@@ -233,11 +233,18 @@ function Detalle() {
       const fileName = /\.(jpe?g|png|webp|heic|heif)$/i.test(payload.file.name)
         ? payload.file.name
         : `foto-servicio-${Date.now()}.jpg`;
-      const shareFile = new File([payload.file], fileName, { type: payload.file.type || "image/jpeg" });
+      const lowerName = fileName.toLowerCase();
+      const inferredType = payload.file.type
+        || (lowerName.endsWith(".png") ? "image/png"
+          : lowerName.endsWith(".webp") ? "image/webp"
+            : lowerName.endsWith(".heic") || lowerName.endsWith(".heif") ? "image/heic"
+              : "image/jpeg");
+      const shareFile = new File([payload.file], fileName, { type: inferredType });
       const variants: ShareData[] = [
         { files: [shareFile], title: payload.title, text: payload.text },
         { files: [shareFile], text: payload.text },
         { files: [shareFile], title: payload.title },
+        { files: [shareFile] },
         { title: payload.title, text: payload.text },
       ];
 
@@ -251,8 +258,8 @@ function Detalle() {
           return "file";
         } catch (e) {
           const name = (e as DOMException)?.name;
-          if (name === "AbortError" || name === "NotAllowedError") return false;
-          if (name !== "TypeError") throw e;
+          if (name === "AbortError") return false;
+          if (name !== "TypeError" && name !== "NotAllowedError") throw e;
         }
       }
 
