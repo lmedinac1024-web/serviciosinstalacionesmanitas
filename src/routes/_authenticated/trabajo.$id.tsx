@@ -180,6 +180,22 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: Fase, file: File) {
+    const now = new Date().toISOString();
+    const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
+    const nextEstado: JobStatus =
+      fase === "inicio" ? "en_proceso"
+      : fase === "final" ? "realizado"
+      : (reasonEntry?.status ?? "cancelado_otro");
+    qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
+      old
+        ? {
+            ...old,
+            estado: nextEstado,
+            hora_llegada: fase === "inicio" ? now : old.hora_llegada,
+            hora_fin: fase !== "inicio" ? now : old.hora_fin,
+          }
+        : old,
+    );
     const savePromise = savePhotoAndNotify(fase, file, []);
     await shareFileNative(file, fase);
     await savePromise;
