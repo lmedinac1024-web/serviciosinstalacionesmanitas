@@ -35,7 +35,35 @@ function AuthPage() {
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetUsername, setResetUsername] = useState("");
+  const [resetNota, setResetNota] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
+
+  async function submitReset(e: React.FormEvent) {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      const uname = resetUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+      if (!uname) throw new Error("Usuario inválido");
+      const { error } = await supabase.from("password_reset_requests").insert({
+        username: uname,
+        nota: resetNota.trim() || null,
+        estado: "pendiente",
+      });
+      if (error) throw error;
+      toast.success("Solicitud enviada. Espera a que el administrador la apruebe.");
+      setResetOpen(false);
+      setResetUsername("");
+      setResetNota("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo enviar la solicitud");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
 
   async function submitLogin(e: React.FormEvent) {
     e.preventDefault();
