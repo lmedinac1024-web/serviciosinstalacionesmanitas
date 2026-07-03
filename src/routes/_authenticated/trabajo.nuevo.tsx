@@ -225,14 +225,35 @@ function NuevoServicio() {
               No hay empleados. Créalos en "Empleados".
             </div>
           ) : (
-            <Select value={form.empleado_id} onValueChange={(v) => set("empleado_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Asignar a..." /></SelectTrigger>
-              <SelectContent>
-                {empleados.map((e) => (
-                  <SelectItem key={e.user_id} value={e.user_id}>{e.display_name || e.username}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              <Select value={form.empleado_id} onValueChange={(v) => set("empleado_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Asignar a..." /></SelectTrigger>
+                <SelectContent>
+                  {empleadosOrdenados.map(({ e, dist }) => (
+                    <SelectItem key={e.user_id} value={e.user_id}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{e.display_name || e.username}</span>
+                        {dist != null && (
+                          <span className="text-xs text-muted-foreground">
+                            · {dist < 1000 ? `${dist} m` : `${(dist / 1000).toFixed(1)} km`}
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {geo.status === "ok" ? (
+                <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <Navigation className="h-3 w-3" />
+                  Ordenados por cercanía al servicio (según su último trabajo)
+                </div>
+              ) : (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Pulsa "Verificar dirección" para ordenar por proximidad.
+                </div>
+              )}
+            </>
           )}
         </Field>
 
