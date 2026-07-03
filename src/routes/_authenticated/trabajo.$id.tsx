@@ -180,9 +180,8 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: Fase, file: File) {
-    const savePromise = savePhotoAndNotify(fase, file, []);
     await shareFileNative(file, fase);
-    await savePromise;
+    await savePhotoAndNotify(fase, file, []);
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
