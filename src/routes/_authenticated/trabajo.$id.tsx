@@ -485,15 +485,26 @@ function Detalle() {
         {!isDone && (
           <div className="space-y-2">
             {canStart && (
-              <Button
-                size="lg"
-                className="h-14 w-full text-base"
-                onClick={handleArrivalTap}
-                disabled={working}
-              >
-                <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
-                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-              </Button>
+              <>
+                <Button
+                  size="lg"
+                  className="h-14 w-full text-base"
+                  onClick={() => pickPhoto("inicio", "camera")}
+                  disabled={working}
+                >
+                  <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
+                  {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => pickPhoto("inicio", "gallery")}
+                  disabled={working}
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
+                </Button>
+              </>
             )}
             {canFinish && (
               <>
@@ -548,11 +559,20 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={handleFinishTap}
+                  onClick={() => pickPhoto("final", "camera")}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => pickPhoto("final", "gallery")}
+                  disabled={working}
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
                 </Button>
               </>
             )}
