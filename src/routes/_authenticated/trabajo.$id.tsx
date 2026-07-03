@@ -297,6 +297,7 @@ function Detalle() {
       localPhotoUrlsRef.current = next;
       return next;
     });
+    setPendingShare((old) => ({ ...old, [fase]: sharePayload }));
 
     // 1) UI advances instantly — never blocked by share or network.
     qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
