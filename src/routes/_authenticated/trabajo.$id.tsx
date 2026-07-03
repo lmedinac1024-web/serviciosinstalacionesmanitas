@@ -315,12 +315,7 @@ function Detalle() {
     if (working) return;
     setWorking(true);
     try {
-      const shared = await shareFileNative(payload);
-      if (!shared) {
-        toast.info("Comparte la foto para avanzar el servicio");
-        return;
-      }
-
+      // 1) Cambiar estado YA (llegada / realizado / cancelado) sin esperar al share
       qc.setQueryData(["jobs", job!.id], (old: Job | undefined) =>
         old ? { ...old, ...payload.statusPatch } : old,
       );
@@ -336,11 +331,16 @@ function Detalle() {
       );
       if (payload.fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
+      // 2) Persistir en background
       void persistInBackground(payload.fase, payload.file, payload.statusPatch);
+
+      // 3) Abrir compartir nativo (dirección + foto)
+      await shareFileNative(payload);
     } finally {
       setWorking(false);
     }
   }
+
 
   async function persistInBackground(fase: Fase, file: File, statusPatch: Partial<Job>) {
     const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
@@ -648,10 +648,10 @@ function Detalle() {
               if (!p) return null;
               const label =
                 f === "inicio"
-                  ? "Compartir y marcar llegada"
+                  ? "Compartir dirección + foto (marcar llegada)"
                   : f === "final"
-                    ? "Compartir y finalizar tarea"
-                    : "Compartir y cancelar tarea";
+                    ? "Compartir foto final + dirección (finalizar)"
+                    : "Compartir foto + dirección (cancelar)";
               return (
                 <Button
                   key={f}
@@ -665,8 +665,9 @@ function Detalle() {
               );
             })}
             <div className="text-xs text-muted-foreground">
-              La tarea solo cambia de estado después de compartir la foto.
+              Se comparte la dirección con la foto y el servicio pasa al siguiente estado.
             </div>
+
           </div>
         )}
 
