@@ -168,16 +168,24 @@ function AdminEmpleados() {
   );
 }
 
-function CreateDialog({ open, onOpenChange, onCreate }: { open: boolean; onOpenChange: (v: boolean) => void; onCreate: (f: { username: string; password: string; displayName?: string }) => void }) {
-  const [f, setF] = useState({ username: "", password: "", displayName: "" });
+function CreateDialog({ open, onOpenChange, onCreate, canCreateAdmin }: { open: boolean; onOpenChange: (v: boolean) => void; canCreateAdmin: boolean; onCreate: (f: { username: string; password: string; displayName?: string; role: "empleado" | "admin" }) => void }) {
+  const [f, setF] = useState<{ username: string; password: string; displayName: string; role: "empleado" | "admin" }>({ username: "", password: "", displayName: "", role: "empleado" });
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Nuevo empleado</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Nuevo usuario</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); onCreate(f); }} className="space-y-3">
           <div><Label>Usuario *</Label><Input required placeholder="user1" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></div>
           <div><Label>Nombre visible</Label><Input placeholder="Juan Pérez" value={f.displayName} onChange={(e) => setF({ ...f, displayName: e.target.value })} /></div>
           <div><Label>Contraseña *</Label><Input required minLength={4} placeholder="1984" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></div>
+          <div>
+            <Label>Rol *</Label>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setF({ ...f, role: "empleado" })} className={`rounded-md border px-3 py-2 text-sm font-medium ${f.role === "empleado" ? "border-primary bg-primary/10 text-primary" : "bg-background"}`}>Empleado</button>
+              <button type="button" disabled={!canCreateAdmin} onClick={() => setF({ ...f, role: "admin" })} className={`rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed ${f.role === "admin" ? "border-primary bg-primary/10 text-primary" : "bg-background"}`}>Admin</button>
+            </div>
+            {!canCreateAdmin && <div className="mt-1 text-[11px] text-muted-foreground">Solo un super admin puede crear administradores.</div>}
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit">Crear</Button>
