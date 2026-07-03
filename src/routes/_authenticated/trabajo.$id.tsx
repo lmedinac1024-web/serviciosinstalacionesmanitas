@@ -33,6 +33,8 @@ interface SharePayload {
   statusPatch: Partial<Job>;
 }
 
+type ShareResult = "file" | "text" | false;
+
 interface GpsMeta {
   lat: number;
   lng: number;
@@ -219,34 +221,45 @@ function Detalle() {
     return { fase, file, title: faseTxt, text };
   }
 
-  async function shareFileNative(payload: Pick<SharePayload, "file" | "title" | "text">): Promise<boolean> {
+  async function shareFileNative(payload: Pick<SharePayload, "file" | "title" | "text">): Promise<ShareResult> {
     try {
+      if (typeof navigator === "undefined") return false;
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
       if (!nav.share) {
         toast.info("Compartir nativo no disponible en este dispositivo");
         return false;
       }
 
-      const shareFile = payload.file.type
-        ? payload.file
-        : new File([payload.file], payload.file.name || "foto-servicio.jpg", { type: "image/jpeg" });
+      const fileName = /\.(jpe?g|png|webp|heic|heif)$/i.test(payload.file.name)
+        ? payload.file.name
+        : `foto-servicio-${Date.now()}.jpg`;
+      const lowerName = fileName.toLowerCase();
+      const inferredType = payload.file.type
+        || (lowerName.endsWith(".png") ? "image/png"
+          : lowerName.endsWith(".webp") ? "image/webp"
+            : lowerName.endsWith(".heic") || lowerName.endsWith(".heif") ? "image/heic"
+              : "image/jpeg");
+      const shareFile = new File([payload.file], fileName, { type: inferredType });
       const variants: ShareData[] = [
         { files: [shareFile], title: payload.title, text: payload.text },
         { files: [shareFile], text: payload.text },
         { files: [shareFile], title: payload.title },
+        { files: [shareFile] },
         { title: payload.title, text: payload.text },
       ];
 
       for (const data of variants) {
-        if (data.files && nav.canShare && !nav.canShare(data)) continue;
         try {
           await nav.share(data);
-          if (!data.files) toast.info("Tu móvil no permitió adjuntar la foto; se compartió el texto");
-          return true;
+          if (!data.files) {
+            toast.info("Tu móvil no permitió adjuntar la foto; se compartió la dirección");
+            return "text";
+          }
+          return "file";
         } catch (e) {
           const name = (e as DOMException)?.name;
-          if (name === "AbortError" || name === "NotAllowedError") return false;
-          if (name !== "TypeError") throw e;
+          if (name === "AbortError") return false;
+          if (name !== "TypeError" && name !== "NotAllowedError") throw e;
         }
       }
 
@@ -332,9 +345,19 @@ function Detalle() {
 
   async function completePhotoAction(payload: SharePayload) {
     if (working) return;
-    setWorking(true);
     try {
-      // 1) Cambiar estado YA (llegada / realizado / cancelado) sin esperar al share
+      // 1) Abrir compartir nativo primero. Debe ocurrir directamente desde el toque
+      // del usuario; si antes hacemos redirecciones, subidas o cambios fuertes de UI,
+      // Android/iOS pueden bloquear el menú nativo.
+      const shareResult = await shareFileNative(payload);
+      if (!shareResult) {
+        toast.info("No se marcó el servicio. Toca Compartir para continuar.");
+        return;
+      }
+
+      setWorking(true);
+
+      // 2) Después de compartir: cambiar estado YA (llegada / realizado / cancelado)
       patchJobInCaches(payload.statusPatch);
       setPendingShare((old) => {
         const next = { ...old };
@@ -348,11 +371,8 @@ function Detalle() {
       );
       if (payload.fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
 
-      // 2) Persistir en background
+      // 3) Persistir en background
       const persistPromise = persistInBackground(payload.fase, payload.file, payload.statusPatch);
-
-      // 3) Abrir compartir nativo (dirección + foto)
-      await shareFileNative(payload);
 
       // 4) Si es final o cancelación, asegurar estado terminal antes de volver.
       // La foto puede quedarse subiendo en cola, pero el estado debe cambiar ya.
