@@ -59,6 +59,57 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_passwords: {
+        Row: {
+          password_plain: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          password_plain: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          password_plain?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      password_reset_requests: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          nota: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          id?: string
+          nota?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          nota?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           activo: boolean
