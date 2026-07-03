@@ -7,7 +7,7 @@ import { JobCard } from "@/components/JobCard";
 import { formatEUR, jobTotal, type Job, type JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Trophy, Users, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Trophy, Users, TrendingUp, CheckCircle2, Clock, XCircle, UserSquare2, Send, KeyRound, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
@@ -161,6 +161,19 @@ function Dashboard() {
             </div>
           </section>
 
+          {/* Accesos admin (visibles también en móvil) */}
+          {isAdmin && (
+            <section className="md:hidden">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Administración</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <AdminTile to="/admin/empleados" label="Empleados" icon={UserSquare2} />
+                <AdminTile to="/admin/telegram" label="Telegram" icon={Send} />
+                <AdminTile to="/admin/solicitudes" label="Solicitudes" icon={KeyRound} />
+                {me?.isSuperAdmin && <AdminTile to="/admin/roles" label="Roles" icon={UserCircle2} />}
+              </div>
+            </section>
+          )}
+
           {/* Ranking empleados (admin) */}
           {isAdmin && (
             <section>
@@ -258,5 +271,16 @@ function MiniKpi({ label, value, icon: Icon, tone }: { label: string; value: num
       </div>
       <div className={cn("mt-2 text-2xl font-bold", toneMap[tone])}>{value}</div>
     </div>
+  );
+}
+
+function AdminTile({ to, label, icon: Icon }: { to: "/admin/empleados" | "/admin/telegram" | "/admin/solicitudes" | "/admin/roles"; label: string; icon: typeof Trophy }) {
+  return (
+    <Link to={to} className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm hover:bg-accent">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="text-sm font-semibold">{label}</div>
+    </Link>
   );
 }
