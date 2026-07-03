@@ -21,9 +21,6 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
 import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
-import { getCurrentPosition, haversineMeters } from "@/lib/geo";
-
-const ARRIVAL_RADIUS_M = 100;
 
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
@@ -73,7 +70,6 @@ function Detalle() {
   const [working, setWorking] = useState(false);
   const [photoPickerOpen, setPhotoPickerOpen] = useState<Fase | null>(null);
   const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
-  const [checkingGps, setCheckingGps] = useState(false);
   const [importeFinal, setImporteFinal] = useState<string>("");
   const [direccionFinal, setDireccionFinal] = useState<string>("");
   const [pisoFinal, setPisoFinal] = useState<string>("");
@@ -96,30 +92,6 @@ function Detalle() {
       return data;
     },
   });
-
-  const { data: destinos = [] } = useQuery({
-    queryKey: ["telegram-destinos"],
-    queryFn: async () => {
-      const { data } = await supabase.from("telegram_destinos").select("id, nombre").eq("activo", true).order("nombre");
-      return data ?? [];
-    },
-  });
-
-  const { data: userSettings } = useQuery({
-    queryKey: ["user-settings-destinos"],
-    queryFn: async () => {
-      const { data } = await supabase.from("user_settings")
-        .select("telegram_destinos_permitidos, telegram_destinos_favoritos, telegram_destino_default_id")
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const permitidosIds: string[] = (userSettings?.telegram_destinos_permitidos as string[] | null) ?? [];
-  const favoritosIds: string[] = (userSettings?.telegram_destinos_favoritos as string[] | null) ?? [];
-  const destinosDisponibles = destinos.filter((d) =>
-    permitidosIds.length === 0 ? true : permitidosIds.includes(d.id),
-  );
 
   const { data: fotoInicioUrl } = useQuery({
     queryKey: ["photo", job?.foto_inicio], enabled: !!job?.foto_inicio,
@@ -158,24 +130,6 @@ function Detalle() {
     const file = e.target.files?.[0];
     if (file) void onPhotoSelected(fase, file);
     e.target.value = "";
-  }
-
-  async function captureGps(validateAgainstJob: boolean): Promise<GpsMeta | null> {
-    try {
-      const pos = await getCurrentPosition();
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      if (validateAgainstJob && job?.direccion_lat != null && job?.direccion_lng != null) {
-        const dist = haversineMeters(
-          { lat, lng },
-          { lat: Number(job.direccion_lat), lng: Number(job.direccion_lng) },
-        );
-        return { lat, lng, distanceM: dist, validated: dist <= ARRIVAL_RADIUS_M };
-      }
-      return { lat, lng, distanceM: null, validated: false };
-    } catch {
-      return null;
-    }
   }
 
   async function handleArrivalTap() {
@@ -425,13 +379,9 @@ function Detalle() {
                 size="lg"
                 className="h-14 w-full text-base"
                 onClick={handleArrivalTap}
-                disabled={working || checkingGps}
+                disabled={working}
               >
-                {checkingGps ? (
-                  <><Navigation className="mr-2 h-5 w-5 animate-pulse" /> Comprobando ubicación...</>
-                ) : (
-                  <><Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio</>
-                )}
+                <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
@@ -489,7 +439,7 @@ function Detalle() {
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
                   onClick={handleFinishTap}
-                  disabled={working || checkingGps}
+                  disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
@@ -536,8 +486,8 @@ function Detalle() {
                   <Button
                     variant="destructive"
                     onClick={handleCancelConfirm}
-                    disabled={!cancelReason || checkingGps}>
-                    {checkingGps ? "Preparando..." : "Continuar y elegir foto"}
+                    disabled={!cancelReason}>
+                    Continuar y elegir foto
                   </Button>
                 </DialogFooter>
               </DialogContent>
