@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, Navigation, RotateCcw,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -21,11 +21,9 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
 import { enqueue as enqueueOffline, processQueue } from "@/lib/offline-queue";
-import { getCurrentPosition, haversineMeters } from "@/lib/geo";
-
-const ARRIVAL_RADIUS_M = 100;
 
 type Fase = "inicio" | "final" | "cancel";
+type PhotoSource = "camera" | "gallery";
 
 interface GpsMeta {
   lat: number;
@@ -60,18 +58,18 @@ function Detalle() {
   const qc = useQueryClient();
   const { data: me } = useUserRole();
   const online = useOnline();
-  const startInput = useRef<HTMLInputElement>(null);
-  const finalInput = useRef<HTMLInputElement>(null);
-  const cancelInput = useRef<HTMLInputElement>(null);
+  const startCameraInput = useRef<HTMLInputElement>(null);
+  const startGalleryInput = useRef<HTMLInputElement>(null);
+  const finalCameraInput = useRef<HTMLInputElement>(null);
+  const finalGalleryInput = useRef<HTMLInputElement>(null);
+  const cancelCameraInput = useRef<HTMLInputElement>(null);
+  const cancelGalleryInput = useRef<HTMLInputElement>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelExtra, setCancelExtra] = useState("");
   const [working, setWorking] = useState(false);
-  const [destOpen, setDestOpen] = useState<Fase | null>(null);
-  const [selectedDest, setSelectedDest] = useState<string[]>([]);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [photoPickerOpen, setPhotoPickerOpen] = useState<Fase | null>(null);
   const [gpsMeta, setGpsMeta] = useState<GpsMeta | null>(null);
-  const [checkingGps, setCheckingGps] = useState(false);
   const [importeFinal, setImporteFinal] = useState<string>("");
   const [direccionFinal, setDireccionFinal] = useState<string>("");
   const [pisoFinal, setPisoFinal] = useState<string>("");
@@ -95,30 +93,6 @@ function Detalle() {
     },
   });
 
-  const { data: destinos = [] } = useQuery({
-    queryKey: ["telegram-destinos"],
-    queryFn: async () => {
-      const { data } = await supabase.from("telegram_destinos").select("id, nombre").eq("activo", true).order("nombre");
-      return data ?? [];
-    },
-  });
-
-  const { data: userSettings } = useQuery({
-    queryKey: ["user-settings-destinos"],
-    queryFn: async () => {
-      const { data } = await supabase.from("user_settings")
-        .select("telegram_destinos_permitidos, telegram_destinos_favoritos, telegram_destino_default_id")
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const permitidosIds: string[] = (userSettings?.telegram_destinos_permitidos as string[] | null) ?? [];
-  const favoritosIds: string[] = (userSettings?.telegram_destinos_favoritos as string[] | null) ?? [];
-  const destinosDisponibles = destinos.filter((d) =>
-    permitidosIds.length === 0 ? true : permitidosIds.includes(d.id),
-  );
-
   const { data: fotoInicioUrl } = useQuery({
     queryKey: ["photo", job?.foto_inicio], enabled: !!job?.foto_inicio,
     queryFn: () => signedUrl(job?.foto_inicio ?? null),
@@ -137,77 +111,59 @@ function Detalle() {
   }
 
 
-  function pickPhoto(fase: Fase) {
-    if (fase === "inicio") startInput.current?.click();
-    else if (fase === "final") finalInput.current?.click();
-    else cancelInput.current?.click();
+  function openPhotoPicker(fase: Fase) {
+    setPhotoPickerOpen(fase);
   }
 
-  async function captureGps(validateAgainstJob: boolean): Promise<GpsMeta | null> {
-    try {
-      const pos = await getCurrentPosition();
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      if (validateAgainstJob && job?.direccion_lat != null && job?.direccion_lng != null) {
-        const dist = haversineMeters(
-          { lat, lng },
-          { lat: Number(job.direccion_lat), lng: Number(job.direccion_lng) },
-        );
-        return { lat, lng, distanceM: dist, validated: dist <= ARRIVAL_RADIUS_M };
-      }
-      return { lat, lng, distanceM: null, validated: false };
-    } catch {
-      return null;
-    }
+  function pickPhoto(fase: Fase, source: PhotoSource) {
+    setPhotoPickerOpen(null);
+    const input =
+      fase === "inicio"
+        ? source === "camera" ? startCameraInput.current : startGalleryInput.current
+        : fase === "final"
+          ? source === "camera" ? finalCameraInput.current : finalGalleryInput.current
+          : source === "camera" ? cancelCameraInput.current : cancelGalleryInput.current;
+    input?.click();
+  }
+
+  function handleFileInputChange(fase: Fase, e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) void onPhotoSelected(fase, file);
+    e.target.value = "";
   }
 
   async function handleArrivalTap() {
-    setCheckingGps(true);
-    try {
-      // Validación GPS desactivada temporalmente — se registra la posición si está disponible, sin bloquear
-      const meta = await captureGps(true);
-      setGpsMeta(meta);
-      pickPhoto("inicio");
-    } finally {
-      setCheckingGps(false);
-    }
+    setGpsMeta(null);
+    openPhotoPicker("inicio");
   }
 
   async function handleFinishTap() {
-    setCheckingGps(true);
-    try {
-      const meta = await captureGps(false);
-      setGpsMeta(meta);
-      pickPhoto("final");
-    } finally { setCheckingGps(false); }
+    setGpsMeta(null);
+    openPhotoPicker("final");
   }
 
   async function handleCancelConfirm() {
     if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
-    setCheckingGps(true);
-    try {
-      const meta = await captureGps(false);
-      setGpsMeta(meta);
-      setCancelOpen(false);
-      pickPhoto("cancel");
-    } finally { setCheckingGps(false); }
+    setGpsMeta(null);
+    setCancelOpen(false);
+    openPhotoPicker("cancel");
   }
 
   async function shareFileNative(file: File, fase: Fase) {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
-    const header = `${faseTxt} — ${job?.cliente ?? ""} · ${job?.referencia ?? ""}`;
-    let text = header;
-    if (fase === "inicio") {
-      text = `${header}\n📍 ${direccionCompleta}`;
-    } else if (fase === "cancel") {
+    const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
+    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    let text = [header, addressLine].filter(Boolean).join("\n");
+    if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
-      text = `${header}\n❌ Motivo: ${motivo}`;
+      text = [header, addressLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
     }
     try {
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean; share?: (d: ShareData) => Promise<void> };
-      if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
-        await nav.share({ files: [file], title: faseTxt, text });
+      const shareData: ShareData = { files: [file], title: faseTxt, text };
+      if (nav.share && (!nav.canShare || nav.canShare(shareData))) {
+        await nav.share(shareData);
         return;
       }
       if (nav.share) {
@@ -224,9 +180,8 @@ function Detalle() {
   }
 
   async function onPhotoSelected(fase: Fase, file: File) {
-    setPendingFile(file);
-    await savePhotoAndNotify(fase, file, []);
     await shareFileNative(file, fase);
+    await savePhotoAndNotify(fase, file, []);
   }
 
   async function savePhotoAndNotify(fase: Fase, file: File, destinoIds: string[]) {
@@ -320,8 +275,6 @@ function Detalle() {
       toast.error(e instanceof Error ? e.message : "Error subiendo foto");
     } finally {
       setWorking(false);
-      setPendingFile(null);
-      setDestOpen(null);
       setGpsMeta(null);
       if (fase === "cancel") { setCancelReason(null); setCancelExtra(""); }
     }
@@ -425,13 +378,9 @@ function Detalle() {
                 size="lg"
                 className="h-14 w-full text-base"
                 onClick={handleArrivalTap}
-                disabled={working || checkingGps}
+                disabled={working}
               >
-                {checkingGps ? (
-                  <><Navigation className="mr-2 h-5 w-5 animate-pulse" /> Comprobando ubicación...</>
-                ) : (
-                  <><Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio</>
-                )}
+                <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
@@ -489,7 +438,7 @@ function Detalle() {
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
                   onClick={handleFinishTap}
-                  disabled={working || checkingGps}
+                  disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
@@ -528,7 +477,7 @@ function Detalle() {
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b> y se guardará tu <b>ubicación GPS</b>. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
+                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
                   </div>
                 </div>
                 <DialogFooter>
@@ -536,8 +485,8 @@ function Detalle() {
                   <Button
                     variant="destructive"
                     onClick={handleCancelConfirm}
-                    disabled={!cancelReason || checkingGps}>
-                    {checkingGps ? "Ubicación..." : "Continuar y tomar foto"}
+                    disabled={!cancelReason}>
+                    Continuar y elegir foto
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -580,14 +529,45 @@ function Detalle() {
           </Button>
         )}
 
-        <input ref={startInput} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("inicio", f); e.target.value = ""; }} />
-        <input ref={finalInput} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("final", f); e.target.value = ""; }} />
-        <input ref={cancelInput} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPhotoSelected("cancel", f); e.target.value = ""; }} />
+        <input ref={startCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("inicio", e)} />
+        <input ref={startGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("inicio", e)} />
+        <input ref={finalCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("final", e)} />
+        <input ref={finalGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("final", e)} />
+        <input ref={cancelCameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
+        <input ref={cancelGalleryInput} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInputChange("cancel", e)} />
 
-        {/* Compartir nativo se dispara automáticamente tras guardar la foto */}
+        <Dialog open={!!photoPickerOpen} onOpenChange={(open) => { if (!open) setPhotoPickerOpen(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Seleccionar foto</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-28 flex-col gap-2"
+                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "camera")}
+              >
+                <Camera className="h-7 w-7" />
+                Cámara
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-28 flex-col gap-2"
+                onClick={() => photoPickerOpen && pickPhoto(photoPickerOpen, "gallery")}
+              >
+                <ImageIcon className="h-7 w-7" />
+                Galería
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Al guardar la foto se abrirá el compartir nativo para enviarla por Telegram, WhatsApp u otra app.
+            </p>
+          </DialogContent>
+        </Dialog>
+
+        {/* Compartir nativo se dispara automáticamente al seleccionar la foto */}
 
 
         {job.observaciones && (
