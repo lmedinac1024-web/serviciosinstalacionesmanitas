@@ -143,23 +143,44 @@ async function processOne(action: PendingAction): Promise<void> {
 
   if (!action.photo) throw new Error("Foto no encontrada en cola");
   const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
-  const patch = action.kind === "inicio"
-    ? {
-        foto_inicio: path,
-        estado: "en_proceso" as const,
-        hora_llegada: new Date().toISOString(),
-        ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
-        ...(action.arrivalLng != null ? { gps_llegada_lng: action.arrivalLng } : {}),
-      }
-    : {
-        foto_final: path,
-        estado: "realizado" as const,
-        hora_fin: new Date().toISOString(),
-        ...(action.arrivalLat != null ? { gps_final_lat: action.arrivalLat } : {}),
-        ...(action.arrivalLng != null ? { gps_final_lng: action.arrivalLng } : {}),
-      };
-  const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
-  if (error) throw error;
+  const now = new Date().toISOString();
+  if (action.kind === "inicio") {
+    const photoPatch = {
+      foto_inicio: path,
+      hora_llegada: now,
+      ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
+      ...(action.arrivalLng != null ? { gps_llegada_lng: action.arrivalLng } : {}),
+    };
+    const { error } = await supabase.from("servicios").update(photoPatch).eq("id", action.jobId);
+    if (error) throw error;
+
+    // Do not revert an already finalized/cancelled service back to "en curso"
+    // when an old start-photo retry syncs later.
+    await supabase
+      .from("servicios")
+      .update({ estado: "en_proceso" as const })
+      .eq("id", action.jobId)
+      .eq("estado", "pendiente");
+    return;
+  }
+
+  const patch = {
+    foto_final: path,
+    estado: "realizado" as const,
+    hora_fin: now,
+    ...(action.arrivalLat != null ? { gps_final_lat: action.arrivalLat } : {}),
+    ...(action.arrivalLng != null ? { gps_final_lng: action.arrivalLng } : {}),
+  };
+  const { error } = await supabase.from("servicios").update(patch).eq("id", action.jobId);
+  if (!error) return;
+
+  await supabase
+    .from("servicios")
+    .update({ estado: "en_proceso" as const, hora_llegada: now })
+    .eq("id", action.jobId)
+    .eq("estado", "pendiente");
+  const { error: retryError } = await supabase.from("servicios").update(patch).eq("id", action.jobId);
+  if (retryError) throw retryError;
 
 }
 
