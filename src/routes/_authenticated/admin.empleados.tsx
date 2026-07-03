@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Key } from "lucide-react";
+import { Plus, Trash2, Key, Eye, EyeOff } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { adminCreateEmployee, adminResetPassword, adminDeleteEmployee } from "@/lib/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
