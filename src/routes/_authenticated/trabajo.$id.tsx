@@ -82,7 +82,12 @@ function Detalle() {
       if (error) throw error;
       return data as Job;
     },
+    // Prevent focus refetch from reverting the optimistic status change while
+    // the user is in the native share sheet (Telegram/WhatsApp).
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
+
 
   const { data: empleado } = useQuery({
     queryKey: ["profile", job?.empleado_id],
