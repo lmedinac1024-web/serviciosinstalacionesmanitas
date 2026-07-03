@@ -16,7 +16,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
 import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
-import { MapPin, AlertCircle } from "lucide-react";
+import { MapPin, AlertCircle, Navigation } from "lucide-react";
+import { haversineMeters } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
 
@@ -85,6 +86,45 @@ function NuevoServicio() {
       return (data ?? []) as Empleado[];
     },
   });
+
+  // Última ubicación conocida de cada empleado (a partir de sus servicios con coords).
+  const { data: ultimasUbicaciones = {} } = useQuery({
+    queryKey: ["empleados-ultima-ubicacion"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("servicios")
+        .select("empleado_id, direccion_lat, direccion_lng, fecha, hora_programada")
+        .not("direccion_lat", "is", null)
+        .not("direccion_lng", "is", null)
+        .order("fecha", { ascending: false })
+        .order("hora_programada", { ascending: false })
+        .limit(500);
+      const map: Record<string, { lat: number; lng: number }> = {};
+      for (const r of data ?? []) {
+        if (!r.empleado_id || r.direccion_lat == null || r.direccion_lng == null) continue;
+        if (!map[r.empleado_id]) map[r.empleado_id] = { lat: Number(r.direccion_lat), lng: Number(r.direccion_lng) };
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  const empleadosOrdenados = (() => {
+    if (geo.status !== "ok" || geo.lat == null || geo.lng == null) return empleados.map((e) => ({ e, dist: null as number | null }));
+    const origen = { lat: geo.lat, lng: geo.lng };
+    return empleados
+      .map((e) => {
+        const loc = ultimasUbicaciones[e.user_id];
+        const dist = loc ? haversineMeters(origen, loc) : null;
+        return { e, dist };
+      })
+      .sort((a, b) => {
+        if (a.dist == null && b.dist == null) return 0;
+        if (a.dist == null) return 1;
+        if (b.dist == null) return -1;
+        return a.dist - b.dist;
+      });
+  })();
 
   useEffect(() => {
     try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* noop */ }
@@ -185,14 +225,35 @@ function NuevoServicio() {
               No hay empleados. Créalos en "Empleados".
             </div>
           ) : (
-            <Select value={form.empleado_id} onValueChange={(v) => set("empleado_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Asignar a..." /></SelectTrigger>
-              <SelectContent>
-                {empleados.map((e) => (
-                  <SelectItem key={e.user_id} value={e.user_id}>{e.display_name || e.username}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              <Select value={form.empleado_id} onValueChange={(v) => set("empleado_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Asignar a..." /></SelectTrigger>
+                <SelectContent>
+                  {empleadosOrdenados.map(({ e, dist }) => (
+                    <SelectItem key={e.user_id} value={e.user_id}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{e.display_name || e.username}</span>
+                        {dist != null && (
+                          <span className="text-xs text-muted-foreground">
+                            · {dist < 1000 ? `${dist} m` : `${(dist / 1000).toFixed(1)} km`}
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {geo.status === "ok" ? (
+                <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <Navigation className="h-3 w-3" />
+                  Ordenados por cercanía al servicio (según su último trabajo)
+                </div>
+              ) : (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Pulsa "Verificar dirección" para ordenar por proximidad.
+                </div>
+              )}
+            </>
           )}
         </Field>
 
