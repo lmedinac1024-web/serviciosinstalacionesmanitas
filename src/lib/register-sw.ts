@@ -21,11 +21,15 @@ export function registerServiceWorker() {
   if (isDev || inIframe || isPreviewHost || killSwitch) {
     // Unregister any stale app SW so the preview stays clean.
     navigator.serviceWorker.getRegistrations().then((regs) => {
-      regs.forEach((r) => {
-        const scriptURL = r.active?.scriptURL || "";
-        if (scriptURL.endsWith("/sw.js")) r.unregister();
-      });
+      regs.forEach((r) => { void r.unregister(); });
     });
+    if ("caches" in window) {
+      caches.keys().then((keys) => {
+        keys
+          .filter((key) => key === "html-nav" || key === "assets" || key.startsWith("workbox-"))
+          .forEach((key) => { void caches.delete(key); });
+      });
+    }
     return;
   }
 

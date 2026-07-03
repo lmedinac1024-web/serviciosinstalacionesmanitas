@@ -1,5 +1,5 @@
 // IndexedDB-backed queue for offline job actions (Llegué / Finalizar / Cancelar).
-// Photos are stored as Blobs. On reconnect, sync uploads photo, updates row and notifies Telegram.
+// Photos are stored as Blobs. On reconnect, sync uploads photo and updates the row.
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -129,19 +129,15 @@ async function processOne(action: PendingAction): Promise<void> {
       estado: estado as EstadoCancel,
       motivo_cancelacion: label,
       hora_fin: new Date().toISOString(),
-      gps_cancelacion_lat: action.arrivalLat ?? null,
-      gps_cancelacion_lng: action.arrivalLng ?? null,
       foto_cancelacion: null as string | null,
+      ...(action.arrivalLat != null ? { gps_cancelacion_lat: action.arrivalLat } : {}),
+      ...(action.arrivalLng != null ? { gps_cancelacion_lng: action.arrivalLng } : {}),
     };
     if (action.photo) {
       patch.foto_cancelacion = await uploadPhoto(action.userId, action.jobId, "cancel", action.photo);
     }
     const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
     if (error) throw error;
-    try {
-      const { sendJobUpdateToTelegram } = await import("@/lib/telegram.functions");
-      await sendJobUpdateToTelegram({ data: { jobId: action.jobId, fase: "cancel", destinoIds: action.destinoIds ?? [] } });
-    } catch { /* noop */ }
     return;
   }
 
@@ -152,27 +148,19 @@ async function processOne(action: PendingAction): Promise<void> {
         foto_inicio: path,
         estado: "en_proceso" as const,
         hora_llegada: new Date().toISOString(),
-        gps_llegada_lat: action.arrivalLat ?? null,
-        gps_llegada_lng: action.arrivalLng ?? null,
-        distancia_llegada_metros: action.arrivalDistanceM ?? null,
-        direccion_validada_llegada: action.arrivalValidated ?? false,
+        ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
+        ...(action.arrivalLng != null ? { gps_llegada_lng: action.arrivalLng } : {}),
       }
     : {
         foto_final: path,
         estado: "realizado" as const,
         hora_fin: new Date().toISOString(),
-        gps_final_lat: action.arrivalLat ?? null,
-        gps_final_lng: action.arrivalLng ?? null,
+        ...(action.arrivalLat != null ? { gps_final_lat: action.arrivalLat } : {}),
+        ...(action.arrivalLng != null ? { gps_final_lng: action.arrivalLng } : {}),
       };
   const { error } = await supabase.from('servicios').update(patch).eq("id", action.jobId);
   if (error) throw error;
 
-  try {
-    const { sendJobUpdateToTelegram } = await import("@/lib/telegram.functions");
-    await sendJobUpdateToTelegram({
-      data: { jobId: action.jobId, fase: action.kind, destinoIds: action.destinoIds ?? [] },
-    });
-  } catch { /* noop */ }
 }
 
 export async function processQueue(): Promise<{ ok: number; failed: number }> {
