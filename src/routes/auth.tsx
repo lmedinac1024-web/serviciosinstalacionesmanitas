@@ -182,7 +182,15 @@ function AuthPage() {
             <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            <button
+              type="button"
+              onClick={() => { setResetUsername(username); setResetOpen(true); }}
+              className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           </form>
+
         ) : (
           <form onSubmit={submitSignup} className="space-y-4">
             <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
