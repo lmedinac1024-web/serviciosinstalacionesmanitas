@@ -15,6 +15,8 @@ import {
   UserSquare2,
   RefreshCw,
   KeyRound,
+  Wrench,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -23,7 +25,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { processQueue, count as pendingCount, subscribe as subscribeQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
-import logoAsset from "@/assets/logo-manitas.png.asset.json";
 
 type NavPath =
   | "/"
