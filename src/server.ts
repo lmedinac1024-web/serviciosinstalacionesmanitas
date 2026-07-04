@@ -23,26 +23,49 @@ async function getServerEntry(): Promise<ServerEntry> {
 async function normalizeCatastrophicSsrResponse(request: Request, response: Response): Promise<Response> {
   if (response.status < 500) return response;
   
-  // Si la petición es una llamada a una función del servidor (serverFn / RPC), 
-  // NUNCA debemos responder con HTML, sino con el JSON original del error para no romper la app.
   const isServerFn = request.url.includes('/_serverFn') || request.headers.get("x-server-fn") !== null;
-  if (isServerFn) {
-    return response; 
-  }
-
   const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) return response;
 
-  const body = await response.clone().text();
-  if (!body.includes('"unhandled":true') || !body.includes('"message":"HTTPError"')) {
-    return response;
+  // Clonamos la respuesta para poder leer el cuerpo de forma segura sin romper el flujo
+  const clonedResponse = response.clone();
+  let body = "";
+  try {
+    body = await clonedResponse.text();
+  } catch (e) {
+    body = "";
   }
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
-  return new Response(renderErrorPage(), {
-    status: 500,
-    headers: { "content-type": "text/html; charset=utf-8" },
-  });
+  // Si h3 se tragó el error, o si la respuesta es HTML y es un serverFn (lo cual está mal), lo corregimos
+  const isH3Swallowed = body.includes('"unhandled":true') || body.includes('"message":"HTTPError"');
+  const isHtmlInServerFn = isServerFn && contentType.includes("text/html");
+
+  if (isH3Swallowed || isHtmlInServerFn) {
+    const capturedError = consumeLastCapturedError();
+    console.error("[Vercel Proxy] Error crítico normalizado:", capturedError ?? body);
+
+    // Si es un botón o acción (serverFn), respondemos estrictamente con un JSON válido
+    if (isServerFn) {
+      return new Response(
+        JSON.stringify({
+          error: "Error interno en la operación del servidor",
+          details: capturedError instanceof Error ? capturedError.message : String(body),
+          success: false
+        }),
+        {
+          status: 500,
+          headers: { "content-type": "application/json; charset=utf-8" },
+        }
+      );
+    }
+
+    // Si era renderizado de página normal (SSR), devolvemos la interfaz HTML de error limpia
+    return new Response(renderErrorPage(), {
+      status: 500,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+
+  return response;
 }
 
 export default {
@@ -53,14 +76,14 @@ export default {
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(request, response);
     } catch (error) {
-      console.error("Error crítico detectado en el servidor:", error);
+      console.error("Error crítico absoluto detectado en fetch:", error);
       
-      // Si falla una función de backend, devolvemos el error en JSON legible
       if (isServerFn) {
         return new Response(
           JSON.stringify({ 
-            error: error instanceof Error ? error.message : "Error interno del servidor",
-            details: String(error)
+            error: error instanceof Error ? error.message : "Error interno crítico del servidor",
+            details: String(error),
+            success: false
           }), 
           {
             status: 500,
