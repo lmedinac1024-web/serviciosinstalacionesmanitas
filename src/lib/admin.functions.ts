@@ -21,7 +21,7 @@ export const adminCreateEmployee = createServerFn({ method: "POST" })
     }
     const username = data.username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (!username) throw new Error("Usuario inválido");
-    if (!data.password || data.password.length < 4) throw new Error("Contraseña muy corta (mín 4)");
+    if (!data.password || data.password.length < 6) throw new Error("Contraseña muy corta (mín 6)");
     const email = `${username}@${DOMAIN}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -57,7 +57,7 @@ export const adminResetPassword = createServerFn({ method: "POST" })
   .inputValidator((d: { userId: string; password: string }) => d)
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    if (!data.password || data.password.length < 4) throw new Error("Contraseña muy corta");
+    if (!data.password || data.password.length < 6) throw new Error("Contraseña muy corta (mín 6)");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.password,
@@ -88,7 +88,7 @@ export const adminResolveResetRequest = createServerFn({ method: "POST" })
     if (req.estado !== "pendiente") throw new Error("Solicitud ya resuelta");
 
     if (data.action === "aprobar") {
-      if (!data.newPassword || data.newPassword.length < 4) throw new Error("Contraseña muy corta (mín 4)");
+      if (!data.newPassword || data.newPassword.length < 6) throw new Error("Contraseña muy corta (mín 6)");
       const uname = req.username.trim().toLowerCase();
       const { data: prof } = await supabaseAdmin
         .from("profiles")
