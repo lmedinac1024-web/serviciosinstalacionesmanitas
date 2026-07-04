@@ -5,21 +5,8 @@ const functionErrorMiddleware = createMiddleware({ type: "function" }).server(as
   try {
     return await next();
   } catch (error) {
-    if (error != null && typeof error === "object" && "statusCode" in error) {
-      throw error;
-    }
     console.error("[Server Function Error]:", error);
-    const errorMessage = error instanceof Error ? error.message : "Error interno en la operación";
-    return new Response(
-      JSON.stringify({ error: errorMessage, details: String(error), success: false }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "X-Server-Error": "true",
-        },
-      }
-    );
+    throw error;
   }
 });
 
