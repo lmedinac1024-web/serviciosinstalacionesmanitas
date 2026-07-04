@@ -4,16 +4,26 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const DOMAIN = "trabajos.local";
 
 async function ensureAdmin(ctx: { supabase: import("@supabase/supabase-js").SupabaseClient; userId: string }) {
-  const { data } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
-  if (!data) throw new Error("Forbidden");
+  const [{ data: isAdmin }, { data: isSuper }] = await Promise.all([
+    ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" }),
+    ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "super_admin" }),
+  ]);
+  if (!isAdmin && !isSuper) throw new Error("Forbidden");
+}
+
+function normalizeRole(r?: string): "empleado" | "admin" | "super_admin" {
+  const v = (r ?? "empleado").toString().trim().toLowerCase();
+  if (v === "admin") return "admin";
+  if (v === "super_admin" || v === "superadmin") return "super_admin";
+  return "empleado";
 }
 
 export const adminCreateEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { username: string; password: string; displayName?: string; role?: "empleado" | "admin" | "super_admin" }) => d)
+  .inputValidator((d: { username: string; password: string; displayName?: string; role?: string }) => d)
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const requestedRole = data.role ?? "empleado";
+    const requestedRole = normalizeRole(data.role);
     if (requestedRole !== "empleado") {
       // Only super_admin can create admins / super_admins
       const { data: isSuper } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" });
