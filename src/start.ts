@@ -2,32 +2,42 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
+// Middleware optimizado para capturar errores de servidor en Vercel
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
     return await next();
   } catch (error) {
+    // Si ya viene con formato de estado específico de TanStack, lo dejamos pasar sin tocarlo
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
     
-    console.error("Error en función de servidor detectado:", error);
+    console.error("[Vercel Server Error]: En función de servidor detectado ->", error);
 
-    // Si el error ocurre durante una mutación de datos interna (serverFn),
-    // devolvemos un JSON con el mensaje en lugar de romper la app con HTML.
+    // Forzamos una respuesta estructurada que TanStack Start procese como JSON limpio
+    const errorMessage = error instanceof Error ? error.message : "Error interno en la operación";
+    const errorDetails = String(error);
+
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Error interno en la operación",
-        details: String(error)
+        error: errorMessage,
+        details: errorDetails,
+        success: false
       }),
       {
         status: 500,
-        headers: { "content-type": "application/json; charset=utf-8" },
+        headers: { 
+          "Content-Type": "application/json; charset=utf-8",
+          "X-Server-Error": "true" // Bandera para debuggear en la consola de red
+        },
       }
     );
   }
 });
 
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  // Aplicamos el errorMiddleware y el Auth de Supabase juntos en ambas capas
+  // para garantizar la captura de errores tanto en las rutas como en los botones (serverFn)
+  functionMiddleware: [errorMiddleware, attachSupabaseAuth],
   requestMiddleware: [errorMiddleware],
 }));
