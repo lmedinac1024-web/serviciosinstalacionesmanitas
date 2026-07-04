@@ -1,16 +1,18 @@
-# 1. Inicializa el contenedor de Git si no lo habías hecho
-git init
-
-# 2. Agrega todos los archivos del proyecto (incluyendo el vercel.json en la raíz)
-git add .
-
-# 3. Guarda los cambios localmente
-git commit -m "Fix: agregar vercel.json para redirección de rutas"
-
-# 4. Vincula tu carpeta local con el nuevo repositorio de GitHub 
-# (Reemplaza la URL con la que te dé GitHub en tu pantalla)
-git remote add origin https://github.com/TU_USUARIO/TU_REPOSITORIO.git
-
-# 5. Cambia a la rama principal y sube el código
-git branch -M main
-git push -u origin main
+{
+  "version": 2,
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/_serverFn/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/((?!assets|favicon.ico|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
