@@ -30,10 +30,12 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
-    
-    // Credenciales fijadas directamente para evitar bloqueos en el middleware de Vercel
-    const SUPABASE_URL = "https://hvlunkhvuwiwzrdqhhmp.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3N6hEpjvKtnX4A0_Kq9ZEg_KRRKV0vI";
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+      throw new Error('Faltan SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY en el entorno del servidor');
+    }
     
     const request = getRequest();
 
