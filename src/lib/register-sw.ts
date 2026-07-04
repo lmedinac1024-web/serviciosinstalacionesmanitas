@@ -33,9 +33,5 @@ export function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", () => {
-    import("virtual:pwa-register")
-      .then(({ registerSW }) => registerSW({ immediate: true }))
-      .catch(() => {});
-  });
+  // PWA plugin not configured; nothing to register.
 }
