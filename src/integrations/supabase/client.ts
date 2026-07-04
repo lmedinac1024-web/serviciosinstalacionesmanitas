@@ -27,7 +27,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseClient() {
-  // Credenciales reales de tu proyecto Supabase fijadas directamente
+  // Credenciales reales fijadas directamente para evitar fallos de Vercel
   const SUPABASE_URL = "https://hvlunkhvuwiwzrdqhhmp.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3N6hEpjvKtnX4A0_Kq9ZEg_KRRKV0vI";
 
