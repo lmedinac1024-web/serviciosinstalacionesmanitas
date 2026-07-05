@@ -362,13 +362,17 @@ function NuevoServicio() {
       };
 
       const { data, error } = await supabase.from("servicios").insert(insertPayload).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error("[NuevoServicio] insert error", error, insertPayload);
+        throw new Error(error.message || error.details || error.hint || "Error desconocido");
+      }
       qc.invalidateQueries({ queryKey: ["jobs"] });
       clearDraft();
       toast.success("Servicio creado");
       void sendTg({ data: { jobId: data.id, fase: "creado" } }).catch(() => { /* noop */ });
       navigate({ to: "/trabajo/$id", params: { id: data.id } });
     } catch (e) {
+      console.error("[NuevoServicio] submit failed", e);
       toast.error(e instanceof Error ? e.message : "Error al crear");
     } finally {
       setSaving(false);
