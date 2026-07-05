@@ -32,9 +32,10 @@ export const CANCEL_REASONS: { status: JobStatus; label: string }[] = [
 export const TIPO_SERVICIO_OPCIONES = [
   "Manitas",
   "Fontanería",
-  "Instalación de Ventilador",
-  "Peritaje",
-  "Apoyo a otros",
+  "Instalación de ventilador",
+  "Electricidad",
+  "Mixto / Varios",
+  "Otro",
 ] as const;
 
 /** Un servicio anulado por admin (soft delete). */

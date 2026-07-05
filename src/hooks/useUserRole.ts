@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type Role = "super_admin" | "admin" | "empleado";
+export type Role = "super_admin" | "admin" | "supervisor" | "empleado";
 
 type UserRoleData = {
   userId: string;
   role: Role;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isSupervisor: boolean;
+  /** Puede crear/importar/anular servicios (admin, super_admin o supervisor). */
+  canManage: boolean;
   username: string;
   displayName: string;
 };
@@ -46,7 +49,6 @@ export function useUserRole() {
 
       const cached = readCachedRole(u.id);
       const [rolesRes, profileRes] = await Promise.all([
-        // super_admin no está tipado aún en Database types → castear a string.
         supabase.from("user_roles").select("role").eq("user_id", u.id),
         supabase.from("profiles").select("username, display_name").eq("user_id", u.id).maybeSingle(),
       ]);
@@ -57,12 +59,22 @@ export function useUserRole() {
       const roles = (rolesRes.data ?? []).map((r) => r.role as string);
       const isSuperAdmin = roles.includes("super_admin");
       const isAdmin = isSuperAdmin || roles.includes("admin");
-      const role: Role = isSuperAdmin ? "super_admin" : isAdmin ? "admin" : "empleado";
-      const result = {
+      const isSupervisor = roles.includes("supervisor");
+      const canManage = isAdmin || isSupervisor;
+      const role: Role = isSuperAdmin
+        ? "super_admin"
+        : isAdmin
+          ? "admin"
+          : isSupervisor
+            ? "supervisor"
+            : "empleado";
+      const result: UserRoleData = {
         userId: u.id,
         role,
         isAdmin,
         isSuperAdmin,
+        isSupervisor,
+        canManage,
         username: profileRes.data?.username ?? u.email?.split("@")[0] ?? "",
         displayName: profileRes.data?.display_name ?? profileRes.data?.username ?? u.email?.split("@")[0] ?? "",
       };
