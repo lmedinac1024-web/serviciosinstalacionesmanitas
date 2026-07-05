@@ -7,16 +7,13 @@ export const geocodeAddress = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { direccion: string; codigo_postal?: string | null; ciudad?: string | null }) => d)
   .handler(async ({ data, context }) => {
-    // Solo admins/super_admins pueden geocodificar (crea servicios) — evita abuso de la API de pago.
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    const { data: isSuper } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (!isAdmin && !isSuper) {
+    // Admin / super_admin / supervisor pueden geocodificar (crea servicios).
+    const [{ data: isAdmin }, { data: isSuper }, { data: isSup }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+    ]);
+    if (!isAdmin && !isSuper && !isSup) {
       return { ok: false as const, reason: "forbidden" as const };
     }
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;

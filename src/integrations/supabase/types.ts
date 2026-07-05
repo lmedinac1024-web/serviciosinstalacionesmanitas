@@ -147,7 +147,9 @@ export type Database = {
           cliente_id: string | null
           codigo_postal: string | null
           creado_en: string
+          creado_por: string | null
           direccion: string
+          direccion_completa: string | null
           direccion_lat: number | null
           direccion_lng: number | null
           direccion_validada_llegada: boolean
@@ -168,21 +170,28 @@ export type Database = {
           gps_llegada_lat: number | null
           gps_llegada_lng: number | null
           hora_fin: string | null
+          hora_inicio: string | null
           hora_llegada: string | null
           hora_programada: string | null
           id: string
+          imagen_original_url: string | null
           importe: number
           motivo_anulacion: string | null
           motivo_cancelacion: string | null
+          numero: string | null
+          numero_operacion: string | null
+          numero_servicio: string | null
           observaciones: string | null
           piso: string | null
           precio_llegada: number
           puerta: string | null
           referencia: string | null
           telefono_cliente: string | null
+          telefonos_extra: string | null
           telegram_cancel_msg_id: string | null
           telegram_final_msg_id: string | null
           telegram_inicio_msg_id: string | null
+          texto_ocr_original: string | null
           tipo_servicio: string | null
           user_id: string
         }
@@ -195,7 +204,9 @@ export type Database = {
           cliente_id?: string | null
           codigo_postal?: string | null
           creado_en?: string
+          creado_por?: string | null
           direccion: string
+          direccion_completa?: string | null
           direccion_lat?: number | null
           direccion_lng?: number | null
           direccion_validada_llegada?: boolean
@@ -216,21 +227,28 @@ export type Database = {
           gps_llegada_lat?: number | null
           gps_llegada_lng?: number | null
           hora_fin?: string | null
+          hora_inicio?: string | null
           hora_llegada?: string | null
           hora_programada?: string | null
           id?: string
+          imagen_original_url?: string | null
           importe?: number
           motivo_anulacion?: string | null
           motivo_cancelacion?: string | null
+          numero?: string | null
+          numero_operacion?: string | null
+          numero_servicio?: string | null
           observaciones?: string | null
           piso?: string | null
           precio_llegada?: number
           puerta?: string | null
           referencia?: string | null
           telefono_cliente?: string | null
+          telefonos_extra?: string | null
           telegram_cancel_msg_id?: string | null
           telegram_final_msg_id?: string | null
           telegram_inicio_msg_id?: string | null
+          texto_ocr_original?: string | null
           tipo_servicio?: string | null
           user_id: string
         }
@@ -243,7 +261,9 @@ export type Database = {
           cliente_id?: string | null
           codigo_postal?: string | null
           creado_en?: string
+          creado_por?: string | null
           direccion?: string
+          direccion_completa?: string | null
           direccion_lat?: number | null
           direccion_lng?: number | null
           direccion_validada_llegada?: boolean
@@ -264,21 +284,28 @@ export type Database = {
           gps_llegada_lat?: number | null
           gps_llegada_lng?: number | null
           hora_fin?: string | null
+          hora_inicio?: string | null
           hora_llegada?: string | null
           hora_programada?: string | null
           id?: string
+          imagen_original_url?: string | null
           importe?: number
           motivo_anulacion?: string | null
           motivo_cancelacion?: string | null
+          numero?: string | null
+          numero_operacion?: string | null
+          numero_servicio?: string | null
           observaciones?: string | null
           piso?: string | null
           precio_llegada?: number
           puerta?: string | null
           referencia?: string | null
           telefono_cliente?: string | null
+          telefonos_extra?: string | null
           telegram_cancel_msg_id?: string | null
           telegram_final_msg_id?: string | null
           telegram_inicio_msg_id?: string | null
+          texto_ocr_original?: string | null
           tipo_servicio?: string | null
           user_id?: string
         }
@@ -423,7 +450,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "empleado" | "super_admin"
+      app_role: "admin" | "empleado" | "super_admin" | "supervisor"
       job_status:
         | "pendiente"
         | "en_proceso"
@@ -559,7 +586,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "empleado", "super_admin"],
+      app_role: ["admin", "empleado", "super_admin", "supervisor"],
       job_status: [
         "pendiente",
         "en_proceso",

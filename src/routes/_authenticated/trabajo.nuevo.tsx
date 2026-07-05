@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -15,12 +15,12 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useServerFn } from "@tanstack/react-start";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
+import { parseOrdenImagen } from "@/lib/ocr-orden.functions";
 import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
-import { MapPin, AlertCircle, Navigation } from "lucide-react";
+import { MapPin, AlertCircle, Navigation, Camera, Upload, X, ScanText, Loader2 } from "lucide-react";
 import { haversineMeters } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
-
 
 type Empleado = { user_id: string; username: string; display_name: string | null };
 
@@ -30,29 +30,40 @@ function createInitialForm() {
   return {
     fecha: new Date().toISOString().slice(0, 10),
     hora: "",
+    hora_inicio: "",
+    hora_fin: "",
     empleado_id: "",
     tipo_servicio: "",
     cliente: "",
     telefono: "",
+    telefonos_extra: "",
     referencia: "",
     direccion: "",
+    numero: "",
     piso: "",
     puerta: "",
     codigo_postal: "",
     ciudad: "Barcelona",
+    direccion_completa: "",
     observaciones: "",
     importe: "",
     precio_llegada: "",
+    numero_operacion: "",
+    numero_servicio: "",
+    imagen_original_url: "",
+    texto_ocr_original: "",
   };
 }
 
-function restoreDraft() {
+type FormState = ReturnType<typeof createInitialForm>;
+
+function restoreDraft(): FormState {
   const initial = createInitialForm();
   if (typeof window === "undefined") return initial;
   try {
     const raw = window.localStorage.getItem(DRAFT_KEY);
     if (!raw) return initial;
-    const saved = JSON.parse(raw) as Partial<ReturnType<typeof createInitialForm>>;
+    const saved = JSON.parse(raw) as Partial<FormState>;
     return { ...initial, ...saved, fecha: saved.fecha || initial.fecha };
   } catch {
     return initial;
@@ -64,15 +75,43 @@ function clearDraft() {
   try { window.localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
 }
 
+function buildDireccionCompleta(f: Pick<FormState, "direccion" | "numero" | "piso" | "puerta" | "codigo_postal" | "ciudad">): string {
+  const linea1 = [f.direccion, f.numero, f.piso, f.puerta].filter((s) => (s ?? "").toString().trim()).join(" ").trim();
+  const linea2 = [f.codigo_postal, f.ciudad].filter((s) => (s ?? "").toString().trim()).join(" ").trim();
+  const partes = [linea1, linea2, "España"].filter(Boolean);
+  return partes.join(", ");
+}
+
+function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const result = reader.result as string;
+      const [meta, base64] = result.split(",");
+      const mime = /data:([^;]+);/.exec(meta)?.[1] ?? file.type ?? "image/jpeg";
+      resolve({ base64, mime });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function NuevoServicio() {
-  const { data: me, isLoading, isError } = useUserRole();
+  const { data: me, isLoading } = useUserRole();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const geocode = useServerFn(geocodeAddress);
+  const runOcr = useServerFn(parseOrdenImagen);
   const [geo, setGeo] = useState<{ status: "idle" | "ok" | "fail"; msg?: string; lat?: number; lng?: number }>({ status: "idle" });
 
-  const [form, setForm] = useState(restoreDraft);
+  // Importar orden desde imagen
+  const [imagen, setImagen] = useState<{ file: File; url: string } | null>(null);
+  const [leyendo, setLeyendo] = useState(false);
+  const camaraRef = useRef<HTMLInputElement | null>(null);
+  const archivoRef = useRef<HTMLInputElement | null>(null);
+
+  const [form, setForm] = useState<FormState>(restoreDraft);
 
   const sendTg = useServerFn(sendJobUpdateToTelegram);
 
@@ -87,7 +126,6 @@ function NuevoServicio() {
     },
   });
 
-  // Última ubicación conocida de cada empleado (a partir de sus servicios con coords).
   const { data: ultimasUbicaciones = {} } = useQuery({
     queryKey: ["empleados-ultima-ubicacion"],
     queryFn: async () => {
@@ -130,9 +168,13 @@ function NuevoServicio() {
     try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* noop */ }
   }, [form]);
 
-  function set<K extends keyof typeof form>(k: K, v: string) {
+  useEffect(() => {
+    return () => { if (imagen) URL.revokeObjectURL(imagen.url); };
+  }, [imagen]);
+
+  function set<K extends keyof FormState>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
-    if (k === "direccion" || k === "codigo_postal" || k === "ciudad") setGeo({ status: "idle" });
+    if (k === "direccion" || k === "codigo_postal" || k === "ciudad" || k === "numero") setGeo({ status: "idle" });
   }
 
   if (isLoading) return <AppShell title="Nuevo servicio"><div>…</div></AppShell>;
@@ -145,17 +187,104 @@ function NuevoServicio() {
       </AppShell>
     );
   }
-  if (!me.isAdmin) return <Navigate to="/" />;
+  if (!me.canManage) return <Navigate to="/" />;
+
+  function handleFile(file: File | null | undefined) {
+    if (!file) return;
+    if (imagen) URL.revokeObjectURL(imagen.url);
+    setImagen({ file, url: URL.createObjectURL(file) });
+  }
+
+  function cancelarImagen() {
+    if (imagen) URL.revokeObjectURL(imagen.url);
+    setImagen(null);
+    if (camaraRef.current) camaraRef.current.value = "";
+    if (archivoRef.current) archivoRef.current.value = "";
+  }
+
+  async function leerOrden() {
+    if (!imagen) return;
+    setLeyendo(true);
+    try {
+      // 1) Subir a Storage (bucket privado)
+      let imagenPath = "";
+      try {
+        const ext = (imagen.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const path = `${me!.userId}/${crypto.randomUUID()}.${ext || "jpg"}`;
+        const { error: upErr } = await supabase.storage
+          .from("ordenes-imagenes")
+          .upload(path, imagen.file, { contentType: imagen.file.type, upsert: false });
+        if (!upErr) imagenPath = path;
+      } catch { /* si falla la subida, seguimos con el OCR igual */ }
+
+      // 2) Leer con IA
+      const { base64, mime } = await fileToBase64(imagen.file);
+      const res = await runOcr({ data: { imagenBase64: base64, mime } });
+      if (!res.ok) {
+        toast.error(`No se pudo leer la orden (${res.reason})`);
+        return;
+      }
+      const c = res.campos;
+      setForm((prev) => {
+        const next: FormState = {
+          ...prev,
+          fecha: c.fecha_servicio ?? prev.fecha,
+          hora: c.hora_servicio ?? c.hora_inicio ?? prev.hora,
+          hora_inicio: c.hora_inicio ?? prev.hora_inicio,
+          hora_fin: c.hora_fin ?? prev.hora_fin,
+          empleado_id: c.trabajador_id ?? prev.empleado_id,
+          tipo_servicio: c.tipo_servicio ?? prev.tipo_servicio,
+          cliente: c.nombre_cliente ?? prev.cliente,
+          telefono: c.telefono ?? prev.telefono,
+          telefonos_extra: (c.telefonos_extra ?? []).join(", ") || prev.telefonos_extra,
+          direccion: c.direccion ?? prev.direccion,
+          numero: c.numero ?? prev.numero,
+          piso: c.piso ?? prev.piso,
+          puerta: c.puerta ?? prev.puerta,
+          codigo_postal: c.codigo_postal ?? prev.codigo_postal,
+          ciudad: c.ciudad ?? prev.ciudad,
+          direccion_completa: c.direccion_completa ?? prev.direccion_completa,
+          observaciones: c.observaciones ?? prev.observaciones,
+          importe: c.precio_servicio != null ? String(c.precio_servicio) : prev.importe,
+          precio_llegada: c.precio_llegada != null ? String(c.precio_llegada) : prev.precio_llegada,
+          numero_operacion: c.numero_operacion ?? prev.numero_operacion,
+          numero_servicio: c.numero_servicio ?? prev.numero_servicio,
+          imagen_original_url: imagenPath || prev.imagen_original_url,
+          texto_ocr_original: res.texto_ocr || prev.texto_ocr_original,
+        };
+        return next;
+      });
+      setGeo({ status: "idle" });
+
+      if (res.aviso_cp) toast.warning("Código postal corregido automáticamente, revisar");
+      if (res.aviso_cliente) toast.warning("Cliente sin nombre, revisar antes de guardar");
+      if (res.aviso_trabajador) toast.warning("No se encontró trabajador coincidente, selecciona uno manualmente");
+      toast.success("Orden leída — revisa los datos antes de crear el servicio");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error leyendo la orden");
+    } finally {
+      setLeyendo(false);
+    }
+  }
 
   async function tryGeocode() {
     if (!form.direccion.trim()) return null;
     try {
-      const res = await geocode({ data: { direccion: form.direccion, codigo_postal: form.codigo_postal, ciudad: form.ciudad } });
+      const direccionCompleta = form.direccion_completa || buildDireccionCompleta(form);
+      const res = await geocode({
+        data: {
+          direccion: direccionCompleta || [form.direccion, form.numero].filter(Boolean).join(" "),
+          codigo_postal: form.codigo_postal,
+          ciudad: form.ciudad,
+        },
+      });
       if (res.ok) {
         setGeo({ status: "ok", lat: res.lat, lng: res.lng, msg: res.formatted });
+        toast.success("Dirección verificada correctamente");
         return { lat: res.lat, lng: res.lng };
       }
       setGeo({ status: "fail", msg: "reason" in res ? res.reason : "error" });
+      toast.warning("Ubicación no disponible");
       return null;
     } catch (e) {
       setGeo({ status: "fail", msg: e instanceof Error ? e.message : "error" });
@@ -165,43 +294,61 @@ function NuevoServicio() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.empleado_id) return toast.error("Falta empleado");
+    if (!form.empleado_id) return toast.error("Falta trabajador asignado");
+    if (!form.tipo_servicio) return toast.error("Falta tipo de servicio");
     if (!form.cliente.trim()) return toast.error("Falta nombre del cliente");
+    if (!form.telefono.trim()) return toast.error("Falta teléfono");
     if (!form.direccion.trim()) return toast.error("Falta dirección");
+    if (!form.numero.trim()) return toast.error("Falta número de calle");
+    if (!form.codigo_postal.trim()) return toast.error("Falta código postal");
+    if (!form.ciudad.trim()) return toast.error("Falta ciudad");
+    if (!form.hora && !form.hora_inicio) return toast.error("Falta hora");
     if (!form.importe) return toast.error("Falta precio del servicio");
 
     setSaving(true);
     try {
-      // Geocodificar (si no falla, guardamos coords para validar 100m luego)
       const coords = await tryGeocode();
+      const direccionCompleta = form.direccion_completa || buildDireccionCompleta(form);
+      const horaProgramada = form.hora || form.hora_inicio || null;
 
-      const { data, error } = await supabase.from('servicios').insert({
+      const insertPayload = {
         user_id: form.empleado_id,
         empleado_id: form.empleado_id,
         assigned_by: me?.userId ?? null,
+        creado_por: me?.userId ?? null,
         cliente_id: null,
         tipo_servicio: form.tipo_servicio || null,
         cliente: form.cliente.trim(),
         telefono_cliente: form.telefono.trim() || null,
+        telefonos_extra: form.telefonos_extra.trim() || null,
         referencia: form.referencia.trim() || null,
         direccion: form.direccion.trim(),
+        numero: form.numero.trim() || null,
         piso: form.piso.trim() || null,
         puerta: form.puerta.trim() || null,
         codigo_postal: form.codigo_postal.trim() || null,
         ciudad: form.ciudad.trim() || null,
+        direccion_completa: direccionCompleta || null,
         fecha: form.fecha,
-        hora_programada: form.hora || null,
+        hora_programada: horaProgramada,
+        hora_inicio: form.hora_inicio || null,
+        hora_fin: form.hora_fin || null,
         importe: Number(form.importe) || 0,
         precio_llegada: Number(form.precio_llegada) || 0,
         observaciones: form.observaciones.trim() || null,
+        numero_operacion: form.numero_operacion.trim() || null,
+        numero_servicio: form.numero_servicio.trim() || null,
+        imagen_original_url: form.imagen_original_url || null,
+        texto_ocr_original: form.texto_ocr_original || null,
         direccion_lat: coords?.lat ?? null,
         direccion_lng: coords?.lng ?? null,
-      }).select().single();
+      };
+
+      const { data, error } = await supabase.from("servicios").insert(insertPayload).select().single();
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["jobs"] });
       clearDraft();
       toast.success("Servicio creado");
-      // Aviso Telegram (creación) — fire and forget
       void sendTg({ data: { jobId: data.id, fase: "creado" } }).catch(() => { /* noop */ });
       navigate({ to: "/trabajo/$id", params: { id: data.id } });
     } catch (e) {
@@ -214,15 +361,76 @@ function NuevoServicio() {
   return (
     <AppShell title="Nuevo servicio">
       <form onSubmit={submit} className="mx-auto max-w-2xl space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Fecha *"><Input type="date" required value={form.fecha} onChange={(e) => set("fecha", e.target.value)} /></Field>
-          <Field label="Hora"><Input type="time" value={form.hora} onChange={(e) => set("hora", e.target.value)} /></Field>
+        {/* Bloque: Importar orden desde imagen */}
+        <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <ScanText className="h-4 w-4 text-primary" />
+            <div className="text-sm font-semibold">Importar orden desde imagen</div>
+          </div>
+          {!imagen ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Sube una foto o captura de la orden de trabajo. La app leerá los datos y rellenará el formulario. Podrás revisar y corregir antes de crear el servicio.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="secondary" onClick={() => camaraRef.current?.click()}>
+                  <Camera className="mr-1.5 h-4 w-4" /> Tomar foto
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => archivoRef.current?.click()}>
+                  <Upload className="mr-1.5 h-4 w-4" /> Cargar imagen
+                </Button>
+                <input
+                  ref={camaraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                />
+                <input
+                  ref={archivoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <div className="overflow-hidden rounded-md border bg-background">
+                <img src={imagen.url} alt="Orden" className="max-h-64 w-full object-contain" />
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" onClick={leerOrden} disabled={leyendo}>
+                  {leyendo ? (<><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Leyendo…</>) : (<><ScanText className="mr-1.5 h-4 w-4" /> Leer orden</>)}
+                </Button>
+                <Button type="button" variant="outline" onClick={cancelarImagen} disabled={leyendo}>
+                  <X className="mr-1.5 h-4 w-4" /> Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
-        <Field label="Empleado *">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Fecha *"><Input type="date" required value={form.fecha} onChange={(e) => set("fecha", e.target.value)} /></Field>
+          <Field label="Hora *">
+            <Input type="time" value={form.hora} onChange={(e) => set("hora", e.target.value)} />
+          </Field>
+        </div>
+
+        {(form.hora_inicio || form.hora_fin) && (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Hora inicio"><Input type="time" value={form.hora_inicio} onChange={(e) => set("hora_inicio", e.target.value)} /></Field>
+            <Field label="Hora fin"><Input type="time" value={form.hora_fin} onChange={(e) => set("hora_fin", e.target.value)} /></Field>
+          </div>
+        )}
+
+        <Field label="Asignar trabajador *">
           {empleados.length === 0 ? (
             <div className="rounded border bg-muted/40 p-3 text-sm text-muted-foreground">
-              No hay empleados. Créalos en "Empleados".
+              No hay trabajadores. Créalos en "Empleados".
             </div>
           ) : (
             <>
@@ -257,7 +465,7 @@ function NuevoServicio() {
           )}
         </Field>
 
-        <Field label="Tipo de servicio">
+        <Field label="Tipo de servicio *">
           <Select value={form.tipo_servicio} onValueChange={(v) => set("tipo_servicio", v)}>
             <SelectTrigger><SelectValue placeholder="Manitas / Fontanería / Ventilador…" /></SelectTrigger>
             <SelectContent>
@@ -269,22 +477,28 @@ function NuevoServicio() {
         <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cliente</div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nombre *"><Input required value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Juan Pérez" /></Field>
-            <Field label="Teléfono"><Input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+34 600 000 000" /></Field>
+            <Field label="Nombre cliente *"><Input required value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Juan Pérez" /></Field>
+            <Field label="Teléfono *"><Input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+34 600 000 000" /></Field>
           </div>
+          <Field label="Teléfonos extra">
+            <Input value={form.telefonos_extra} onChange={(e) => set("telefonos_extra", e.target.value)} placeholder="Separados por coma" />
+          </Field>
           <div className="rounded border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             La referencia se genera automáticamente al crear el servicio (formato <b>SVH-YYYYMMDD-XXXXXX</b>).
           </div>
-          <Field label="Dirección *"><Input required value={form.direccion} onChange={(e) => set("direccion", e.target.value)} placeholder="Calle Mayor 12" /></Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Piso"><Input value={form.piso} onChange={(e) => setForm((f) => ({ ...f, piso: e.target.value }))} placeholder="3º" /></Field>
-            <Field label="Puerta"><Input value={form.puerta} onChange={(e) => setForm((f) => ({ ...f, puerta: e.target.value }))} placeholder="B" /></Field>
+          <div className="grid grid-cols-[1fr_120px] gap-3">
+            <Field label="Dirección *"><Input required value={form.direccion} onChange={(e) => set("direccion", e.target.value)} placeholder="Calle Mayor" /></Field>
+            <Field label="Número *"><Input required value={form.numero} onChange={(e) => set("numero", e.target.value)} placeholder="12" /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Código postal"><Input value={form.codigo_postal} onChange={(e) => set("codigo_postal", e.target.value)} placeholder="28001" /></Field>
-            <Field label="Ciudad"><Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Barcelona" /></Field>
+            <Field label="Piso"><Input value={form.piso} onChange={(e) => set("piso", e.target.value)} placeholder="3" /></Field>
+            <Field label="Puerta"><Input value={form.puerta} onChange={(e) => set("puerta", e.target.value)} placeholder="B" /></Field>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Código postal *"><Input required value={form.codigo_postal} onChange={(e) => set("codigo_postal", e.target.value)} placeholder="08001" /></Field>
+            <Field label="Ciudad *"><Input required value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Barcelona" /></Field>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
             <Button type="button" variant="outline" size="sm" onClick={tryGeocode} disabled={!form.direccion}>
               <MapPin className="mr-1.5 h-3.5 w-3.5" /> Verificar dirección
             </Button>
@@ -293,15 +507,22 @@ function NuevoServicio() {
             )}
             {geo.status === "fail" && (
               <span className="text-xs text-warning inline-flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" /> Sin GPS ({geo.msg}) — se creará sin validación 100 m
+                <AlertCircle className="h-3 w-3" /> Ubicación no disponible — se creará sin validación 100 m
               </span>
             )}
           </div>
         </div>
 
-        <Field label="Observaciones (qué pide el cliente)">
-          <Textarea rows={4} value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} placeholder="Ej: fuga bajo lavabo cocina, cambiar sifón..." />
+        <Field label="Observaciones / reparación">
+          <Textarea rows={4} value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} placeholder="Descripción del trabajo a realizar..." />
         </Field>
+
+        {(form.numero_operacion || form.numero_servicio) && (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nº operación"><Input value={form.numero_operacion} onChange={(e) => set("numero_operacion", e.target.value)} /></Field>
+            <Field label="Nº servicio"><Input value={form.numero_servicio} onChange={(e) => set("numero_servicio", e.target.value)} /></Field>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Precio del servicio (€) *">
@@ -312,7 +533,7 @@ function NuevoServicio() {
           </Field>
         </div>
         <div className="text-xs text-muted-foreground -mt-2">
-          El empleado cobra el <b>precio del servicio</b> si lo realiza, o el <b>precio por llegada</b> si valida GPS a 100 m pero se cancela.
+          El trabajador cobra el <b>precio del servicio</b> si lo realiza, o el <b>precio por llegada</b> si valida GPS a 100 m pero se cancela.
         </div>
 
         <div className="flex gap-2 pt-2">
