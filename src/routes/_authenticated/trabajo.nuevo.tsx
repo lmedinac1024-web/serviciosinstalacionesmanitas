@@ -524,7 +524,12 @@ function NuevoServicio() {
             )}
             {geo.status === "fail" && (
               <span className="text-xs text-warning inline-flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" /> Ubicación no disponible — se creará sin validación 100 m
+                <AlertCircle className="h-3 w-3" />
+                {geo.msg === "not_connected"
+                  ? "Google Maps no está conectado — se creará sin validación GPS"
+                  : geo.msg === "not_found"
+                    ? "No encontrada en Google Maps — revisa la dirección"
+                    : `Ubicación no disponible (${geo.msg ?? "error"}) — se creará sin validación 100 m`}
               </span>
             )}
           </div>
