@@ -349,7 +349,7 @@ function NuevoServicio() {
         fecha: form.fecha,
         hora_programada: horaProgramada,
         hora_inicio: form.hora_inicio || null,
-        hora_fin: form.hora_fin || null,
+        hora_fin: form.hora_fin ? `${form.fecha}T${form.hora_fin.length === 5 ? form.hora_fin + ":00" : form.hora_fin}` : null,
         importe: Number(form.importe) || 0,
         precio_llegada: Number(form.precio_llegada) || 0,
         observaciones: form.observaciones.trim() || null,
