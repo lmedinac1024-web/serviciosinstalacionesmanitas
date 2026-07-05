@@ -206,19 +206,36 @@ function NuevoServicio() {
     if (!imagen) return;
     setLeyendo(true);
     try {
-      // 1) Subir a Storage (bucket privado)
+      // 1) Leer el fichero a base64 PRIMERO (en iOS/Safari el File de la cámara
+      //    puede perder permisos tras el primer await, dando "file could not be read").
+      let base64 = "";
+      let mime = imagen.file.type || "image/jpeg";
+      try {
+        const r = await fileToBase64(imagen.file);
+        base64 = r.base64;
+        mime = r.mime;
+      } catch (err) {
+        console.error("[leerOrden] FileReader falló", err);
+        toast.error("No se pudo leer la imagen. Vuelve a seleccionarla o hazla de nuevo.");
+        return;
+      }
+
+      // 2) Subir a Storage a partir del base64 (no depende ya del File original)
       let imagenPath = "";
       try {
-        const ext = (imagen.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const path = `${me!.userId}/${crypto.randomUUID()}.${ext || "jpg"}`;
+        const bin = atob(base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        const ext = (mime.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
+        const path = `${me!.userId}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("ordenes-imagenes")
-          .upload(path, imagen.file, { contentType: imagen.file.type, upsert: false });
+          .upload(path, blob, { contentType: mime, upsert: false });
         if (!upErr) imagenPath = path;
       } catch { /* si falla la subida, seguimos con el OCR igual */ }
 
-      // 2) Leer con IA
-      const { base64, mime } = await fileToBase64(imagen.file);
+      // 3) Leer con IA
       const res = await runOcr({ data: { imagenBase64: base64, mime } });
       if (!res.ok) {
         toast.error(`No se pudo leer la orden (${res.reason})`);
