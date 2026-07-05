@@ -47,9 +47,8 @@ async function normalizeCatastrophicSsrResponse(request: Request, response: Resp
     if (isServerFn) {
       return new Response(
         JSON.stringify({
-          error: "Error interno en la operación del servidor",
-          details: capturedError instanceof Error ? capturedError.message : String(body),
-          success: false
+          error: "Internal server error",
+          success: false,
         }),
         {
           status: 500,
@@ -57,6 +56,7 @@ async function normalizeCatastrophicSsrResponse(request: Request, response: Resp
         }
       );
     }
+
 
     // Si era renderizado de página normal (SSR), devolvemos la interfaz HTML de error limpia
     return new Response(renderErrorPage(), {
