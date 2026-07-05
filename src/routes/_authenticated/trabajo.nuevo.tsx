@@ -533,12 +533,6 @@ function NuevoServicio() {
           <Textarea rows={4} value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} placeholder="Descripción del trabajo a realizar..." />
         </Field>
 
-        {(form.numero_operacion || form.numero_servicio) && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Nº operación"><Input value={form.numero_operacion} onChange={(e) => set("numero_operacion", e.target.value)} /></Field>
-            <Field label="Nº servicio"><Input value={form.numero_servicio} onChange={(e) => set("numero_servicio", e.target.value)} /></Field>
-          </div>
-        )}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Precio del servicio (€) *">
