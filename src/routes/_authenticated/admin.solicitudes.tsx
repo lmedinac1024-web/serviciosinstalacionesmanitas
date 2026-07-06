@@ -152,9 +152,9 @@ function ApproveDialog({ req, onOpenChange, onApprove }: {
         <form onSubmit={(e) => { e.preventDefault(); onApprove(pw); setPw(""); }} className="space-y-3">
           <div>
             <Label>Contraseña</Label>
-            <Input required minLength={4} placeholder="1984" value={pw} onChange={(e) => setPw(e.target.value)} />
+            <Input required minLength={6} placeholder="billy1998" value={pw} onChange={(e) => setPw(e.target.value)} />
             <p className="mt-1 text-xs text-muted-foreground">
-              Comunícasela al empleado. Quedará visible en la lista de Empleados.
+              Mínimo 6 caracteres. Comunícasela al empleado. Quedará visible en la lista de Empleados.
             </p>
           </div>
           <DialogFooter>

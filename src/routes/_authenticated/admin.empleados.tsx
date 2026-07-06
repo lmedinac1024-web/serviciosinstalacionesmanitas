@@ -222,7 +222,11 @@ function CreateDialog({ open, onOpenChange, onCreate, canCreateAdmin }: {
         <form onSubmit={(e) => { e.preventDefault(); onCreate(f); }} className="space-y-3">
           <div><Label>Usuario *</Label><Input required placeholder="user1" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></div>
           <div><Label>Nombre visible</Label><Input placeholder="Juan Pérez" value={f.displayName} onChange={(e) => setF({ ...f, displayName: e.target.value })} /></div>
-          <div><Label>Contraseña *</Label><Input required minLength={4} placeholder="1984" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></div>
+          <div>
+            <Label>Contraseña *</Label>
+            <Input required minLength={6} placeholder="billy1998" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+            <p className="mt-1 text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+          </div>
           <div>
             <Label>Rol *</Label>
             <div className="mt-1.5 grid grid-cols-2 gap-2">
@@ -248,7 +252,11 @@ function PasswordDialog({ profile, onOpenChange, onSave }: { profile: Profile | 
       <DialogContent>
         <DialogHeader><DialogTitle>Cambiar contraseña de {profile?.username}</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); onSave(pw); setPw(""); }} className="space-y-3">
-          <div><Label>Nueva contraseña</Label><Input required minLength={4} value={pw} onChange={(e) => setPw(e.target.value)} /></div>
+          <div>
+            <Label>Nueva contraseña</Label>
+            <Input required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} />
+            <p className="mt-1 text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit">Guardar</Button>
