@@ -82,18 +82,19 @@ function buildDireccionCompleta(f: Pick<FormState, "direccion" | "numero" | "pis
   return partes.join(", ");
 }
 
-function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const [meta, base64] = result.split(",");
-      const mime = /data:([^;]+);/.exec(meta)?.[1] ?? file.type ?? "image/jpeg";
-      resolve({ base64, mime });
-    };
-    reader.readAsDataURL(file);
-  });
+async function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
+  const mime = file.type || "image/jpeg";
+  // arrayBuffer() es más fiable en Android/Chrome que FileReader cuando el
+  // fichero viene de la cámara vía content:// y ha pasado un rato.
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  // Convertir a base64 por trozos para evitar "Maximum call stack" con fotos grandes.
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+  }
+  return { base64: btoa(binary), mime };
 }
 
 function NuevoServicio() {
@@ -215,8 +216,9 @@ function NuevoServicio() {
         base64 = r.base64;
         mime = r.mime;
       } catch (err) {
-        console.error("[leerOrden] FileReader falló", err);
-        toast.error("No se pudo leer la imagen. Vuelve a seleccionarla o hazla de nuevo.");
+        console.error("[leerOrden] no se pudo leer el fichero", err);
+        const msg = err instanceof Error ? err.message : "";
+        toast.error(`No se pudo leer la imagen${msg ? `: ${msg}` : ""}. Vuelve a seleccionarla o hazla de nuevo.`);
         return;
       }
 
