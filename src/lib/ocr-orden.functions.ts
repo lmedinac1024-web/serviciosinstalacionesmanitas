@@ -312,7 +312,10 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
     let cp = cpValido(cpBruto);
     let aviso_cp = false;
     if (cpBruto && /^\d{4}$/.test(cpBruto)) {
-      cp = "0" + cp;
+      aviso_cp = true;
+    }
+    if (cpBruto && /^\d{4}$/.test(cpBruto) && !cp) {
+      cp = `0${cpBruto}`;
       aviso_cp = true;
     }
 
