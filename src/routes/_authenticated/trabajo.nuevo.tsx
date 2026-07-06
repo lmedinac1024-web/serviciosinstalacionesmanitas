@@ -288,14 +288,15 @@ function NuevoServicio() {
   async function tryGeocode() {
     if (!form.direccion.trim()) return null;
     try {
-      const direccionCompleta = form.direccion_completa || buildDireccionCompleta(form);
+      const calleNumero = [form.direccion, form.numero].filter((s) => (s ?? "").toString().trim()).join(" ").trim();
       const res = await geocode({
         data: {
-          direccion: direccionCompleta || [form.direccion, form.numero].filter(Boolean).join(" "),
+          direccion: calleNumero || form.direccion,
           codigo_postal: form.codigo_postal,
           ciudad: form.ciudad,
         },
       });
+
       if (res.ok) {
         setGeo({ status: "ok", lat: res.lat, lng: res.lng, msg: res.formatted });
         toast.success("Dirección verificada correctamente");
