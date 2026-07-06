@@ -107,7 +107,7 @@ function NuevoServicio() {
   const [geo, setGeo] = useState<{ status: "idle" | "ok" | "fail"; msg?: string; lat?: number; lng?: number }>({ status: "idle" });
 
   // Importar orden desde imagen
-  const [imagen, setImagen] = useState<{ file: File; url: string } | null>(null);
+  const [imagen, setImagen] = useState<{ url: string; base64: string; mime: string } | null>(null);
   const [leyendo, setLeyendo] = useState(false);
   const camaraRef = useRef<HTMLInputElement | null>(null);
   const archivoRef = useRef<HTMLInputElement | null>(null);
