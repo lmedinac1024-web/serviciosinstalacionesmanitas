@@ -84,7 +84,23 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     const postalCity = [job.codigo_postal, job.ciudad].filter(Boolean).join(" ");
     const address = [street, postalCity].filter(Boolean).join(", ");
     const mapsAddress = [street, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsAddress || address)}`;
+    const destinationParam =
+      job.direccion_lat != null && job.direccion_lng != null
+        ? `${job.direccion_lat},${job.direccion_lng}`
+        : (mapsAddress || address);
+    const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destinationParam)}`;
+    // Pick the GPS origin relevant to the current phase (llegada / final / cancelación).
+    const originCoord: { lat: number; lng: number } | null =
+      data.fase === "inicio" && job.gps_llegada_lat != null && job.gps_llegada_lng != null
+        ? { lat: Number(job.gps_llegada_lat), lng: Number(job.gps_llegada_lng) }
+        : data.fase === "final" && job.gps_final_lat != null && job.gps_final_lng != null
+          ? { lat: Number(job.gps_final_lat), lng: Number(job.gps_final_lng) }
+          : data.fase === "cancel" && job.gps_cancelacion_lat != null && job.gps_cancelacion_lng != null
+            ? { lat: Number(job.gps_cancelacion_lat), lng: Number(job.gps_cancelacion_lng) }
+            : null;
+    const directionsUrl = originCoord
+      ? `https://www.google.com/maps/dir/?api=1&origin=${originCoord.lat},${originCoord.lng}&destination=${encodeURIComponent(destinationParam)}&travelmode=driving`
+      : null;
     const hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
     const commonHeader =
@@ -93,7 +109,8 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
       (job.tipo_servicio ? `<b>Servicio:</b> ${escapeHtml(job.tipo_servicio)}\n` : "") +
       `<b>Dirección:</b> ${escapeHtml(address)}\n` +
       (job.telefono_cliente ? `<b>Tel:</b> ${escapeHtml(job.telefono_cliente)}\n` : "") +
-      `<a href="${mapsUrl}">📍 Ver en Google Maps</a>\n`;
+      `<a href="${mapsSearchUrl}">📍 Ver destino en Google Maps</a>\n` +
+      (directionsUrl ? `<a href="${directionsUrl}">🧭 Ruta desde mi ubicación</a>\n` : "");
 
     let caption = "";
     let photoUrl: string | null = null;
