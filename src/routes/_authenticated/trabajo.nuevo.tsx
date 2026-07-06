@@ -190,10 +190,20 @@ function NuevoServicio() {
   }
   if (!me.canManage) return <Navigate to="/" />;
 
-  function handleFile(file: File | null | undefined) {
+  async function handleFile(file: File | null | undefined) {
     if (!file) return;
     if (imagen) URL.revokeObjectURL(imagen.url);
-    setImagen({ file, url: URL.createObjectURL(file) });
+    try {
+      // Leer AHORA a base64: en Android Chrome el File de la cámara pierde el
+      // descriptor tras unos segundos (NotReadableError), así que lo cacheamos.
+      const { base64, mime } = await fileToBase64(file);
+      const url = URL.createObjectURL(file);
+      setImagen({ url, base64, mime });
+    } catch (err) {
+      console.error("[handleFile] no se pudo leer el fichero", err);
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(`No se pudo leer la imagen${msg ? `: ${msg}` : ""}. Vuelve a hacerla o elige otra.`);
+    }
   }
 
   function cancelarImagen() {
@@ -207,20 +217,8 @@ function NuevoServicio() {
     if (!imagen) return;
     setLeyendo(true);
     try {
-      // 1) Leer el fichero a base64 PRIMERO (en iOS/Safari el File de la cámara
-      //    puede perder permisos tras el primer await, dando "file could not be read").
-      let base64 = "";
-      let mime = imagen.file.type || "image/jpeg";
-      try {
-        const r = await fileToBase64(imagen.file);
-        base64 = r.base64;
-        mime = r.mime;
-      } catch (err) {
-        console.error("[leerOrden] no se pudo leer el fichero", err);
-        const msg = err instanceof Error ? err.message : "";
-        toast.error(`No se pudo leer la imagen${msg ? `: ${msg}` : ""}. Vuelve a seleccionarla o hazla de nuevo.`);
-        return;
-      }
+      const base64 = imagen.base64;
+      const mime = imagen.mime;
 
       // 2) Subir a Storage a partir del base64 (no depende ya del File original)
       let imagenPath = "";
