@@ -73,8 +73,9 @@ export function googleMapsUrl(
 ): string {
   const calleConNumero = [j.direccion, j.numero].filter(Boolean).join(" ");
   const query =
+    [calleConNumero, j.codigo_postal, j.ciudad].filter(Boolean).join(", ") ||
     j.direccion_completa?.trim() ||
-    [calleConNumero, j.codigo_postal, j.ciudad].filter(Boolean).join(", ");
+    j.direccion;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 

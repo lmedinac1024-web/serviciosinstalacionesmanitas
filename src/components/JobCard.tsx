@@ -27,7 +27,7 @@ export function JobCard({ job }: { job: Job }) {
           <div className="mt-0.5 flex items-center gap-1 truncate text-sm text-muted-foreground">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">
-              {job.direccion}
+              {[job.direccion, job.numero].filter(Boolean).join(" ")}
               {job.ciudad ? `, ${job.ciudad}` : ""}
             </span>
           </div>
