@@ -489,7 +489,10 @@ function Detalle() {
   const canFinish = job.estado === "en_proceso";
   const isDone = job.estado === "realizado" || isCancelled(job.estado);
 
-  const direccionCompleta = [job.direccion, [job.piso && `Piso ${job.piso}`, job.puerta && `Puerta ${job.puerta}`].filter(Boolean).join(" "), job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+  const calleNumero = [job.direccion, job.numero].filter(Boolean).join(" ").trim();
+  const pisoPuerta = [job.piso && `Piso ${job.piso}`, job.puerta && `Puerta ${job.puerta}`].filter(Boolean).join(" ");
+  const cpCiudad = [job.codigo_postal, job.ciudad].filter(Boolean).join(" ");
+  const direccionCompleta = [calleNumero, pisoPuerta, cpCiudad].filter(Boolean).join(", ");
   const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${direccionCompleta}.`;
 
   return (
@@ -528,7 +531,7 @@ function Detalle() {
           <div className="flex items-start gap-2">
             <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
             <div className="text-sm">
-              <div>{job.direccion}</div>
+              <div>{calleNumero || job.direccion}</div>
               {(job.piso || job.puerta) && (
                 <div className="text-muted-foreground">
                   {job.piso && `Piso ${job.piso}`}{job.piso && job.puerta && " · "}{job.puerta && `Puerta ${job.puerta}`}

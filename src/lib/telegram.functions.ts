@@ -80,8 +80,12 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
 
     const importe = Number(job.importe ?? 0);
     const precioLlegada = Number(job.precio_llegada ?? 0);
-    const address = [job.direccion, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    const street = [job.direccion, job.numero].filter(Boolean).join(" ").trim();
+    const unit = [job.piso && `Piso ${job.piso}`, job.puerta && `Puerta ${job.puerta}`].filter(Boolean).join(" ");
+    const postalCity = [job.codigo_postal, job.ciudad].filter(Boolean).join(" ");
+    const address = [street, unit, postalCity].filter(Boolean).join(", ");
+    const mapsAddress = [street, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsAddress || address)}`;
     const hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
     const commonHeader =

@@ -2,6 +2,7 @@
 // Photos are stored as Blobs. On reconnect, sync uploads photo and updates the row.
 
 import { supabase } from "@/integrations/supabase/client";
+import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
 
 export type PendingKind = "inicio" | "final" | "cancelar";
 
@@ -111,13 +112,33 @@ function notifyListeners() {
 // --- Processor ---
 let syncing = false;
 
-async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final" | "cancel", blob: Blob): Promise<string> {
-  const path = `${userId}/${jobId}/${fase}-${Date.now()}.jpg`;
+function photoExtension(blob: Blob): string {
+  if (blob.type.includes("png")) return "png";
+  if (blob.type.includes("webp")) return "webp";
+  if (blob.type.includes("heic") || blob.type.includes("heif")) return "heic";
+  return "jpg";
+}
+
+async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final" | "cancel", blob: Blob, actionId?: string): Promise<string> {
+  const path = `${userId}/${jobId}/${fase}-${actionId ?? Date.now()}.${photoExtension(blob)}`;
   const { error } = await supabase.storage
     .from("job-photos")
     .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
   if (error) throw error;
   return `job-photos/${path}`;
+}
+
+async function notifyTelegram(action: PendingAction, fase: "inicio" | "final" | "cancel"): Promise<void> {
+  const result = await sendJobUpdateToTelegram({
+    data: {
+      jobId: action.jobId,
+      fase,
+      ...(action.destinoIds && action.destinoIds.length > 0 ? { destinoIds: action.destinoIds } : {}),
+    },
+  });
+  if (result.ok === false && !result.skipped) {
+    throw new Error(result.results?.find((r) => !r.ok)?.error ?? "No se pudo enviar el aviso");
+  }
 }
 
 async function processOne(action: PendingAction): Promise<void> {
@@ -139,10 +160,11 @@ async function processOne(action: PendingAction): Promise<void> {
       foto_cancelacion: null as string | null,
     };
     if (action.photo) {
-      photoPatch.foto_cancelacion = await uploadPhoto(action.userId, action.jobId, "cancel", action.photo);
+      photoPatch.foto_cancelacion = await uploadPhoto(action.userId, action.jobId, "cancel", action.photo, action.id);
       const { error } = await supabase.from('servicios').update(photoPatch).eq("id", action.jobId);
       if (error) throw error;
     }
+    await notifyTelegram(action, "cancel");
     return;
   }
 
@@ -168,9 +190,10 @@ async function processOne(action: PendingAction): Promise<void> {
       .eq("estado", "pendiente");
     if (statusError) throw statusError;
 
-    const path = await uploadPhoto(action.userId, action.jobId, action.kind, photo);
+    const path = await uploadPhoto(action.userId, action.jobId, action.kind, photo, action.id);
     const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
     if (error) throw error;
+    await notifyTelegram(action, "inicio");
     return;
   }
 
@@ -193,10 +216,11 @@ async function processOne(action: PendingAction): Promise<void> {
   }
 
   if (action.photo) {
-    const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo);
+    const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo, action.id);
     const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
     if (photoError) throw photoError;
   }
+  await notifyTelegram(action, "final");
 
 }
 
