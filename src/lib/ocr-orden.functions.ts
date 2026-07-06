@@ -255,6 +255,9 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
     if (!LOVABLE_API_KEY) return { ok: false, reason: "missing_ai_key" };
 
     const dataUrl = `data:${data.mime || "image/jpeg"};base64,${data.imagenBase64}`;
+    const archivoOrden = data.mime === "application/pdf"
+      ? { type: "file" as const, file: { filename: "orden.pdf", file_data: dataUrl } }
+      : { type: "image_url" as const, image_url: { url: dataUrl } };
 
     let respJson: {
       choices?: { message?: { content?: string } }[];
@@ -275,7 +278,7 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
               role: "user",
               content: [
                 { type: "text", text: PROMPT },
-                { type: "image_url", image_url: { url: dataUrl } },
+                archivoOrden,
               ],
             },
           ],
