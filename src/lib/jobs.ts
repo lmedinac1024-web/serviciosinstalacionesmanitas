@@ -68,9 +68,14 @@ export function isPaid(j: Pick<Job, "estado" | "eliminado_logico">): boolean {
   return j.estado === "realizado" || isCancelled(j.estado);
 }
 
-export function googleMapsUrl(j: Pick<Job, "direccion" | "codigo_postal" | "ciudad">): string {
-  const parts = [j.direccion, j.codigo_postal, j.ciudad].filter(Boolean).join(", ");
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts)}`;
+export function googleMapsUrl(
+  j: Pick<Job, "direccion" | "codigo_postal" | "ciudad"> & { numero?: string | null; direccion_completa?: string | null },
+): string {
+  const calleConNumero = [j.direccion, j.numero].filter(Boolean).join(" ");
+  const query =
+    j.direccion_completa?.trim() ||
+    [calleConNumero, j.codigo_postal, j.ciudad].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 export function cleanPhone(phone?: string | null): string {
