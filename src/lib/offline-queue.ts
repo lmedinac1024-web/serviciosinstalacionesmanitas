@@ -119,8 +119,28 @@ function photoExtension(blob: Blob): string {
   return "jpg";
 }
 
+async function currentStorageUserId(fallbackUserId: string): Promise<string> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (data.user?.id) return data.user.id;
+  } catch {
+    // Keep the queued user as a fallback for older offline entries.
+  }
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user?.id) return data.session.user.id;
+  } catch {
+    // Keep the queued user as a fallback for older offline entries.
+  }
+  return fallbackUserId;
+}
+
 async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final" | "cancel", blob: Blob, actionId?: string): Promise<string> {
-  const path = `${userId}/${jobId}/${fase}-${actionId ?? Date.now()}.${photoExtension(blob)}`;
+  // Storage policies require the first folder to match the currently signed-in
+  // user. Older queued actions could store the assigned employee id instead of
+  // the signer id, which made sync fail after reconnect.
+  const storageUserId = await currentStorageUserId(userId);
+  const path = `${storageUserId}/${jobId}/${fase}-${actionId ?? Date.now()}.${photoExtension(blob)}`;
   const { error } = await supabase.storage
     .from("job-photos")
     .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
@@ -138,6 +158,16 @@ async function notifyTelegram(action: PendingAction, fase: "inicio" | "final" | 
   });
   if (result.ok === false && !("skipped" in result && result.skipped)) {
     throw new Error("results" in result ? (result.results.find((r) => !r.ok)?.error ?? "No se pudo enviar el aviso") : "No se pudo enviar el aviso");
+  }
+}
+
+async function notifyTelegramBestEffort(action: PendingAction, fase: "inicio" | "final" | "cancel"): Promise<void> {
+  try {
+    await notifyTelegram(action, fase);
+  } catch (e) {
+    // The database row and photo are the source of truth. A Telegram outage or
+    // destination issue must not keep the offline action stuck forever.
+    console.warn("[offline-queue] Telegram notification failed", e);
   }
 }
 
@@ -164,7 +194,7 @@ async function processOne(action: PendingAction): Promise<void> {
       const { error } = await supabase.from('servicios').update(photoPatch).eq("id", action.jobId);
       if (error) throw error;
     }
-    await notifyTelegram(action, "cancel");
+    await notifyTelegramBestEffort(action, "cancel");
     return;
   }
 
@@ -195,7 +225,7 @@ async function processOne(action: PendingAction): Promise<void> {
     const path = await uploadPhoto(action.userId, action.jobId, action.kind, photo, action.id);
     const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
     if (error) throw error;
-    await notifyTelegram(action, "inicio");
+    await notifyTelegramBestEffort(action, "inicio");
     return;
   }
 
@@ -222,7 +252,7 @@ async function processOne(action: PendingAction): Promise<void> {
     const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
     if (photoError) throw photoError;
   }
-  await notifyTelegram(action, "final");
+  await notifyTelegramBestEffort(action, "final");
 
 }
 

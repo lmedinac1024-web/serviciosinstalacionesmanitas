@@ -1,16 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2 } from "lucide-react";
-import { toast } from "sonner";
-import { useUserRole } from "@/hooks/useUserRole";
+import { Camera } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
-import { enqueue, listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pendientes")({
@@ -26,12 +24,8 @@ const FILTROS: { id: Filtro; label: string }[] = [
 ];
 
 function Pendientes() {
-  const qc = useQueryClient();
-  const { data: me } = useUserRole();
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("pendientes");
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
-  const [instantPatches, setInstantPatches] = useState<Record<string, Partial<Job>>>({});
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["jobs", "lista", filtro],
@@ -49,9 +43,6 @@ function Pendientes() {
       return data as Job[];
     },
   });
-
-  const today = new Date().toISOString().slice(0, 10);
-  const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
 
   useEffect(() => {
     let alive = true;
@@ -87,8 +78,8 @@ function Pendientes() {
         patchesByJob.set(action.jobId, { ...(patchesByJob.get(action.jobId) ?? {}), ...patch });
       });
 
-    return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}), ...(instantPatches[job.id] ?? {}) }));
-  }, [data, queuedActions, instantPatches]);
+    return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
+  }, [data, queuedActions]);
 
   const effectiveData = useMemo(
     () => effectiveAllData.filter((job) => {
@@ -99,61 +90,8 @@ function Pendientes() {
     [effectiveAllData, filtro],
   );
 
-  async function marcarRealizadoDirecto(job: Job) {
-    setBusyId(job.id);
-    const now = new Date().toISOString();
-    const instantPatch: Partial<Job> = {
-      estado: "realizado" as JobStatus,
-      hora_llegada: job.hora_llegada ?? now,
-      hora_fin: now,
-    };
-    setInstantPatches((prev) => ({ ...prev, [job.id]: { ...(prev[job.id] ?? {}), ...instantPatch } }));
-    try {
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        if (!me?.userId) throw new Error("Usuario no disponible para guardar en cola");
-        await enqueue({ jobId: job.id, userId: me.userId, kind: "final" });
-        toast.success("Servicio realizado · queda en cola");
-        return;
-      }
-
-      if (job.estado === "pendiente") {
-        const { error: startError } = await supabase
-          .from("servicios")
-          .update({ estado: "en_proceso", hora_llegada: job.hora_llegada ?? now })
-          .eq("id", job.id);
-        if (startError) throw startError;
-      }
-
-      const { error } = await supabase
-        .from("servicios")
-        .update({
-          estado: "realizado",
-          hora_fin: now,
-        })
-        .eq("id", job.id);
-      if (error) throw error;
-      toast.success("Servicio marcado como realizado");
-      qc.invalidateQueries({ queryKey: ["jobs"] });
-    } catch (e) {
-      if (me?.userId) {
-        try {
-          await enqueue({ jobId: job.id, userId: me.userId, kind: "final" });
-          toast.info("No se confirmó ahora; queda en cola y desaparece de Pendientes");
-          return;
-        } catch {
-          // fall through to visible error
-        }
-      }
-      setInstantPatches((prev) => {
-        const next = { ...prev };
-        delete next[job.id];
-        return next;
-      });
-      toast.error(e instanceof Error ? e.message : "Error al actualizar");
-    } finally {
-      setBusyId(null);
-    }
-  }
+  const today = new Date().toISOString().slice(0, 10);
+  const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
 
   const counts = {
     pendientes: effectiveAllData.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").length,
@@ -199,14 +137,11 @@ function Pendientes() {
               <div key={j.id} className="space-y-1.5">
                 <JobCard job={j} />
                 {esPendiente && isPastOrToday(j.fecha) && (
-                  <Button
-                    size="sm"
-                    onClick={() => marcarRealizadoDirecto(j)}
-                    disabled={busyId === j.id}
-                    className="w-full"
-                  >
-                    <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                    {busyId === j.id ? "Guardando..." : "Realizado"}
+                  <Button asChild size="sm" className="w-full">
+                    <Link to="/trabajo/$id" params={{ id: j.id }}>
+                      <Camera className="mr-1.5 h-4 w-4" />
+                      Finalizar con foto
+                    </Link>
                   </Button>
                 )}
               </div>
