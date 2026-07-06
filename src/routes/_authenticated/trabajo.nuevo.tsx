@@ -76,9 +76,9 @@ function clearDraft() {
 }
 
 function buildDireccionCompleta(f: Pick<FormState, "direccion" | "numero" | "piso" | "puerta" | "codigo_postal" | "ciudad">): string {
-  const linea1 = [f.direccion, f.numero, f.piso, f.puerta].filter((s) => (s ?? "").toString().trim()).join(" ").trim();
+  const linea1 = [f.direccion, f.numero].filter((s) => (s ?? "").toString().trim()).join(" ").trim();
   const linea2 = [f.codigo_postal, f.ciudad].filter((s) => (s ?? "").toString().trim()).join(" ").trim();
-  const partes = [linea1, linea2, "España"].filter(Boolean);
+  const partes = [linea1, linea2].filter(Boolean);
   return partes.join(", ");
 }
 
