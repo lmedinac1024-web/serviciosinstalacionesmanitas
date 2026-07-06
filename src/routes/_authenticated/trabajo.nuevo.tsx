@@ -421,7 +421,13 @@ function NuevoServicio() {
           ) : (
             <div className="space-y-2">
               <div className="overflow-hidden rounded-md border bg-background">
-                <img src={imagen.url} alt="Orden" className="max-h-64 w-full object-contain" />
+                {imagen.mime.startsWith("image/") ? (
+                  <img src={imagen.url} alt="Orden" className="max-h-64 w-full object-contain" />
+                ) : (
+                  <div className="flex min-h-32 items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
+                    <Upload className="h-4 w-4" /> Archivo cargado
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button type="button" onClick={leerOrden} disabled={leyendo}>
