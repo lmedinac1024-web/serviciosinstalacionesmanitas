@@ -216,8 +216,9 @@ function NuevoServicio() {
         base64 = r.base64;
         mime = r.mime;
       } catch (err) {
-        console.error("[leerOrden] FileReader falló", err);
-        toast.error("No se pudo leer la imagen. Vuelve a seleccionarla o hazla de nuevo.");
+        console.error("[leerOrden] no se pudo leer el fichero", err);
+        const msg = err instanceof Error ? err.message : "";
+        toast.error(`No se pudo leer la imagen${msg ? `: ${msg}` : ""}. Vuelve a seleccionarla o hazla de nuevo.`);
         return;
       }
 
