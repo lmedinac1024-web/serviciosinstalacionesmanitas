@@ -83,7 +83,8 @@ function buildDireccionCompleta(f: Pick<FormState, "direccion" | "numero" | "pis
 }
 
 async function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
-  const mime = file.type || "image/jpeg";
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  const mime = file.type || ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif", pdf: "application/pdf" }[extension] ?? "image/jpeg");
   // arrayBuffer() es más fiable en Android/Chrome que FileReader cuando el
   // fichero viene de la cámara vía content:// y ha pasado un rato.
   const buf = await file.arrayBuffer();
@@ -403,7 +404,7 @@ function NuevoServicio() {
                 <input
                   ref={camaraRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
                   capture="environment"
                   className="hidden"
                   onChange={(e) => handleFile(e.target.files?.[0])}
@@ -411,7 +412,7 @@ function NuevoServicio() {
                 <input
                   ref={archivoRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
                   className="hidden"
                   onChange={(e) => handleFile(e.target.files?.[0])}
                 />
@@ -420,7 +421,13 @@ function NuevoServicio() {
           ) : (
             <div className="space-y-2">
               <div className="overflow-hidden rounded-md border bg-background">
-                <img src={imagen.url} alt="Orden" className="max-h-64 w-full object-contain" />
+                {imagen.mime.startsWith("image/") ? (
+                  <img src={imagen.url} alt="Orden" className="max-h-64 w-full object-contain" />
+                ) : (
+                  <div className="flex min-h-32 items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
+                    <Upload className="h-4 w-4" /> Archivo cargado
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button type="button" onClick={leerOrden} disabled={leyendo}>
