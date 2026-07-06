@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
+import { Button } from "@/components/ui/button";
+import { Camera } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
@@ -88,6 +90,9 @@ function Pendientes() {
     [effectiveAllData, filtro],
   );
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
+
   const counts = {
     pendientes: effectiveAllData.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").length,
     realizados: effectiveAllData.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado")).length,
@@ -126,7 +131,22 @@ function Pendientes() {
         </div>
       ) : (
         <div className="space-y-2">
-          {effectiveData.map((j) => <JobCard key={j.id} job={j} />)}
+          {effectiveData.map((j) => {
+            const esPendiente = j.estado === "pendiente" || j.estado === "en_proceso";
+            return (
+              <div key={j.id} className="space-y-1.5">
+                <JobCard job={j} />
+                {esPendiente && isPastOrToday(j.fecha) && (
+                  <Button asChild size="sm" className="w-full">
+                    <Link to="/trabajo/$id" params={{ id: j.id }}>
+                      <Camera className="mr-1.5 h-4 w-4" />
+                      Finalizar con foto
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </AppShell>
