@@ -136,8 +136,8 @@ async function notifyTelegram(action: PendingAction, fase: "inicio" | "final" | 
       ...(action.destinoIds && action.destinoIds.length > 0 ? { destinoIds: action.destinoIds } : {}),
     },
   });
-  if (result.ok === false && !result.skipped) {
-    throw new Error(result.results?.find((r) => !r.ok)?.error ?? "No se pudo enviar el aviso");
+  if (result.ok === false && !("skipped" in result && result.skipped)) {
+    throw new Error("results" in result ? (result.results.find((r) => !r.ok)?.error ?? "No se pudo enviar el aviso") : "No se pudo enviar el aviso");
   }
 }
 
@@ -177,6 +177,8 @@ async function processOne(action: PendingAction): Promise<void> {
       hora_llegada: now,
       ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
       ...(action.arrivalLng != null ? { gps_llegada_lng: action.arrivalLng } : {}),
+      ...(action.arrivalDistanceM != null ? { distancia_llegada_metros: action.arrivalDistanceM } : {}),
+      ...(action.arrivalValidated != null ? { direccion_validada_llegada: action.arrivalValidated } : {}),
     };
     const { error: statusMetaError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
     if (statusMetaError) throw statusMetaError;

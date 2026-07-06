@@ -21,6 +21,7 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
 import { enqueue as enqueueOffline, listForJob, remove as removeOffline, subscribe as subscribeOffline } from "@/lib/offline-queue";
+import { getCurrentPosition, haversineMeters } from "@/lib/geo";
 
 type Fase = "inicio" | "final" | "cancel";
 type PhotoSource = "camera" | "gallery";
@@ -343,6 +344,32 @@ function Detalle() {
     });
   }
 
+  async function buildGpsPatch(fase: Fase): Promise<Partial<Job>> {
+    try {
+      const pos = await getCurrentPosition();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const hasTarget = job!.direccion_lat != null && job!.direccion_lng != null;
+      const distanceM = hasTarget
+        ? haversineMeters({ lat, lng }, { lat: Number(job!.direccion_lat), lng: Number(job!.direccion_lng) })
+        : null;
+      const validated = distanceM != null ? distanceM <= 250 : false;
+      setGpsMeta({ lat, lng, distanceM, validated });
+      if (fase === "inicio") {
+        return {
+          gps_llegada_lat: lat,
+          gps_llegada_lng: lng,
+          distancia_llegada_metros: distanceM,
+          direccion_validada_llegada: validated,
+        };
+      }
+      if (fase === "final") return { gps_final_lat: lat, gps_final_lng: lng };
+      return { gps_cancelacion_lat: lat, gps_cancelacion_lng: lng };
+    } catch {
+      return {};
+    }
+  }
+
   async function completePhotoAction(payload: SharePayload) {
     if (working) return;
     setWorking(true);
@@ -354,9 +381,13 @@ function Detalle() {
     const sharePromise = shareFileNative(payload);
 
     try {
+      const gpsPatch = await buildGpsPatch(payload.fase);
+      const statusPatch = { ...payload.statusPatch, ...gpsPatch };
+      const payloadWithGps = { ...payload, statusPatch };
+
       // Cambiar estado YA (llegada / realizado / cancelado). El envío de la foto
       // y la subida a Supabase quedan desacoplados para que la calle sea ágil.
-      patchJobInCaches(payload.statusPatch);
+      patchJobInCaches(statusPatch);
       setPendingShare((old) => {
         const next = { ...old };
         delete next[payload.fase];
@@ -374,15 +405,15 @@ function Detalle() {
       });
 
       // Persistir en background
-      const persistPromise = persistInBackground(payload.fase, payload.file, payload.statusPatch);
+      const persistPromise = persistInBackground(payloadWithGps.fase, payloadWithGps.file, payloadWithGps.statusPatch);
 
       // Si es final o cancelación, asegurar estado terminal antes de volver.
       // La foto puede quedarse subiendo en cola, pero el estado debe cambiar ya.
       if (payload.fase === "final" || payload.fase === "cancel") {
         if (typeof navigator === "undefined" || navigator.onLine !== false) {
           try {
-            await persistStatusPatch(payload.fase, payload.statusPatch);
-            patchJobInCaches(payload.statusPatch);
+            await persistStatusPatch(payloadWithGps.fase, payloadWithGps.statusPatch);
+            patchJobInCaches(payloadWithGps.statusPatch);
           } catch (e) {
             toast.info("No se pudo confirmar al momento; queda en cola y se sincroniza automático");
           }
@@ -429,6 +460,16 @@ function Detalle() {
             fase === "cancel" && statusPatch.motivo_cancelacion
               ? `${statusPatch.estado}|${statusPatch.motivo_cancelacion}`
               : undefined,
+          arrivalLat:
+            fase === "inicio" ? (typeof statusPatch.gps_llegada_lat === "number" ? statusPatch.gps_llegada_lat : undefined)
+            : fase === "final" ? (typeof statusPatch.gps_final_lat === "number" ? statusPatch.gps_final_lat : undefined)
+            : typeof statusPatch.gps_cancelacion_lat === "number" ? statusPatch.gps_cancelacion_lat : undefined,
+          arrivalLng:
+            fase === "inicio" ? (typeof statusPatch.gps_llegada_lng === "number" ? statusPatch.gps_llegada_lng : undefined)
+            : fase === "final" ? (typeof statusPatch.gps_final_lng === "number" ? statusPatch.gps_final_lng : undefined)
+            : typeof statusPatch.gps_cancelacion_lng === "number" ? statusPatch.gps_cancelacion_lng : undefined,
+          arrivalDistanceM: typeof statusPatch.distancia_llegada_metros === "number" ? statusPatch.distancia_llegada_metros : null,
+          arrivalValidated: typeof statusPatch.direccion_validada_llegada === "boolean" ? statusPatch.direccion_validada_llegada : undefined,
         }
       : null;
 
