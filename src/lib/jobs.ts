@@ -69,14 +69,25 @@ export function isPaid(j: Pick<Job, "estado" | "eliminado_logico">): boolean {
 }
 
 export function googleMapsUrl(
-  j: Pick<Job, "direccion" | "codigo_postal" | "ciudad"> & { numero?: string | null; direccion_completa?: string | null },
+  j: Pick<Job, "direccion" | "codigo_postal" | "ciudad"> & {
+    numero?: string | null;
+    direccion_completa?: string | null;
+    direccion_lat?: number | string | null;
+    direccion_lng?: number | string | null;
+  },
 ): string {
-  const calleConNumero = [j.direccion, j.numero].filter(Boolean).join(" ");
-  const query =
-    [calleConNumero, j.codigo_postal, j.ciudad].filter(Boolean).join(", ") ||
-    j.direccion_completa?.trim() ||
-    j.direccion;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  // Ruta desde la ubicación actual del usuario (Google Maps usa "Tu ubicación"
+  // cuando se omite el parámetro origin) hasta el destino.
+  const destination =
+    j.direccion_lat != null && j.direccion_lng != null
+      ? `${j.direccion_lat},${j.direccion_lng}`
+      : [[j.direccion, j.numero].filter(Boolean).join(" "), j.codigo_postal, j.ciudad]
+          .filter(Boolean)
+          .join(", ") ||
+        j.direccion_completa?.trim() ||
+        j.direccion ||
+        "";
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
 }
 
 export function cleanPhone(phone?: string | null): string {
