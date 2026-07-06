@@ -119,8 +119,28 @@ function photoExtension(blob: Blob): string {
   return "jpg";
 }
 
+async function currentStorageUserId(fallbackUserId: string): Promise<string> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (data.user?.id) return data.user.id;
+  } catch {
+    // Keep the queued user as a fallback for older offline entries.
+  }
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user?.id) return data.session.user.id;
+  } catch {
+    // Keep the queued user as a fallback for older offline entries.
+  }
+  return fallbackUserId;
+}
+
 async function uploadPhoto(userId: string, jobId: string, fase: "inicio" | "final" | "cancel", blob: Blob, actionId?: string): Promise<string> {
-  const path = `${userId}/${jobId}/${fase}-${actionId ?? Date.now()}.${photoExtension(blob)}`;
+  // Storage policies require the first folder to match the currently signed-in
+  // user. Older queued actions could store the assigned employee id instead of
+  // the signer id, which made sync fail after reconnect.
+  const storageUserId = await currentStorageUserId(userId);
+  const path = `${storageUserId}/${jobId}/${fase}-${actionId ?? Date.now()}.${photoExtension(blob)}`;
   const { error } = await supabase.storage
     .from("job-photos")
     .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
