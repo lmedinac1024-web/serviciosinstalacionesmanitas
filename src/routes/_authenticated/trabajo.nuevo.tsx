@@ -83,7 +83,8 @@ function buildDireccionCompleta(f: Pick<FormState, "direccion" | "numero" | "pis
 }
 
 async function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
-  const mime = file.type || "image/jpeg";
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  const mime = file.type || ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif", pdf: "application/pdf" }[extension] ?? "image/jpeg");
   // arrayBuffer() es más fiable en Android/Chrome que FileReader cuando el
   // fichero viene de la cámara vía content:// y ha pasado un rato.
   const buf = await file.arrayBuffer();
@@ -403,7 +404,7 @@ function NuevoServicio() {
                 <input
                   ref={camaraRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
                   capture="environment"
                   className="hidden"
                   onChange={(e) => handleFile(e.target.files?.[0])}
@@ -411,7 +412,7 @@ function NuevoServicio() {
                 <input
                   ref={archivoRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
                   className="hidden"
                   onChange={(e) => handleFile(e.target.files?.[0])}
                 />
