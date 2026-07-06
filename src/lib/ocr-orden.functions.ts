@@ -77,7 +77,14 @@ REGLAS:
 - Si aparece una franja como "06-07-26 09:00 - 11:00" → fecha_servicio="2026-07-06", hora_inicio="09:00", hora_fin="11:00", hora_servicio="09:00".
 - Si sólo aparece fecha de asignación, ponla en fecha_asignacion y deja fecha_servicio a null (el servidor calculará el día siguiente).
 - Si no aparece ninguna fecha, deja fecha_servicio y fecha_asignacion a null.
-- Acepta CUALQUIER formato de orden: tablas, capturas de aseguradoras, partes de HomeServe, texto plano, fotos torcidas o con etiquetas en rojo.
+- Acepta CUALQUIER formato de orden: tablas, capturas de aseguradoras, partes de HomeServe, listas simples tipo "Nombre y apellidos / Dirección / Teléfono / Fecha y hora / Nº de Operación / Servicio", texto plano, fotos torcidas o con etiquetas en rojo.
+- Formato lista simple (aseguradora tipo Reale/Mapfre/etc.) con etiquetas "Nombre y apellidos:", "Dirección:", "Teléfono:", "Fecha y hora:", "Nº de Operación:", "Servicio:":
+  * "Nombre y apellidos: MARÍA DOLORES TRIVIÑO MARÍA DOLORES TRIVIÑO" → nombre_cliente="María Dolores Triviño" (deduplica nombres repetidos).
+  * "Dirección: maria auxiliadora 138, 1º1º Código Postal 8912" → direccion="Maria Auxiliadora", numero="138", piso="1", puerta="1", codigo_postal="08912".
+  * "Teléfono: 661229811" → telefono="661229811".
+  * "Fecha y hora: Fecha 03/07/2026 y Hora 08:00:00" → fecha_servicio="2026-07-03", hora_servicio="08:00".
+  * "Nº de Operación: 180541" → numero_operacion="180541".
+  * "Servicio: Instaladores de ventiladores de techo" → tipo_servicio="Instalación de ventilador", observaciones="Instalación de ventilador de techo".
 - Formato HomeServe / aseguradora con etiquetas a la izquierda:
   * "SERVICIO: 15795510" → numero_servicio="15795510".
   * "TELEFONOS: 600592387 de 09:00 a 20:00" → telefono="600592387". NO uses 09:00/20:00 como cita si sólo son horario de llamada.
