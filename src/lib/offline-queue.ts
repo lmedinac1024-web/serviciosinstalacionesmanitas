@@ -161,6 +161,16 @@ async function notifyTelegram(action: PendingAction, fase: "inicio" | "final" | 
   }
 }
 
+async function notifyTelegramBestEffort(action: PendingAction, fase: "inicio" | "final" | "cancel"): Promise<void> {
+  try {
+    await notifyTelegram(action, fase);
+  } catch (e) {
+    // The database row and photo are the source of truth. A Telegram outage or
+    // destination issue must not keep the offline action stuck forever.
+    console.warn("[offline-queue] Telegram notification failed", e);
+  }
+}
+
 async function processOne(action: PendingAction): Promise<void> {
   if (action.kind === "cancelar") {
     const [estado, ...labelParts] = (action.motivo ?? "cancelado_otro|Cancelado").split("|");
@@ -184,7 +194,7 @@ async function processOne(action: PendingAction): Promise<void> {
       const { error } = await supabase.from('servicios').update(photoPatch).eq("id", action.jobId);
       if (error) throw error;
     }
-    await notifyTelegram(action, "cancel");
+    await notifyTelegramBestEffort(action, "cancel");
     return;
   }
 
@@ -215,7 +225,7 @@ async function processOne(action: PendingAction): Promise<void> {
     const path = await uploadPhoto(action.userId, action.jobId, action.kind, photo, action.id);
     const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
     if (error) throw error;
-    await notifyTelegram(action, "inicio");
+    await notifyTelegramBestEffort(action, "inicio");
     return;
   }
 
@@ -242,7 +252,7 @@ async function processOne(action: PendingAction): Promise<void> {
     const { error: photoError } = await supabase.from("servicios").update({ foto_final: path }).eq("id", action.jobId);
     if (photoError) throw photoError;
   }
-  await notifyTelegram(action, "final");
+  await notifyTelegramBestEffort(action, "final");
 
 }
 
