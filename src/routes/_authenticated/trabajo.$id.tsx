@@ -530,9 +530,8 @@ function Detalle() {
   const canFinish = job.estado === "en_proceso";
   const isDone = job.estado === "realizado" || isCancelled(job.estado);
 
-  const calleNumero = [job.direccion, job.numero].filter(Boolean).join(" ").trim();
-  const cpCiudad = [job.codigo_postal, job.ciudad].filter(Boolean).join(" ");
-  const direccionCompleta = [calleNumero, cpCiudad].filter(Boolean).join(", ");
+  const calleNumero = [job.direccion, job.numero].filter(Boolean).join(", ").trim();
+  const direccionCompleta = [job.direccion, job.numero, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
   const waMsg = `Hola, soy el técnico. Voy de camino para realizar el servicio programado en la dirección: ${direccionCompleta}.`;
 
   return (
