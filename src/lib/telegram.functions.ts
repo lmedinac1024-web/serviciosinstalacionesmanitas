@@ -80,10 +80,10 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
 
     const importe = Number(job.importe ?? 0);
     const precioLlegada = Number(job.precio_llegada ?? 0);
-    const street = [job.direccion, job.numero].filter(Boolean).join(" ").trim();
+    const street = [job.direccion, job.numero].filter(Boolean).join(", ").trim();
     const postalCity = [job.codigo_postal, job.ciudad].filter(Boolean).join(" ");
-    const address = [street, postalCity].filter(Boolean).join(", ");
-    const mapsAddress = [street, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+    const address = [job.direccion, job.numero, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+    const mapsAddress = [[job.direccion, job.numero].filter(Boolean).join(" "), job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
     const destinationParam =
       job.direccion_lat != null && job.direccion_lng != null
         ? `${job.direccion_lat},${job.direccion_lng}`
