@@ -799,7 +799,7 @@ function Detalle() {
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
+                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil.
                   </div>
                 </div>
                 <DialogFooter>
