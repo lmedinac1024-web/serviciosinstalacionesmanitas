@@ -80,6 +80,8 @@ function EditarObra() {
     if (!form) return;
     setSaving(true);
     try {
+      const importeNum = Number(form.importe) || 0;
+      const isCancelled = (form.estado ?? "").toString().startsWith("cancelado");
       const payload = {
         fecha: form.fecha,
         hora_programada: form.hora_programada || null,
@@ -91,8 +93,9 @@ function EditarObra() {
         piso: form.piso || null, puerta: form.puerta || null,
         codigo_postal: form.codigo_postal || null, ciudad: form.ciudad || null,
         observaciones: form.observaciones || null,
-        importe: Number(form.importe) || 0,
-        precio_llegada: Number(form.precio_llegada) || 0,
+        importe: importeNum,
+        // Al cancelar se cobra como servicio realizado: precio_llegada = importe automáticamente.
+        precio_llegada: isCancelled ? importeNum : Number(form.precio_llegada) || 0,
         estado: form.estado,
         motivo_cancelacion: form.motivo_cancelacion || null,
       };
