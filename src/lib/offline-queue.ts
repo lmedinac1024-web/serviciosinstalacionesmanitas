@@ -93,6 +93,26 @@ export async function remove(id: string): Promise<void> {
   notifyListeners();
 }
 
+export async function clearAll(): Promise<void> {
+  const all = await listAll();
+  await tx("readwrite", (s) => {
+    for (const item of all) s.delete(item.id);
+    return undefined as unknown as IDBRequest<undefined>;
+  });
+  notifyListeners();
+}
+
+export async function clearByError(substring: string): Promise<number> {
+  const all = await listAll();
+  const toRemove = all.filter((a) => a.lastError?.includes(substring));
+  await tx("readwrite", (s) => {
+    for (const item of toRemove) s.delete(item.id);
+    return undefined as unknown as IDBRequest<undefined>;
+  });
+  notifyListeners();
+  return toRemove.length;
+}
+
 async function update(action: PendingAction): Promise<void> {
   await tx("readwrite", (s) => s.put(action));
   notifyListeners();

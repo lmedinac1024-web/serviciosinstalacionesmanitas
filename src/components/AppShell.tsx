@@ -24,7 +24,7 @@ import type { ReactNode } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { processQueue, count as pendingCount, subscribe as subscribeQueue, listAll as listQueue } from "@/lib/offline-queue";
+import { processQueue, count as pendingCount, subscribe as subscribeQueue, listAll as listQueue, clearByError } from "@/lib/offline-queue";
 import { toast } from "sonner";
 import logoManitas from "@/assets/logo-manitas.png.asset.json";
 
@@ -85,6 +85,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   useEffect(() => {
     void pendingCount().then(setPending).catch(() => {});
+    // Limpiar acciones atascadas por el antiguo error de campos de administrador.
+    // Esas acciones nunca podían sincronizarse desde el empleado; con el trigger
+    // actualizado y el cliente corregido, las nuevas acciones funcionan.
+    void clearByError("Solo un administrador puede modificar estos campos del servicio").then((n) => {
+      if (n > 0) {
+        void pendingCount().then(setPending).catch(() => {});
+        toast.info(`${n} acción(es) bloqueada(s) eliminada(s) de la cola. Ahora los cambios se sincronizan correctamente.`);
+      }
+    }).catch(() => {});
     return subscribeQueue(() => { void pendingCount().then(setPending).catch(() => {}); });
   }, []);
 
@@ -104,9 +113,19 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       if (res.ok > 0) toast.success(`Sincronizado: ${res.ok} acción(es)`);
       else if (res.failed > 0) {
         const items = await listQueue();
-        const firstErr = items.map((i) => i.lastError).find(Boolean) ?? "Error desconocido";
-        console.warn("[sync] acciones fallidas", items);
-        toast.error(`Fallaron ${res.failed} acción(es)`, { description: firstErr, duration: 10000 });
+        const adminOnly = items.filter((i) => i.lastError?.includes("Solo un administrador puede modificar estos campos del servicio"));
+        if (adminOnly.length > 0) {
+          // Estas acciones quedaron atascadas por intentar enviar campos de admin
+          // desde el cliente. Las eliminamos para que no vuelva a aparecer el aviso.
+          await clearByError("Solo un administrador puede modificar estos campos del servicio");
+          const remaining = await pendingCount();
+          setPending(remaining);
+          toast.info(`${adminOnly.length} acción(es) bloqueada(s) eliminada(s). Vuelve a realizar el cambio si aún no se guardó.`);
+        } else {
+          const firstErr = items.map((i) => i.lastError).find(Boolean) ?? "Error desconocido";
+          console.warn("[sync] acciones fallidas", items);
+          toast.error(`Fallaron ${res.failed} acción(es)`, { description: firstErr, duration: 10000 });
+        }
       }
       else toast.success("Datos actualizados");
     } catch (e) {

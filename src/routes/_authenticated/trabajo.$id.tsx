@@ -311,8 +311,8 @@ function Detalle() {
               estado: nextEstado,
               hora_fin: at,
               motivo_cancelacion: motivoFinal,
-              // Al cancelar se cobra como servicio realizado; precio_llegada se iguala automáticamente al importe.
-              precio_llegada: job!.importe,
+              // precio_llegada y direccion_validada_llegada son campos de administrador;
+              // el empleado no puede modificarlos desde la app.
             };
 
     if (fase === "final" && me?.isAdmin) {
@@ -379,12 +379,8 @@ function Detalle() {
       const validated = distanceM != null ? distanceM <= 250 : false;
       setGpsMeta({ lat, lng, distanceM, validated });
       if (fase === "inicio") {
-        return {
-          gps_llegada_lat: lat,
-          gps_llegada_lng: lng,
-          distancia_llegada_metros: distanceM,
-          direccion_validada_llegada: validated,
-        };
+        // distancia_llegada_metros y direccion_validada_llegada solo los modifica un administrador.
+        return { gps_llegada_lat: lat, gps_llegada_lng: lng };
       }
       if (fase === "final") return { gps_final_lat: lat, gps_final_lng: lng };
       return { gps_cancelacion_lat: lat, gps_cancelacion_lng: lng };
@@ -497,8 +493,6 @@ function Detalle() {
             destinoIds: [],
             arrivalLat: typeof statusPatch.gps_llegada_lat === "number" ? statusPatch.gps_llegada_lat : undefined,
             arrivalLng: typeof statusPatch.gps_llegada_lng === "number" ? statusPatch.gps_llegada_lng : undefined,
-            arrivalDistanceM: typeof statusPatch.distancia_llegada_metros === "number" ? statusPatch.distancia_llegada_metros : null,
-            arrivalValidated: typeof statusPatch.direccion_validada_llegada === "boolean" ? statusPatch.direccion_validada_llegada : undefined,
           });
           queuedId = queued.id;
         } catch { /* si falla la cola seguimos con persistencia directa */ }
@@ -681,8 +675,6 @@ function Detalle() {
             fase === "inicio" ? (typeof statusPatch.gps_llegada_lng === "number" ? statusPatch.gps_llegada_lng : undefined)
             : fase === "final" ? (typeof statusPatch.gps_final_lng === "number" ? statusPatch.gps_final_lng : undefined)
             : typeof statusPatch.gps_cancelacion_lng === "number" ? statusPatch.gps_cancelacion_lng : undefined,
-          arrivalDistanceM: typeof statusPatch.distancia_llegada_metros === "number" ? statusPatch.distancia_llegada_metros : null,
-          arrivalValidated: typeof statusPatch.direccion_validada_llegada === "boolean" ? statusPatch.direccion_validada_llegada : undefined,
         }
       : null;
 
