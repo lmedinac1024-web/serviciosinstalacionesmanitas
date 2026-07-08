@@ -43,6 +43,18 @@ interface GpsMeta {
   validated: boolean;
 }
 
+const FINISH_CHECKLIST = [
+  "Diagnóstico realizado",
+  "Montaje / instalación",
+  "Desmontaje / retirada",
+  "Reparación de avería",
+  "Sustitución de pieza / material",
+  "Ajustes y regulación",
+  "Pruebas de funcionamiento",
+  "Limpieza de la zona",
+  "Explicación al cliente",
+];
+
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
 async function uploadPhoto(jobId: string, fase: Fase, file: File, cachedUserId?: string) {
@@ -89,6 +101,9 @@ function Detalle() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelExtra, setCancelExtra] = useState("");
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [finishItems, setFinishItems] = useState<Record<string, boolean>>({});
+  const [finishExtra, setFinishExtra] = useState("");
   const [working, setWorking] = useState(false);
   const [, setGpsMeta] = useState<GpsMeta | null>(null);
   const [importeFinal, setImporteFinal] = useState<string>("");
@@ -505,10 +520,49 @@ function Detalle() {
 
   async function finalizarTareaDirecta() {
     if (working) return;
+    const selected = FINISH_CHECKLIST.filter((k) => finishItems[k]);
+    const extra = finishExtra.trim();
+    if (selected.length === 0 && !extra) {
+      toast.error("Marca al menos una tarea realizada o añade una nota");
+      return;
+    }
     setWorking(true);
+    setFinishOpen(false);
+
+    // Compartir desglose por nativo (fire-and-forget desde el gesto del usuario)
+    const header = `✅ Tarea finalizada — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
+    const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
+    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    const listLines = selected.length > 0
+      ? ["📋 Trabajos realizados:", ...selected.map((s) => `• ${s}`)].join("\n")
+      : "";
+    const extraLine = extra ? `📝 Notas: ${extra}` : "";
+    const shareText = [header, tipoLine, addressLine, listLines, extraLine].filter(Boolean).join("\n");
+    void (async () => {
+      try {
+        if (typeof navigator === "undefined") return;
+        const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+        if (!nav.share) return;
+        await nav.share({ title: "Tarea finalizada", text: shareText });
+      } catch { /* ignore */ }
+    })();
+
     try {
       const gpsPatch = await buildGpsPatch("final");
-      const statusPatch: Partial<Job> = { ...buildStatusPatch("final"), ...gpsPatch };
+      const trabajosText = [
+        selected.length > 0 ? selected.map((s) => `• ${s}`).join("\n") : "",
+        extra ? `Notas: ${extra}` : "",
+      ].filter(Boolean).join("\n");
+      const prevObs = (job?.observaciones ?? "").trim();
+      const nuevasObs = [
+        prevObs,
+        `--- Trabajos realizados (${new Date().toLocaleString("es-ES")}):\n${trabajosText}`,
+      ].filter(Boolean).join("\n\n");
+      const statusPatch: Partial<Job> = {
+        ...buildStatusPatch("final"),
+        ...gpsPatch,
+        observaciones: nuevasObs,
+      };
       patchJobInCaches(statusPatch);
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;
       toast.success("Tarea realizada" + (offline ? " · en cola offline" : ""));
@@ -538,6 +592,8 @@ function Detalle() {
       }
     } finally {
       setWorking(false);
+      setFinishItems({});
+      setFinishExtra("");
     }
   }
 
@@ -841,12 +897,52 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={() => { void finalizarTareaDirecta(); }}
+                  onClick={() => { setFinishItems({}); setFinishExtra(""); setFinishOpen(true); }}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
                 </Button>
+                <Dialog open={finishOpen} onOpenChange={setFinishOpen}>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Trabajos realizados</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">
+                        Marca lo que hiciste. Se guardará en observaciones y se compartirá.
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
+                        {FINISH_CHECKLIST.map((item) => (
+                          <label key={item} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent">
+                            <Checkbox
+                              checked={!!finishItems[item]}
+                              onCheckedChange={(v) => setFinishItems((old) => ({ ...old, [item]: v === true }))}
+                            />
+                            <span className="text-sm">{item}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div>
+                        <div className="mb-1.5 text-xs font-medium">Notas adicionales</div>
+                        <Textarea
+                          value={finishExtra}
+                          onChange={(e) => setFinishExtra(e.target.value)}
+                          placeholder="Detalles de lo realizado (opcional)"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setFinishOpen(false)}>Volver</Button>
+                      <Button
+                        className="bg-success text-success-foreground hover:bg-success/90"
+                        onClick={() => { void finalizarTareaDirecta(); }}
+                        disabled={working}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" /> Compartir y finalizar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </>
             )}
             <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (v) { setCancelReason(null); setCancelExtra(""); } }}>
