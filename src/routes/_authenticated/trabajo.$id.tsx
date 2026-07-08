@@ -43,6 +43,18 @@ interface GpsMeta {
   validated: boolean;
 }
 
+const FINISH_CHECKLIST = [
+  "Diagnóstico realizado",
+  "Montaje / instalación",
+  "Desmontaje / retirada",
+  "Reparación de avería",
+  "Sustitución de pieza / material",
+  "Ajustes y regulación",
+  "Pruebas de funcionamiento",
+  "Limpieza de la zona",
+  "Explicación al cliente",
+];
+
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
 
 async function uploadPhoto(jobId: string, fase: Fase, file: File, cachedUserId?: string) {
