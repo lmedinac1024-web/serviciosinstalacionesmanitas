@@ -837,10 +837,10 @@ function Detalle() {
               if (!p) return null;
               const label =
                 f === "inicio"
-                  ? "Compartir dirección + foto (marcar llegada)"
+                  ? "Compartir datos del cliente + foto (marcar llegada)"
                   : f === "final"
-                    ? "Compartir foto final + dirección (finalizar)"
-                    : "Compartir foto + dirección (cancelar)";
+                    ? "Compartir foto final + datos del cliente (finalizar)"
+                    : "Compartir foto + datos del cliente (cancelar)";
               return (
                 <Button
                   key={f}
@@ -854,7 +854,7 @@ function Detalle() {
               );
             })}
             <div className="text-xs text-muted-foreground">
-              Se comparte la dirección con la foto y el servicio pasa al siguiente estado.
+              Se comparten los datos del cliente (dirección, nombre, tipo y observaciones) con la foto y el servicio pasa al siguiente estado.
             </div>
 
           </div>
