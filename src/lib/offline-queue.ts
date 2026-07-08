@@ -68,6 +68,10 @@ export async function enqueue(action: Omit<PendingAction, "id" | "createdAt" | "
   };
   await tx("readwrite", (s) => s.add(full));
   notifyListeners();
+  // Intento inmediato — si hay red se sube ya mismo sin esperar al banner.
+  if (typeof navigator === "undefined" || navigator.onLine !== false) {
+    setTimeout(() => { void processQueue(); }, 50);
+  }
   return full;
 }
 
