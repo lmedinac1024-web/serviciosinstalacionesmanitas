@@ -799,7 +799,7 @@ function Detalle() {
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil. Este servicio <b>sí suma ganancia</b> (cancelado por trabajador).
+                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil.
                   </div>
                 </div>
                 <DialogFooter>
@@ -1195,7 +1195,7 @@ function AdminOverride({
         <div>
           <div className="font-medium">Llegada validada (sin GPS)</div>
           <div className="text-xs text-muted-foreground">
-            Aprobar manualmente la llegada. Necesario para que cobre el precio por llegada si el trabajo se canceló.
+            Aprobar manualmente la llegada. Necesario para que cobre el servicio si se canceló por algún motivo.
           </div>
         </div>
       </label>
