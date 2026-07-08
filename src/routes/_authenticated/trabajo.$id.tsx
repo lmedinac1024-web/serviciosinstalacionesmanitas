@@ -311,8 +311,8 @@ function Detalle() {
               estado: nextEstado,
               hora_fin: at,
               motivo_cancelacion: motivoFinal,
-              // Al cancelar se cobra como servicio realizado; precio_llegada se iguala automáticamente al importe.
-              precio_llegada: job!.importe,
+              // precio_llegada y direccion_validada_llegada son campos de administrador;
+              // el empleado no puede modificarlos desde la app.
             };
 
     if (fase === "final" && me?.isAdmin) {
