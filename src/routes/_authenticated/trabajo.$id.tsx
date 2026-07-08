@@ -621,26 +621,15 @@ function Detalle() {
         {!isDone && (
           <div className="space-y-2">
             {canStart && (
-              <>
-                <Button
-                  size="lg"
-                  className="h-14 w-full text-base"
-                  onClick={() => pickPhoto("inicio", "camera")}
-                  disabled={working}
-                >
-                  <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
-                  {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => pickPhoto("inicio", "gallery")}
-                  disabled={working}
-                >
-                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
-                </Button>
-              </>
+              <Button
+                size="lg"
+                className="h-14 w-full text-base"
+                onClick={() => { void iniciarTareaDirecta(); }}
+                disabled={working}
+              >
+                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir dirección
+                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+              </Button>
             )}
             {canFinish && (
               <>
