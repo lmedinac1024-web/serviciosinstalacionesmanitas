@@ -64,9 +64,9 @@ function AdminDashboard() {
         cancelados: hoy.filter((j) => j.estado.startsWith("cancelado")).length,
       },
       ganado: {
-        hoy: sum(pagados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today)),
-        semana: sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= weekStart)),
-        mes: sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= monthStart)),
+        hoy: sum(pagados.filter((j) => j.fecha === today)),
+        semana: sum(pagados.filter((j) => j.fecha >= weekStart.slice(0, 10))),
+        mes: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10))),
         acumulado: sum(pagados),
       },
       pagados,
