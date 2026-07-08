@@ -841,20 +841,11 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={() => pickPhoto("final", "camera")}
+                  onClick={() => { void finalizarTareaDirecta(); }}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => pickPhoto("final", "gallery")}
-                  disabled={working}
-                >
-                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
                 </Button>
               </>
             )}
