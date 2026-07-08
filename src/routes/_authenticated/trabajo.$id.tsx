@@ -881,22 +881,16 @@ function Detalle() {
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil.
+                    Al confirmar, el servicio pasa a <b>cancelado</b> y se cobra como realizado.
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setCancelOpen(false); setCancelReason(null); setCancelExtra(""); }}>Volver</Button>
                   <Button
                     variant="destructive"
-                    onClick={() => handleCancelConfirm("camera")}
-                    disabled={!cancelReason}>
-                    Cámara
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleCancelConfirm("gallery")}
-                    disabled={!cancelReason}>
-                    Galería
+                    onClick={() => { void cancelarTareaDirecta(); }}
+                    disabled={!cancelReason || working}>
+                    Confirmar cancelación
                   </Button>
                 </DialogFooter>
               </DialogContent>
