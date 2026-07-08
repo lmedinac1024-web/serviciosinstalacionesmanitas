@@ -545,16 +545,11 @@ function NuevoServicio() {
         </Field>
 
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Precio del servicio (€) *">
-            <Input type="number" step="0.01" min="0" required value={form.importe} onChange={(e) => set("importe", e.target.value)} />
-          </Field>
-          <Field label="Precio por llegada (€)">
-            <Input type="number" step="0.01" min="0" value={form.precio_llegada} onChange={(e) => set("precio_llegada", e.target.value)} placeholder="0" />
-          </Field>
-        </div>
-        <div className="text-xs text-muted-foreground -mt-2">
-          El trabajador cobra el <b>precio del servicio</b> tanto si lo realiza como si se cancela por cualquier motivo tras validar la llegada por GPS.
+        <Field label="Precio del servicio (€) *">
+          <Input type="number" step="0.01" min="0" required value={form.importe} onChange={(e) => set("importe", e.target.value)} />
+        </Field>
+        <div className="text-xs text-muted-foreground">
+          El trabajador cobra el <b>precio del servicio</b> tanto si lo realiza como si se cancela por cualquier motivo tras validar la llegada por GPS. Al cancelar, el importe se registra automáticamente como cobro por llegada.
         </div>
 
         <div className="flex gap-2 pt-2">
