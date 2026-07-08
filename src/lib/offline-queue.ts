@@ -271,10 +271,17 @@ export async function processQueue(): Promise<{ ok: number; failed: number }> {
         ok++;
       } catch (e) {
         failed++;
+        let msg: string;
+        if (e instanceof Error) msg = e.message;
+        else if (e && typeof e === "object") {
+          const anyE = e as { message?: string; error?: string; hint?: string; details?: string; code?: string };
+          msg = anyE.message || anyE.error || anyE.hint || anyE.details || anyE.code || JSON.stringify(e);
+        } else msg = String(e);
+        console.error("[offline-queue] action failed", item, e);
         await update({
           ...item,
           attempts: item.attempts + 1,
-          lastError: e instanceof Error ? e.message : String(e),
+          lastError: msg,
         });
       }
     }
