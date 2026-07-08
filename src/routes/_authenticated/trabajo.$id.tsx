@@ -213,11 +213,13 @@ function Detalle() {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
-    let text = [header, addressLine].filter(Boolean).join("\n");
+    const tipoLine = job?.tipo_servicio ? `🛠️ Tipo: ${job.tipo_servicio}` : "";
+    const obsLine = job?.observaciones ? `📝 Observaciones / reparaciones: ${job.observaciones}` : "";
+    let text = [header, addressLine, tipoLine, obsLine].filter(Boolean).join("\n");
     if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
-      text = [header, addressLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
+      text = [header, addressLine, tipoLine, obsLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
     }
     return { fase, file, title: faseTxt, text };
   }
@@ -440,10 +442,10 @@ function Detalle() {
     setWorking(true);
     const at = new Date().toISOString();
     const header = `Iniciando tarea — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
-    const tipoLine = job!.tipo_servicio ? `🛠️ Incidencia: ${job!.tipo_servicio}` : "";
+    const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
-    const mapsLine = `🗺️ ${googleMapsUrl(job!)}`;
-    const text = [header, tipoLine, addressLine, mapsLine].filter(Boolean).join("\n");
+    const obsLine = job!.observaciones ? `📝 Observaciones / reparaciones: ${job!.observaciones}` : "";
+    const text = [header, tipoLine, addressLine, obsLine].filter(Boolean).join("\n");
 
     // Disparar compartir nativo desde el gesto del usuario, sin bloquear
     const sharePromise = (async () => {
@@ -699,7 +701,7 @@ function Detalle() {
                 onClick={() => { void iniciarTareaDirecta(); }}
                 disabled={working}
               >
-                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir dirección
+                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir datos del cliente
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
@@ -835,10 +837,10 @@ function Detalle() {
               if (!p) return null;
               const label =
                 f === "inicio"
-                  ? "Compartir dirección + foto (marcar llegada)"
+                  ? "Compartir datos del cliente + foto (marcar llegada)"
                   : f === "final"
-                    ? "Compartir foto final + dirección (finalizar)"
-                    : "Compartir foto + dirección (cancelar)";
+                    ? "Compartir foto final + datos del cliente (finalizar)"
+                    : "Compartir foto + datos del cliente (cancelar)";
               return (
                 <Button
                   key={f}
@@ -852,7 +854,7 @@ function Detalle() {
               );
             })}
             <div className="text-xs text-muted-foreground">
-              Se comparte la dirección con la foto y el servicio pasa al siguiente estado.
+              Se comparten los datos del cliente (dirección, nombre, tipo y observaciones) con la foto y el servicio pasa al siguiente estado.
             </div>
 
           </div>
