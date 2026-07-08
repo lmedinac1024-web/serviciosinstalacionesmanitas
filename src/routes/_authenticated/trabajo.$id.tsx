@@ -503,6 +503,89 @@ function Detalle() {
     }
   }
 
+  async function finalizarTareaDirecta() {
+    if (working) return;
+    setWorking(true);
+    try {
+      const gpsPatch = await buildGpsPatch("final");
+      const statusPatch: Partial<Job> = { ...buildStatusPatch("final"), ...gpsPatch };
+      patchJobInCaches(statusPatch);
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      toast.success("Tarea realizada" + (offline ? " · en cola offline" : ""));
+
+      const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
+      let queuedId: string | null = null;
+      if (userId) {
+        try {
+          const queued = await enqueueOffline({
+            jobId: job!.id,
+            userId,
+            kind: "final",
+            destinoIds: [],
+          });
+          queuedId = queued.id;
+        } catch { /* seguimos con persistencia directa */ }
+      }
+
+      if (!offline) {
+        try {
+          await persistStatusPatch("final", statusPatch);
+          patchJobInCaches(statusPatch);
+          if (queuedId) await removeOffline(queuedId);
+        } catch {
+          toast.info("Sin conexión estable; se sincroniza automáticamente");
+        }
+      }
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function cancelarTareaDirecta() {
+    if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
+    if (working) return;
+    setWorking(true);
+    setCancelOpen(false);
+    try {
+      const gpsPatch = await buildGpsPatch("cancel");
+      const statusPatch: Partial<Job> = { ...buildStatusPatch("cancel"), ...gpsPatch };
+      patchJobInCaches(statusPatch);
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      toast.success("Tarea cancelada" + (offline ? " · en cola offline" : ""));
+
+      const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
+      let queuedId: string | null = null;
+      if (userId) {
+        try {
+          const queued = await enqueueOffline({
+            jobId: job!.id,
+            userId,
+            kind: "cancelar",
+            destinoIds: [],
+            motivo: statusPatch.motivo_cancelacion
+              ? `${statusPatch.estado}|${statusPatch.motivo_cancelacion}`
+              : undefined,
+          });
+          queuedId = queued.id;
+        } catch { /* seguimos */ }
+      }
+
+      if (!offline) {
+        try {
+          await persistStatusPatch("cancel", statusPatch);
+          patchJobInCaches(statusPatch);
+          if (queuedId) await removeOffline(queuedId);
+        } catch {
+          toast.info("Sin conexión estable; se sincroniza automáticamente");
+        }
+      }
+      setCancelReason(null);
+      setCancelExtra("");
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function persistStatusPatch(fase: Fase, statusPatch: Partial<Job>) {
     const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
     if (!error) return;
