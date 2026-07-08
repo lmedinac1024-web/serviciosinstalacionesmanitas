@@ -61,7 +61,8 @@ function Historial() {
       if (range === "hoy" && j.fecha !== todayStr()) return false;
       if (range === "semana" && new Date(j.fecha) < startOfWeek()) return false;
       if (range === "mes" && new Date(j.fecha) < startOfMonth()) return false;
-      if (estado !== "todos" && j.estado !== estado) return false;
+      if (estado === "cancelado") { if (!j.estado.startsWith("cancelado")) return false; }
+      else if (estado !== "todos" && j.estado !== estado) return false;
       if (cliente && !j.cliente.toLowerCase().includes(cliente.toLowerCase())) return false;
       if (ciudad && !(j.ciudad ?? "").toLowerCase().includes(ciudad.toLowerCase())) return false;
       if (tipo && !(j.tipo_servicio ?? "").toLowerCase().includes(tipo.toLowerCase())) return false;
