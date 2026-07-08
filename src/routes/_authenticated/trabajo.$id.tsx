@@ -592,6 +592,8 @@ function Detalle() {
       }
     } finally {
       setWorking(false);
+      setFinishItems({});
+      setFinishExtra("");
     }
   }
 
