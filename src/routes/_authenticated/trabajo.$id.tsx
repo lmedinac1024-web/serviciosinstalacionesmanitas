@@ -1195,7 +1195,7 @@ function AdminOverride({
         <div>
           <div className="font-medium">Llegada validada (sin GPS)</div>
           <div className="text-xs text-muted-foreground">
-            Aprobar manualmente la llegada. Necesario para que cobre el precio por llegada si el trabajo se canceló.
+            Aprobar manualmente la llegada. Necesario para que cobre el servicio si se canceló por algún motivo.
           </div>
         </div>
       </label>
