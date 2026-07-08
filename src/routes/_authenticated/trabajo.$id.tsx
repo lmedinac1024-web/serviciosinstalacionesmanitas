@@ -701,7 +701,7 @@ function Detalle() {
                 onClick={() => { void iniciarTareaDirecta(); }}
                 disabled={working}
               >
-                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir dirección
+                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir datos del cliente
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
