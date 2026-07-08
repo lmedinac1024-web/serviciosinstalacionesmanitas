@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { processQueue, count as pendingCount, subscribe as subscribeQueue, listAll as listQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
+import logoManitas from "@/assets/logo-manitas.png.asset.json";
 
 type NavPath =
   | "/"
