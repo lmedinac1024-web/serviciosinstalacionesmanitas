@@ -290,7 +290,13 @@ function Detalle() {
         ? { estado: "en_proceso", hora_llegada: at }
         : fase === "final"
           ? { estado: "realizado", hora_fin: at }
-          : { estado: nextEstado, hora_fin: at, motivo_cancelacion: motivoFinal };
+          : {
+              estado: nextEstado,
+              hora_fin: at,
+              motivo_cancelacion: motivoFinal,
+              // Al cancelar se cobra como servicio realizado; precio_llegada se iguala automáticamente al importe.
+              precio_llegada: job!.importe,
+            };
 
     if (fase === "final" && me?.isAdmin) {
       if (importeFinal.trim() !== "") {
