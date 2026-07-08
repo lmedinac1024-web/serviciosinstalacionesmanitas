@@ -379,12 +379,8 @@ function Detalle() {
       const validated = distanceM != null ? distanceM <= 250 : false;
       setGpsMeta({ lat, lng, distanceM, validated });
       if (fase === "inicio") {
-        return {
-          gps_llegada_lat: lat,
-          gps_llegada_lng: lng,
-          distancia_llegada_metros: distanceM,
-          direccion_validada_llegada: validated,
-        };
+        // distancia_llegada_metros y direccion_validada_llegada solo los modifica un administrador.
+        return { gps_llegada_lat: lat, gps_llegada_lng: lng };
       }
       if (fase === "final") return { gps_final_lat: lat, gps_final_lng: lng };
       return { gps_cancelacion_lat: lat, gps_cancelacion_lng: lng };
