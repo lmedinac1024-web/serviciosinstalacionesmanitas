@@ -87,9 +87,12 @@ function Historial() {
             <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos los estados</SelectItem>
-              {(Object.keys(STATUS_LABELS) as JobStatus[]).map((s) => (
-                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-              ))}
+              {(Object.keys(STATUS_LABELS) as JobStatus[])
+                .filter((s) => !s.startsWith("cancelado"))
+                .map((s) => (
+                  <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                ))}
+              <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
           <Input placeholder="Cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
