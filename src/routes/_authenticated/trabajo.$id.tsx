@@ -675,8 +675,6 @@ function Detalle() {
             fase === "inicio" ? (typeof statusPatch.gps_llegada_lng === "number" ? statusPatch.gps_llegada_lng : undefined)
             : fase === "final" ? (typeof statusPatch.gps_final_lng === "number" ? statusPatch.gps_final_lng : undefined)
             : typeof statusPatch.gps_cancelacion_lng === "number" ? statusPatch.gps_cancelacion_lng : undefined,
-          arrivalDistanceM: typeof statusPatch.distancia_llegada_metros === "number" ? statusPatch.distancia_llegada_metros : null,
-          arrivalValidated: typeof statusPatch.direccion_validada_llegada === "boolean" ? statusPatch.direccion_validada_llegada : undefined,
         }
       : null;
 
