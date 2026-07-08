@@ -15,7 +15,7 @@ import {
   UserSquare2,
   RefreshCw,
   KeyRound,
-  Wrench,
+  Wrench as _Wrench,
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
