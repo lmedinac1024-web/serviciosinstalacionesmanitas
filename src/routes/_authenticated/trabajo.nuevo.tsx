@@ -47,7 +47,6 @@ function createInitialForm() {
     direccion_completa: "",
     observaciones: "",
     importe: "",
-    precio_llegada: "",
     numero_operacion: "",
     numero_servicio: "",
     imagen_original_url: "",
