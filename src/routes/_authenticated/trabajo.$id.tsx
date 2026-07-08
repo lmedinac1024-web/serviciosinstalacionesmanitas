@@ -687,7 +687,7 @@ function Detalle() {
                   onClick={() => pickPhoto("final", "camera")}
                   disabled={working}
                 >
-                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
+                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
                 </Button>
                 <Button
