@@ -89,6 +89,9 @@ function Detalle() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelExtra, setCancelExtra] = useState("");
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [finishItems, setFinishItems] = useState<Record<string, boolean>>({});
+  const [finishExtra, setFinishExtra] = useState("");
   const [working, setWorking] = useState(false);
   const [, setGpsMeta] = useState<GpsMeta | null>(null);
   const [importeFinal, setImporteFinal] = useState<string>("");
