@@ -520,10 +520,49 @@ function Detalle() {
 
   async function finalizarTareaDirecta() {
     if (working) return;
+    const selected = FINISH_CHECKLIST.filter((k) => finishItems[k]);
+    const extra = finishExtra.trim();
+    if (selected.length === 0 && !extra) {
+      toast.error("Marca al menos una tarea realizada o añade una nota");
+      return;
+    }
     setWorking(true);
+    setFinishOpen(false);
+
+    // Compartir desglose por nativo (fire-and-forget desde el gesto del usuario)
+    const header = `✅ Tarea finalizada — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
+    const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
+    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    const listLines = selected.length > 0
+      ? ["📋 Trabajos realizados:", ...selected.map((s) => `• ${s}`)].join("\n")
+      : "";
+    const extraLine = extra ? `📝 Notas: ${extra}` : "";
+    const shareText = [header, tipoLine, addressLine, listLines, extraLine].filter(Boolean).join("\n");
+    void (async () => {
+      try {
+        if (typeof navigator === "undefined") return;
+        const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+        if (!nav.share) return;
+        await nav.share({ title: "Tarea finalizada", text: shareText });
+      } catch { /* ignore */ }
+    })();
+
     try {
       const gpsPatch = await buildGpsPatch("final");
-      const statusPatch: Partial<Job> = { ...buildStatusPatch("final"), ...gpsPatch };
+      const trabajosText = [
+        selected.length > 0 ? selected.map((s) => `• ${s}`).join("\n") : "",
+        extra ? `Notas: ${extra}` : "",
+      ].filter(Boolean).join("\n");
+      const prevObs = (job?.observaciones ?? "").trim();
+      const nuevasObs = [
+        prevObs,
+        `--- Trabajos realizados (${new Date().toLocaleString("es-ES")}):\n${trabajosText}`,
+      ].filter(Boolean).join("\n\n");
+      const statusPatch: Partial<Job> = {
+        ...buildStatusPatch("final"),
+        ...gpsPatch,
+        observaciones: nuevasObs,
+      };
       patchJobInCaches(statusPatch);
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;
       toast.success("Tarea realizada" + (offline ? " · en cola offline" : ""));
