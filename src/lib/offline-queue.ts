@@ -303,9 +303,14 @@ export function installAutoSync() {
   installed = true;
   window.addEventListener("online", () => { void processQueue(); });
   window.addEventListener("focus", () => { void processQueue(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void processQueue();
+  });
   window.addEventListener("storage", (e) => {
     if (e.key === "offline-queue-ping") notifyListeners();
   });
-  // initial pass shortly after load
+  // pase inicial poco después de cargar
   setTimeout(() => { void processQueue(); }, 1500);
+  // reintento periódico de fondo cada 30s por si hubo un fallo transitorio
+  setInterval(() => { void processQueue(); }, 30000);
 }
