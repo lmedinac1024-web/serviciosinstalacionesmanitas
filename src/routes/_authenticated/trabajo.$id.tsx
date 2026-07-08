@@ -442,10 +442,10 @@ function Detalle() {
     setWorking(true);
     const at = new Date().toISOString();
     const header = `Iniciando tarea — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
-    const tipoLine = job!.tipo_servicio ? `🛠️ Incidencia: ${job!.tipo_servicio}` : "";
+    const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
-    const mapsLine = `🗺️ ${googleMapsUrl(job!)}`;
-    const text = [header, tipoLine, addressLine, mapsLine].filter(Boolean).join("\n");
+    const obsLine = job!.observaciones ? `📝 Observaciones / reparaciones: ${job!.observaciones}` : "";
+    const text = [header, tipoLine, addressLine, obsLine].filter(Boolean).join("\n");
 
     // Disparar compartir nativo desde el gesto del usuario, sin bloquear
     const sharePromise = (async () => {
