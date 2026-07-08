@@ -200,12 +200,13 @@ async function processOne(action: PendingAction): Promise<void> {
 
   const now = new Date().toISOString();
   if (action.kind === "inicio") {
+    // NOTA: `direccion_validada_llegada` y `distancia_llegada_metros` solo pueden
+    // modificarlos administradores (trigger guard_servicios_field_tamper), así que
+    // no los enviamos desde el cliente empleado — se dejarían igual en la BD.
     const statusPatch = {
       hora_llegada: now,
       ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
       ...(action.arrivalLng != null ? { gps_llegada_lng: action.arrivalLng } : {}),
-      ...(action.arrivalDistanceM != null ? { distancia_llegada_metros: action.arrivalDistanceM } : {}),
-      ...(action.arrivalValidated != null ? { direccion_validada_llegada: action.arrivalValidated } : {}),
     };
     const { error: statusMetaError } = await supabase.from("servicios").update(statusPatch).eq("id", action.jobId);
     if (statusMetaError) throw statusMetaError;
