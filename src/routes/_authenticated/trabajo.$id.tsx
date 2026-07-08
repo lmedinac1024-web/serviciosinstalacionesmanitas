@@ -493,8 +493,6 @@ function Detalle() {
             destinoIds: [],
             arrivalLat: typeof statusPatch.gps_llegada_lat === "number" ? statusPatch.gps_llegada_lat : undefined,
             arrivalLng: typeof statusPatch.gps_llegada_lng === "number" ? statusPatch.gps_llegada_lng : undefined,
-            arrivalDistanceM: typeof statusPatch.distancia_llegada_metros === "number" ? statusPatch.distancia_llegada_metros : null,
-            arrivalValidated: typeof statusPatch.direccion_validada_llegada === "boolean" ? statusPatch.direccion_validada_llegada : undefined,
           });
           queuedId = queued.id;
         } catch { /* si falla la cola seguimos con persistencia directa */ }
