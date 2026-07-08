@@ -41,11 +41,6 @@ export function JobCard({ job }: { job: Job }) {
           <StatusBadge status={job.estado} voided={!!job.eliminado_logico} />
           <div className="text-right">
             <div className="text-base font-bold">{formatEUR(jobTotal(job))}</div>
-            {Number(job.precio_llegada ?? 0) > 0 && (
-              <div className="text-[11px] text-muted-foreground">
-                +{formatEUR(job.precio_llegada)} llegada
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -47,7 +47,6 @@ function createInitialForm() {
     direccion_completa: "",
     observaciones: "",
     importe: "",
-    precio_llegada: "",
     numero_operacion: "",
     numero_servicio: "",
     imagen_original_url: "",
@@ -242,36 +241,35 @@ function NuevoServicio() {
         toast.error(`No se pudo leer la orden (${res.reason})`);
         return;
       }
-      const c = res.campos;
-      setForm((prev) => {
-        const next: FormState = {
-          ...prev,
-          fecha: c.fecha_servicio ?? prev.fecha,
-          hora: c.hora_servicio ?? c.hora_inicio ?? prev.hora,
-          hora_inicio: c.hora_inicio ?? prev.hora_inicio,
-          hora_fin: c.hora_fin ?? prev.hora_fin,
-          empleado_id: c.trabajador_id ?? prev.empleado_id,
-          tipo_servicio: c.tipo_servicio ?? prev.tipo_servicio,
-          cliente: c.nombre_cliente ?? prev.cliente,
-          telefono: c.telefono ?? prev.telefono,
-          telefonos_extra: (c.telefonos_extra ?? []).join(", ") || prev.telefonos_extra,
-          direccion: c.direccion ?? prev.direccion,
-          numero: c.numero ?? prev.numero,
-          piso: c.piso ?? prev.piso,
-          puerta: c.puerta ?? prev.puerta,
-          codigo_postal: c.codigo_postal ?? prev.codigo_postal,
-          ciudad: c.ciudad ?? prev.ciudad,
-          direccion_completa: c.direccion_completa ?? prev.direccion_completa,
-          observaciones: c.observaciones ?? prev.observaciones,
-          importe: c.precio_servicio != null ? String(c.precio_servicio) : prev.importe,
-          precio_llegada: c.precio_llegada != null ? String(c.precio_llegada) : prev.precio_llegada,
-          numero_operacion: c.numero_operacion ?? prev.numero_operacion,
-          numero_servicio: c.numero_servicio ?? prev.numero_servicio,
-          imagen_original_url: imagenPath || prev.imagen_original_url,
-          texto_ocr_original: res.texto_ocr || prev.texto_ocr_original,
-        };
-        return next;
-      });
+        const c = res.campos;
+        setForm((prev) => {
+          const next: FormState = {
+            ...prev,
+            fecha: c.fecha_servicio ?? prev.fecha,
+            hora: c.hora_servicio ?? c.hora_inicio ?? prev.hora,
+            hora_inicio: c.hora_inicio ?? prev.hora_inicio,
+            hora_fin: c.hora_fin ?? prev.hora_fin,
+            empleado_id: c.trabajador_id ?? prev.empleado_id,
+            tipo_servicio: c.tipo_servicio ?? prev.tipo_servicio,
+            cliente: c.nombre_cliente ?? prev.cliente,
+            telefono: c.telefono ?? prev.telefono,
+            telefonos_extra: (c.telefonos_extra ?? []).join(", ") || prev.telefonos_extra,
+            direccion: c.direccion ?? prev.direccion,
+            numero: c.numero ?? prev.numero,
+            piso: c.piso ?? prev.piso,
+            puerta: c.puerta ?? prev.puerta,
+            codigo_postal: c.codigo_postal ?? prev.codigo_postal,
+            ciudad: c.ciudad ?? prev.ciudad,
+            direccion_completa: c.direccion_completa ?? prev.direccion_completa,
+            observaciones: c.observaciones ?? prev.observaciones,
+            importe: c.precio_servicio != null ? String(c.precio_servicio) : prev.importe,
+            numero_operacion: c.numero_operacion ?? prev.numero_operacion,
+            numero_servicio: c.numero_servicio ?? prev.numero_servicio,
+            imagen_original_url: imagenPath || prev.imagen_original_url,
+            texto_ocr_original: res.texto_ocr || prev.texto_ocr_original,
+          };
+          return next;
+        });
       setGeo({ status: "idle" });
 
       if (res.aviso_cp) toast.warning("Código postal corregido automáticamente, revisar");
@@ -353,7 +351,8 @@ function NuevoServicio() {
         hora_inicio: form.hora_inicio || null,
         hora_fin: form.hora_fin ? `${form.fecha}T${form.hora_fin.length === 5 ? form.hora_fin + ":00" : form.hora_fin}` : null,
         importe: Number(form.importe) || 0,
-        precio_llegada: Number(form.precio_llegada) || 0,
+        // precio_llegada se asigna automáticamente solo al cancelar (igual al importe).
+        precio_llegada: 0,
         observaciones: form.observaciones.trim() || null,
         numero_operacion: form.numero_operacion.trim() || null,
         numero_servicio: form.numero_servicio.trim() || null,
@@ -546,16 +545,11 @@ function NuevoServicio() {
         </Field>
 
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Precio del servicio (€) *">
-            <Input type="number" step="0.01" min="0" required value={form.importe} onChange={(e) => set("importe", e.target.value)} />
-          </Field>
-          <Field label="Precio por llegada (€)">
-            <Input type="number" step="0.01" min="0" value={form.precio_llegada} onChange={(e) => set("precio_llegada", e.target.value)} placeholder="0" />
-          </Field>
-        </div>
-        <div className="text-xs text-muted-foreground -mt-2">
-          El trabajador cobra el <b>precio del servicio</b> tanto si lo realiza como si se cancela por cualquier motivo tras validar la llegada por GPS.
+        <Field label="Precio del servicio (€) *">
+          <Input type="number" step="0.01" min="0" required value={form.importe} onChange={(e) => set("importe", e.target.value)} />
+        </Field>
+        <div className="text-xs text-muted-foreground">
+          El trabajador cobra el <b>precio del servicio</b> tanto si lo realiza como si se cancela por cualquier motivo tras validar la llegada por GPS. Al cancelar, el importe se registra automáticamente como cobro por llegada.
         </div>
 
         <div className="flex gap-2 pt-2">

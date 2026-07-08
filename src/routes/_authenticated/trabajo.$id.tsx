@@ -290,7 +290,13 @@ function Detalle() {
         ? { estado: "en_proceso", hora_llegada: at }
         : fase === "final"
           ? { estado: "realizado", hora_fin: at }
-          : { estado: nextEstado, hora_fin: at, motivo_cancelacion: motivoFinal };
+          : {
+              estado: nextEstado,
+              hora_fin: at,
+              motivo_cancelacion: motivoFinal,
+              // Al cancelar se cobra como servicio realizado; precio_llegada se iguala automáticamente al importe.
+              precio_llegada: job!.importe,
+            };
 
     if (fase === "final" && me?.isAdmin) {
       if (importeFinal.trim() !== "") {
@@ -978,11 +984,13 @@ function AdminOverride({
   async function save() {
     setSaving(true);
     try {
+      const importeNum = Number(importe) || 0;
       const patch = {
         estado,
         direccion_validada_llegada: validada,
-        importe: Number(importe) || 0,
-        precio_llegada: Number(precioLlegada) || 0,
+        importe: importeNum,
+        // Al cancelar se cobra como servicio realizado: precio_llegada = importe automáticamente.
+        precio_llegada: cancelled ? importeNum : Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
         hora_programada: hora || null,
@@ -1104,11 +1112,21 @@ function AdminOverride({
           <input type="number" step="0.01" min="0" value={importe} onChange={(e) => setImporte(e.target.value)}
             className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Precio por llegada (€)</label>
-          <input type="number" step="0.01" min="0" value={precioLlegada} onChange={(e) => setPrecioLlegada(e.target.value)}
-            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
-        </div>
+        {!cancelled && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Precio por llegada (€)</label>
+            <input type="number" step="0.01" min="0" value={precioLlegada} onChange={(e) => setPrecioLlegada(e.target.value)}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+          </div>
+        )}
+        {cancelled && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Cobro por cancelación (€)</label>
+            <div className="flex h-[34px] items-center rounded-md border bg-muted px-2 text-sm text-muted-foreground">
+              Igual al importe
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
