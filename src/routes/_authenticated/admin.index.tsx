@@ -84,7 +84,7 @@ function AdminDashboard() {
       const p = profiles.find((x) => x.user_id === uid);
       return p?.display_name || p?.username || "—";
     };
-    const filtered = stats.pagados.filter((j) => (j.hora_fin ?? j.fecha) >= rangoInicio);
+    const filtered = stats.pagados.filter((j) => j.fecha >= rangoInicio);
     const map = new Map<string, { name: string; count: number; ganado: number; realizados: number; cancelados: number }>();
     for (const j of filtered) {
       const uid = j.empleado_id ?? j.user_id;
