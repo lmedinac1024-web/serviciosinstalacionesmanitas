@@ -429,6 +429,50 @@ function Detalle() {
   }
 
 
+  async function iniciarTareaDirecta() {
+    if (working) return;
+    setWorking(true);
+    const at = new Date().toISOString();
+    const header = `Iniciando tarea — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
+    const tipoLine = job!.tipo_servicio ? `🛠️ Incidencia: ${job!.tipo_servicio}` : "";
+    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    const mapsLine = `🗺️ ${googleMapsUrl(job!)}`;
+    const text = [header, tipoLine, addressLine, mapsLine].filter(Boolean).join("\n");
+
+    // Disparar compartir nativo desde el gesto del usuario, sin bloquear
+    const sharePromise = (async () => {
+      try {
+        if (typeof navigator === "undefined") return false;
+        const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+        if (!nav.share) return false;
+        await nav.share({ title: "Iniciar tarea", text });
+        return true;
+      } catch (e) {
+        if ((e as DOMException)?.name === "AbortError") return false;
+        return false;
+      }
+    })();
+
+    try {
+      const gpsPatch = await buildGpsPatch("inicio");
+      const statusPatch: Partial<Job> = { estado: "en_proceso", hora_llegada: at, ...gpsPatch };
+      patchJobInCaches(statusPatch);
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      toast.success("Tarea iniciada" + (offline ? " · en cola offline" : ""));
+      void sharePromise;
+      if (!offline) {
+        try {
+          await persistStatusPatch("inicio", statusPatch);
+          patchJobInCaches(statusPatch);
+        } catch {
+          toast.info("No se pudo confirmar; se reintentará automáticamente");
+        }
+      }
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function persistStatusPatch(fase: Fase, statusPatch: Partial<Job>) {
     const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
     if (!error) return;
@@ -621,26 +665,15 @@ function Detalle() {
         {!isDone && (
           <div className="space-y-2">
             {canStart && (
-              <>
-                <Button
-                  size="lg"
-                  className="h-14 w-full text-base"
-                  onClick={() => pickPhoto("inicio", "camera")}
-                  disabled={working}
-                >
-                  <Camera className="mr-2 h-5 w-5" /> Llegué — Foto de inicio
-                  {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => pickPhoto("inicio", "gallery")}
-                  disabled={working}
-                >
-                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
-                </Button>
-              </>
+              <Button
+                size="lg"
+                className="h-14 w-full text-base"
+                onClick={() => { void iniciarTareaDirecta(); }}
+                disabled={working}
+              >
+                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir dirección
+                {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
+              </Button>
             )}
             {canFinish && (
               <>
@@ -698,7 +731,7 @@ function Detalle() {
                   onClick={() => pickPhoto("final", "camera")}
                   disabled={working}
                 >
-                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar — Foto final
+                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
                 </Button>
                 <Button
