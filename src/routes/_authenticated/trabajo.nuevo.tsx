@@ -351,7 +351,8 @@ function NuevoServicio() {
         hora_inicio: form.hora_inicio || null,
         hora_fin: form.hora_fin ? `${form.fecha}T${form.hora_fin.length === 5 ? form.hora_fin + ":00" : form.hora_fin}` : null,
         importe: Number(form.importe) || 0,
-        precio_llegada: Number(form.precio_llegada) || 0,
+        // precio_llegada se asigna automáticamente solo al cancelar (igual al importe).
+        precio_llegada: 0,
         observaciones: form.observaciones.trim() || null,
         numero_operacion: form.numero_operacion.trim() || null,
         numero_servicio: form.numero_servicio.trim() || null,
