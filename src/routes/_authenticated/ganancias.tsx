@@ -116,7 +116,7 @@ function Ganancias() {
   }, [rango, dia, desde, hasta]);
 
   function fechaOf(j: Job): string {
-    return (j.hora_fin?.slice(0, 10)) || j.fecha;
+    return j.fecha;
   }
 
   const filtrados = useMemo(
