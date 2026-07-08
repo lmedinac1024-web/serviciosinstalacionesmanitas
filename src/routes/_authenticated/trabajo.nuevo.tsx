@@ -555,7 +555,7 @@ function NuevoServicio() {
           </Field>
         </div>
         <div className="text-xs text-muted-foreground -mt-2">
-          El trabajador cobra el <b>precio del servicio</b> si lo realiza, o el <b>precio por llegada</b> si valida GPS a 100 m pero se cancela.
+          El trabajador cobra el <b>precio del servicio</b> tanto si lo realiza como si se cancela por cualquier motivo tras validar la llegada por GPS.
         </div>
 
         <div className="flex gap-2 pt-2">
