@@ -34,6 +34,7 @@ type NavPath =
   | "/hoy"
   | "/ganancias"
   | "/historial"
+  | "/cancelados"
   | "/ajustes"
   | "/admin"
   | "/admin/empleados"
@@ -49,6 +50,7 @@ const NAV_EMPLEADO: NavItem[] = [
   { to: "/hoy", label: "Hoy", icon: CalendarDays },
   { to: "/ganancias", label: "Ganancias", icon: Wallet },
   { to: "/historial", label: "Historial", icon: History },
+  { to: "/cancelados", label: "Cancelados", icon: XCircle },
 ];
 
 const NAV_ADMIN: NavItem[] = [
@@ -56,6 +58,7 @@ const NAV_ADMIN: NavItem[] = [
   { to: "/pendientes", label: "Trabajos", icon: ListChecks },
   { to: "/ganancias", label: "Ganancias", icon: Wallet },
   { to: "/historial", label: "Historial", icon: History },
+  { to: "/cancelados", label: "Cancelados", icon: XCircle },
 ];
 
 const ADMIN_LINKS: NavItem[] = [
