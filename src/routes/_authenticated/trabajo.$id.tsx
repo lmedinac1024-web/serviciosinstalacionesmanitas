@@ -213,11 +213,13 @@ function Detalle() {
     const faseTxt = fase === "inicio" ? "Foto de inicio" : fase === "final" ? "Foto final" : "Foto de cancelación";
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
-    let text = [header, addressLine].filter(Boolean).join("\n");
+    const tipoLine = job?.tipo_servicio ? `🛠️ Tipo: ${job.tipo_servicio}` : "";
+    const obsLine = job?.observaciones ? `📝 Observaciones / reparaciones: ${job.observaciones}` : "";
+    let text = [header, addressLine, tipoLine, obsLine].filter(Boolean).join("\n");
     if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
-      text = [header, addressLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
+      text = [header, addressLine, tipoLine, obsLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
     }
     return { fase, file, title: faseTxt, text };
   }
