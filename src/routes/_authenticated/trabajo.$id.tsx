@@ -984,11 +984,13 @@ function AdminOverride({
   async function save() {
     setSaving(true);
     try {
+      const importeNum = Number(importe) || 0;
       const patch = {
         estado,
         direccion_validada_llegada: validada,
-        importe: Number(importe) || 0,
-        precio_llegada: Number(precioLlegada) || 0,
+        importe: importeNum,
+        // Al cancelar se cobra como servicio realizado: precio_llegada = importe automáticamente.
+        precio_llegada: cancelled ? importeNum : Number(precioLlegada) || 0,
         motivo_cancelacion: cancelled ? (motivo || STATUS_LABELS[estado]) : null,
         fecha,
         hora_programada: hora || null,
