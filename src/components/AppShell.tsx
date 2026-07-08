@@ -23,7 +23,7 @@ import type { ReactNode } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { processQueue, count as pendingCount, subscribe as subscribeQueue } from "@/lib/offline-queue";
+import { processQueue, count as pendingCount, subscribe as subscribeQueue, listAll as listQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
 
 type NavPath =
@@ -97,7 +97,12 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       const n = await pendingCount();
       setPending(n);
       if (res.ok > 0) toast.success(`Sincronizado: ${res.ok} acción(es)`);
-      else if (res.failed > 0) toast.error(`Fallaron ${res.failed} acción(es)`);
+      else if (res.failed > 0) {
+        const items = await listQueue();
+        const firstErr = items.map((i) => i.lastError).find(Boolean) ?? "Error desconocido";
+        console.warn("[sync] acciones fallidas", items);
+        toast.error(`Fallaron ${res.failed} acción(es)`, { description: firstErr, duration: 10000 });
+      }
       else toast.success("Datos actualizados");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al sincronizar");
