@@ -897,12 +897,52 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={() => { void finalizarTareaDirecta(); }}
+                  onClick={() => { setFinishItems({}); setFinishExtra(""); setFinishOpen(true); }}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
                 </Button>
+                <Dialog open={finishOpen} onOpenChange={setFinishOpen}>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Trabajos realizados</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">
+                        Marca lo que hiciste. Se guardará en observaciones y se compartirá.
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
+                        {FINISH_CHECKLIST.map((item) => (
+                          <label key={item} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent">
+                            <Checkbox
+                              checked={!!finishItems[item]}
+                              onCheckedChange={(v) => setFinishItems((old) => ({ ...old, [item]: v === true }))}
+                            />
+                            <span className="text-sm">{item}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div>
+                        <div className="mb-1.5 text-xs font-medium">Notas adicionales</div>
+                        <Textarea
+                          value={finishExtra}
+                          onChange={(e) => setFinishExtra(e.target.value)}
+                          placeholder="Detalles de lo realizado (opcional)"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setFinishOpen(false)}>Volver</Button>
+                      <Button
+                        className="bg-success text-success-foreground hover:bg-success/90"
+                        onClick={() => { void finalizarTareaDirecta(); }}
+                        disabled={working}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" /> Compartir y finalizar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </>
             )}
             <Dialog open={cancelOpen} onOpenChange={(v) => { setCancelOpen(v); if (v) { setCancelReason(null); setCancelExtra(""); } }}>
