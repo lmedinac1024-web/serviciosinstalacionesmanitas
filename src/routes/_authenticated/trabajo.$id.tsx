@@ -456,16 +456,38 @@ function Detalle() {
     try {
       const gpsPatch = await buildGpsPatch("inicio");
       const statusPatch: Partial<Job> = { estado: "en_proceso", hora_llegada: at, ...gpsPatch };
+      // UI optimista siempre
       patchJobInCaches(statusPatch);
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;
       toast.success("Tarea iniciada" + (offline ? " · en cola offline" : ""));
       void sharePromise;
+
+      // Encolar SIEMPRE para que sobreviva sin internet o sin sesión.
+      const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
+      let queuedId: string | null = null;
+      if (userId) {
+        try {
+          const queued = await enqueueOffline({
+            jobId: job!.id,
+            userId,
+            kind: "inicio",
+            destinoIds: [],
+            arrivalLat: typeof statusPatch.gps_llegada_lat === "number" ? statusPatch.gps_llegada_lat : undefined,
+            arrivalLng: typeof statusPatch.gps_llegada_lng === "number" ? statusPatch.gps_llegada_lng : undefined,
+            arrivalDistanceM: typeof statusPatch.distancia_llegada_metros === "number" ? statusPatch.distancia_llegada_metros : null,
+            arrivalValidated: typeof statusPatch.direccion_validada_llegada === "boolean" ? statusPatch.direccion_validada_llegada : undefined,
+          });
+          queuedId = queued.id;
+        } catch { /* si falla la cola seguimos con persistencia directa */ }
+      }
+
       if (!offline) {
         try {
           await persistStatusPatch("inicio", statusPatch);
           patchJobInCaches(statusPatch);
+          if (queuedId) await removeOffline(queuedId);
         } catch {
-          toast.info("No se pudo confirmar; se reintentará automáticamente");
+          toast.info("Sin conexión estable; se sincroniza automáticamente");
         }
       }
     } finally {

@@ -198,11 +198,8 @@ async function processOne(action: PendingAction): Promise<void> {
     return;
   }
 
-  if (action.kind === "inicio" && !action.photo) throw new Error("Foto no encontrada en cola");
   const now = new Date().toISOString();
   if (action.kind === "inicio") {
-    const photo = action.photo;
-    if (!photo) throw new Error("Foto no encontrada en cola");
     const statusPatch = {
       hora_llegada: now,
       ...(action.arrivalLat != null ? { gps_llegada_lat: action.arrivalLat } : {}),
@@ -214,7 +211,7 @@ async function processOne(action: PendingAction): Promise<void> {
     if (statusMetaError) throw statusMetaError;
 
     // Do not revert an already finalized/cancelled service back to "en curso"
-    // when an old start-photo retry syncs later.
+    // when an old start retry syncs later.
     const { error: statusError } = await supabase
       .from("servicios")
       .update({ estado: "en_proceso" as const })
@@ -222,12 +219,15 @@ async function processOne(action: PendingAction): Promise<void> {
       .eq("estado", "pendiente");
     if (statusError) throw statusError;
 
-    const path = await uploadPhoto(action.userId, action.jobId, action.kind, photo, action.id);
-    const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
-    if (error) throw error;
+    if (action.photo) {
+      const path = await uploadPhoto(action.userId, action.jobId, action.kind, action.photo, action.id);
+      const { error } = await supabase.from("servicios").update({ foto_inicio: path }).eq("id", action.jobId);
+      if (error) throw error;
+    }
     await notifyTelegramBestEffort(action, "inicio");
     return;
   }
+
 
   const statusPatch = {
     estado: "realizado" as const,

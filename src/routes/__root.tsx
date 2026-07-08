@@ -153,6 +153,11 @@ function RootComponent() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+      // Si el signout ocurre offline (token caducado sin poder refrescar),
+      // conservamos la caché para que el empleado siga viendo trabajos y
+      // pueda encolar acciones. Sólo limpiamos en un signout con conexión.
+      if (event === "SIGNED_OUT" && isOffline) return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
       if (event === "SIGNED_OUT" && typeof window !== "undefined") {
@@ -160,6 +165,7 @@ function RootComponent() {
       }
     });
     import("@/lib/register-sw").then((m) => m.registerServiceWorker()).catch(() => {});
+    import("@/lib/offline-queue").then((m) => m.installAutoSync()).catch(() => {});
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, [router, queryClient]);
 
