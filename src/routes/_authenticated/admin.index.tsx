@@ -64,9 +64,9 @@ function AdminDashboard() {
         cancelados: hoy.filter((j) => j.estado.startsWith("cancelado")).length,
       },
       ganado: {
-        hoy: sum(pagados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today)),
-        semana: sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= weekStart)),
-        mes: sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= monthStart)),
+        hoy: sum(pagados.filter((j) => j.fecha === today)),
+        semana: sum(pagados.filter((j) => j.fecha >= weekStart.slice(0, 10))),
+        mes: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10))),
         acumulado: sum(pagados),
       },
       pagados,
@@ -84,7 +84,7 @@ function AdminDashboard() {
       const p = profiles.find((x) => x.user_id === uid);
       return p?.display_name || p?.username || "—";
     };
-    const filtered = stats.pagados.filter((j) => (j.hora_fin ?? j.fecha) >= rangoInicio);
+    const filtered = stats.pagados.filter((j) => j.fecha >= rangoInicio);
     const map = new Map<string, { name: string; count: number; ganado: number; realizados: number; cancelados: number }>();
     for (const j of filtered) {
       const uid = j.empleado_id ?? j.user_id;
