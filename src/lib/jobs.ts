@@ -113,10 +113,11 @@ export function formatEUR(n: number | string | null | undefined): string {
 export function jobTotal(j: Pick<Job, "ganancia" | "importe" | "precio_llegada" | "estado" | "eliminado_logico">): number {
   if (isVoided(j)) return 0;
   // La ganancia del trabajador es el campo `ganancia` si está definido;
-  // en su defecto, `importe` para realizados y `precio_llegada` para cancelados.
+  // en su defecto, `importe` tanto para realizados como para cancelados
+  // (los cancelados se pagan como servicio realizado).
   const g = j.ganancia == null ? null : Number(j.ganancia);
   if (g != null && !Number.isNaN(g)) return g;
   if (j.estado === "realizado") return Number(j.importe ?? 0);
-  if (isCancelled(j.estado)) return Number(j.precio_llegada ?? 0);
+  if (isCancelled(j.estado)) return Number(j.importe ?? j.precio_llegada ?? 0);
   return 0;
 }
