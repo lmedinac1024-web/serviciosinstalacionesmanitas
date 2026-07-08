@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
+import logoManitas from "@/assets/logo-manitas.png.asset.json";
 import { cn } from "@/lib/utils";
 import { OfflineBanner } from "@/components/OfflineBanner";
 
