@@ -23,7 +23,7 @@ import type { ReactNode } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { processQueue, count as pendingCount, subscribe as subscribeQueue } from "@/lib/offline-queue";
+import { processQueue, count as pendingCount, subscribe as subscribeQueue, listAll as listQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
 
 type NavPath =
