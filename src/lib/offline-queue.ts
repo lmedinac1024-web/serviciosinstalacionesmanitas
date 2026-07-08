@@ -68,6 +68,10 @@ export async function enqueue(action: Omit<PendingAction, "id" | "createdAt" | "
   };
   await tx("readwrite", (s) => s.add(full));
   notifyListeners();
+  // Intento inmediato — si hay red se sube ya mismo sin esperar al banner.
+  if (typeof navigator === "undefined" || navigator.onLine !== false) {
+    setTimeout(() => { void processQueue(); }, 50);
+  }
   return full;
 }
 
@@ -299,9 +303,14 @@ export function installAutoSync() {
   installed = true;
   window.addEventListener("online", () => { void processQueue(); });
   window.addEventListener("focus", () => { void processQueue(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void processQueue();
+  });
   window.addEventListener("storage", (e) => {
     if (e.key === "offline-queue-ping") notifyListeners();
   });
-  // initial pass shortly after load
+  // pase inicial poco después de cargar
   setTimeout(() => { void processQueue(); }, 1500);
+  // reintento periódico de fondo cada 30s por si hubo un fallo transitorio
+  setInterval(() => { void processQueue(); }, 30000);
 }
