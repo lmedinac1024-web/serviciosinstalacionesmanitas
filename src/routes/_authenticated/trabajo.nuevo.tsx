@@ -241,36 +241,35 @@ function NuevoServicio() {
         toast.error(`No se pudo leer la orden (${res.reason})`);
         return;
       }
-      const c = res.campos;
-      setForm((prev) => {
-        const next: FormState = {
-          ...prev,
-          fecha: c.fecha_servicio ?? prev.fecha,
-          hora: c.hora_servicio ?? c.hora_inicio ?? prev.hora,
-          hora_inicio: c.hora_inicio ?? prev.hora_inicio,
-          hora_fin: c.hora_fin ?? prev.hora_fin,
-          empleado_id: c.trabajador_id ?? prev.empleado_id,
-          tipo_servicio: c.tipo_servicio ?? prev.tipo_servicio,
-          cliente: c.nombre_cliente ?? prev.cliente,
-          telefono: c.telefono ?? prev.telefono,
-          telefonos_extra: (c.telefonos_extra ?? []).join(", ") || prev.telefonos_extra,
-          direccion: c.direccion ?? prev.direccion,
-          numero: c.numero ?? prev.numero,
-          piso: c.piso ?? prev.piso,
-          puerta: c.puerta ?? prev.puerta,
-          codigo_postal: c.codigo_postal ?? prev.codigo_postal,
-          ciudad: c.ciudad ?? prev.ciudad,
-          direccion_completa: c.direccion_completa ?? prev.direccion_completa,
-          observaciones: c.observaciones ?? prev.observaciones,
-          importe: c.precio_servicio != null ? String(c.precio_servicio) : prev.importe,
-          precio_llegada: c.precio_llegada != null ? String(c.precio_llegada) : prev.precio_llegada,
-          numero_operacion: c.numero_operacion ?? prev.numero_operacion,
-          numero_servicio: c.numero_servicio ?? prev.numero_servicio,
-          imagen_original_url: imagenPath || prev.imagen_original_url,
-          texto_ocr_original: res.texto_ocr || prev.texto_ocr_original,
-        };
-        return next;
-      });
+        const c = res.campos;
+        setForm((prev) => {
+          const next: FormState = {
+            ...prev,
+            fecha: c.fecha_servicio ?? prev.fecha,
+            hora: c.hora_servicio ?? c.hora_inicio ?? prev.hora,
+            hora_inicio: c.hora_inicio ?? prev.hora_inicio,
+            hora_fin: c.hora_fin ?? prev.hora_fin,
+            empleado_id: c.trabajador_id ?? prev.empleado_id,
+            tipo_servicio: c.tipo_servicio ?? prev.tipo_servicio,
+            cliente: c.nombre_cliente ?? prev.cliente,
+            telefono: c.telefono ?? prev.telefono,
+            telefonos_extra: (c.telefonos_extra ?? []).join(", ") || prev.telefonos_extra,
+            direccion: c.direccion ?? prev.direccion,
+            numero: c.numero ?? prev.numero,
+            piso: c.piso ?? prev.piso,
+            puerta: c.puerta ?? prev.puerta,
+            codigo_postal: c.codigo_postal ?? prev.codigo_postal,
+            ciudad: c.ciudad ?? prev.ciudad,
+            direccion_completa: c.direccion_completa ?? prev.direccion_completa,
+            observaciones: c.observaciones ?? prev.observaciones,
+            importe: c.precio_servicio != null ? String(c.precio_servicio) : prev.importe,
+            numero_operacion: c.numero_operacion ?? prev.numero_operacion,
+            numero_servicio: c.numero_servicio ?? prev.numero_servicio,
+            imagen_original_url: imagenPath || prev.imagen_original_url,
+            texto_ocr_original: res.texto_ocr || prev.texto_ocr_original,
+          };
+          return next;
+        });
       setGeo({ status: "idle" });
 
       if (res.aviso_cp) toast.warning("Código postal corregido automáticamente, revisar");
