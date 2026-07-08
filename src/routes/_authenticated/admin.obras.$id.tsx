@@ -178,7 +178,15 @@ function EditarObra() {
           <Section title="Precios y notas">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Importe (€)"><Input type="number" step="0.01" value={String(form.importe ?? 0)} onChange={(e) => set("importe", Number(e.target.value))} /></Field>
-              <Field label="Precio llegada (€)"><Input type="number" step="0.01" value={String(form.precio_llegada ?? 0)} onChange={(e) => set("precio_llegada", Number(e.target.value))} /></Field>
+              {(form.estado ?? "").toString().startsWith("cancelado") ? (
+                <Field label="Cobro por cancelación (€)">
+                  <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                    Igual al importe
+                  </div>
+                </Field>
+              ) : (
+                <Field label="Precio llegada (€)"><Input type="number" step="0.01" value={String(form.precio_llegada ?? 0)} onChange={(e) => set("precio_llegada", Number(e.target.value))} /></Field>
+              )}
             </div>
             <Field label="Observaciones"><Textarea rows={3} value={form.observaciones ?? ""} onChange={(e) => set("observaciones", e.target.value)} /></Field>
             {(form.estado ?? "").toString().startsWith("cancelado") && (
