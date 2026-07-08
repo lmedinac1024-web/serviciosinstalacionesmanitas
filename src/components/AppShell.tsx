@@ -85,6 +85,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   useEffect(() => {
     void pendingCount().then(setPending).catch(() => {});
+    // Limpiar acciones atascadas por el antiguo error de campos de administrador.
+    // Esas acciones nunca podían sincronizarse desde el empleado; con el trigger
+    // actualizado y el cliente corregido, las nuevas acciones funcionan.
+    void clearByError("Solo un administrador puede modificar estos campos del servicio").then((n) => {
+      if (n > 0) {
+        void pendingCount().then(setPending).catch(() => {});
+        toast.info(`${n} acción(es) bloqueada(s) eliminada(s) de la cola. Ahora los cambios se sincronizan correctamente.`);
+      }
+    }).catch(() => {});
     return subscribeQueue(() => { void pendingCount().then(setPending).catch(() => {}); });
   }, []);
 
