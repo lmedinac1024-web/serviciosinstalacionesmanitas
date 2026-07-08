@@ -503,6 +503,89 @@ function Detalle() {
     }
   }
 
+  async function finalizarTareaDirecta() {
+    if (working) return;
+    setWorking(true);
+    try {
+      const gpsPatch = await buildGpsPatch("final");
+      const statusPatch: Partial<Job> = { ...buildStatusPatch("final"), ...gpsPatch };
+      patchJobInCaches(statusPatch);
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      toast.success("Tarea realizada" + (offline ? " · en cola offline" : ""));
+
+      const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
+      let queuedId: string | null = null;
+      if (userId) {
+        try {
+          const queued = await enqueueOffline({
+            jobId: job!.id,
+            userId,
+            kind: "final",
+            destinoIds: [],
+          });
+          queuedId = queued.id;
+        } catch { /* seguimos con persistencia directa */ }
+      }
+
+      if (!offline) {
+        try {
+          await persistStatusPatch("final", statusPatch);
+          patchJobInCaches(statusPatch);
+          if (queuedId) await removeOffline(queuedId);
+        } catch {
+          toast.info("Sin conexión estable; se sincroniza automáticamente");
+        }
+      }
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function cancelarTareaDirecta() {
+    if (!cancelReason) { toast.error("Selecciona un motivo"); return; }
+    if (working) return;
+    setWorking(true);
+    setCancelOpen(false);
+    try {
+      const gpsPatch = await buildGpsPatch("cancel");
+      const statusPatch: Partial<Job> = { ...buildStatusPatch("cancel"), ...gpsPatch };
+      patchJobInCaches(statusPatch);
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      toast.success("Tarea cancelada" + (offline ? " · en cola offline" : ""));
+
+      const userId = me?.userId ?? job?.empleado_id ?? job?.user_id ?? undefined;
+      let queuedId: string | null = null;
+      if (userId) {
+        try {
+          const queued = await enqueueOffline({
+            jobId: job!.id,
+            userId,
+            kind: "cancelar",
+            destinoIds: [],
+            motivo: statusPatch.motivo_cancelacion
+              ? `${statusPatch.estado}|${statusPatch.motivo_cancelacion}`
+              : undefined,
+          });
+          queuedId = queued.id;
+        } catch { /* seguimos */ }
+      }
+
+      if (!offline) {
+        try {
+          await persistStatusPatch("cancel", statusPatch);
+          patchJobInCaches(statusPatch);
+          if (queuedId) await removeOffline(queuedId);
+        } catch {
+          toast.info("Sin conexión estable; se sincroniza automáticamente");
+        }
+      }
+      setCancelReason(null);
+      setCancelExtra("");
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function persistStatusPatch(fase: Fase, statusPatch: Partial<Job>) {
     const { error } = await supabase.from("servicios").update(statusPatch).eq("id", job!.id);
     if (!error) return;
@@ -758,20 +841,11 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={() => pickPhoto("final", "camera")}
+                  onClick={() => { void finalizarTareaDirecta(); }}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
                   {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => pickPhoto("final", "gallery")}
-                  disabled={working}
-                >
-                  <ImageIcon className="mr-2 h-4 w-4" /> Elegir desde galería
                 </Button>
               </>
             )}
@@ -807,22 +881,16 @@ function Detalle() {
                     />
                   </div>
                   <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                    Al continuar te pediremos una <b>foto obligatoria</b>. Después podrás compartirla desde el móvil.
+                    Al confirmar, el servicio pasa a <b>cancelado</b> y se cobra como realizado.
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setCancelOpen(false); setCancelReason(null); setCancelExtra(""); }}>Volver</Button>
                   <Button
                     variant="destructive"
-                    onClick={() => handleCancelConfirm("camera")}
-                    disabled={!cancelReason}>
-                    Cámara
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleCancelConfirm("gallery")}
-                    disabled={!cancelReason}>
-                    Galería
+                    onClick={() => { void cancelarTareaDirecta(); }}
+                    disabled={!cancelReason || working}>
+                    Confirmar cancelación
                   </Button>
                 </DialogFooter>
               </DialogContent>
