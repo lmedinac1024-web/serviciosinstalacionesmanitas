@@ -433,7 +433,7 @@ function Detalle() {
     if (working) return;
     setWorking(true);
     const at = new Date().toISOString();
-    const header = `Iniciando tarea — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job.referencia}` : ""}`;
+    const header = `Iniciando tarea — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
     const tipoLine = job!.tipo_servicio ? `🛠️ Incidencia: ${job!.tipo_servicio}` : "";
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
     const mapsLine = `🗺️ ${googleMapsUrl(job!)}`;
