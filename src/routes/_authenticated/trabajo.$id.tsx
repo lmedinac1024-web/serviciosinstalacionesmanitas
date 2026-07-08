@@ -1112,11 +1112,21 @@ function AdminOverride({
           <input type="number" step="0.01" min="0" value={importe} onChange={(e) => setImporte(e.target.value)}
             className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Precio por llegada (€)</label>
-          <input type="number" step="0.01" min="0" value={precioLlegada} onChange={(e) => setPrecioLlegada(e.target.value)}
-            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
-        </div>
+        {!cancelled && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Precio por llegada (€)</label>
+            <input type="number" step="0.01" min="0" value={precioLlegada} onChange={(e) => setPrecioLlegada(e.target.value)}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+          </div>
+        )}
+        {cancelled && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Cobro por cancelación (€)</label>
+            <div className="flex h-[34px] items-center rounded-md border bg-muted px-2 text-sm text-muted-foreground">
+              Igual al importe
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
