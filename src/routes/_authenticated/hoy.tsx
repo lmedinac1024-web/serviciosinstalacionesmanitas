@@ -72,20 +72,38 @@ function Hoy() {
     return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
   }, [data, queuedActions]);
 
-  const nearest = useNearestSort();
-  const route = useMemo(() => nearest.buildRoute(effectiveData), [nearest, effectiveData]);
+  const nearest = useNearestSort(effectiveData);
+  const route = nearest.route;
+
+  const routeButtonLabel = nearest.loading
+    ? "Ubicando..."
+    : nearest.active
+      ? nearest.effectiveMode === "transit"
+        ? "Ruta lógica: transporte público"
+        : "Ruta lógica: distancia"
+      : "Ordenar por ruta lógica";
 
   return (
     <AppShell title="Hoy">
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {nearest.active && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => nearest.setMode(nearest.effectiveMode === "transit" ? "distance" : "transit")}
+            disabled={nearest.transitLoading}
+          >
+            {nearest.effectiveMode === "transit" ? "🚌 Transporte público" : "📍 Distancia"}
+          </Button>
+        )}
         <Button
           size="sm"
           variant={nearest.active ? "default" : "outline"}
           onClick={() => void nearest.toggle()}
-          disabled={nearest.loading}
+          disabled={nearest.loading || nearest.transitLoading}
         >
           <Navigation2 className="mr-1.5 h-4 w-4" />
-          {nearest.loading ? "Ubicando..." : nearest.active ? "Ruta lógica activa" : "Ordenar por ruta lógica"}
+          {routeButtonLabel}
         </Button>
       </div>
       {isLoading ? (
@@ -96,9 +114,13 @@ function Hoy() {
         </div>
       ) : (
         <div className="space-y-2">
-          {route.sorted.map((j, idx) => {
-            const leg = route.legs.get(j.id);
-            const legLabel = leg != null ? (leg < 1000 ? `${leg} m` : `${(leg / 1000).toFixed(1)} km`) : null;
+          {route.sorted.map((j: Job, idx: number) => {
+            const legInfo = route.legInfo.get(j.id);
+            const legLabel = formatRouteLeg(
+              legInfo?.durationSeconds,
+              legInfo?.distanceMeters ?? route.legs.get(j.id),
+              nearest.effectiveMode,
+            );
             return (
               <div key={j.id} className="space-y-1">
                 {nearest.active && (
