@@ -92,7 +92,8 @@ function Pendientes() {
   );
 
   const nearest = useNearestSort();
-  const effectiveData = useMemo(() => nearest.sortJobs(filteredData), [nearest, filteredData]);
+  const route = useMemo(() => nearest.buildRoute(filteredData), [nearest, filteredData]);
+  const effectiveData = route.sorted;
 
   const today = new Date().toISOString().slice(0, 10);
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
