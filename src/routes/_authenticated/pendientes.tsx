@@ -82,7 +82,7 @@ function Pendientes() {
     return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
   }, [data, queuedActions]);
 
-  const effectiveData = useMemo(
+  const filteredData = useMemo(
     () => effectiveAllData.filter((job) => {
       if (filtro === "pendientes") return job.estado === "pendiente" || job.estado === "en_proceso";
       if (filtro === "realizados") return job.estado === "realizado" || job.estado.startsWith("cancelado");
@@ -90,6 +90,9 @@ function Pendientes() {
     }),
     [effectiveAllData, filtro],
   );
+
+  const nearest = useNearestSort();
+  const effectiveData = useMemo(() => nearest.sortJobs(filteredData), [nearest, filteredData]);
 
   const today = new Date().toISOString().slice(0, 10);
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
