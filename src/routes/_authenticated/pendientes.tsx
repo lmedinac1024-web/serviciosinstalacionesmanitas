@@ -147,17 +147,19 @@ function Pendientes() {
         </div>
       ) : (
         <div className="space-y-2">
-          {effectiveData.map((j) => {
+          {effectiveData.map((j, idx) => {
             const esPendiente = j.estado === "pendiente" || j.estado === "en_proceso";
-            const d = nearest.distanceFor(j);
+            const leg = route.legs.get(j.id);
+            const legLabel = leg != null ? (leg < 1000 ? `${leg} m` : `${(leg / 1000).toFixed(1)} km`) : null;
             return (
               <div key={j.id} className="space-y-1.5">
-                <JobCard job={j} />
                 {nearest.active && (
-                  <div className="pl-1 text-xs text-muted-foreground">
-                    {d != null ? `📍 ${d < 1000 ? `${d} m` : `${(d / 1000).toFixed(1)} km`} de tu ubicación` : "📍 Sin coordenadas"}
+                  <div className="pl-1 text-xs font-medium text-primary">
+                    {`🗺️ Parada ${idx + 1}`}
+                    {legLabel ? ` · ${idx === 0 ? "desde tu ubicación" : "desde la anterior"}: ${legLabel}` : " · sin coordenadas"}
                   </div>
                 )}
+                <JobCard job={j} />
                 {esPendiente && isPastOrToday(j.fecha) && (
                   <Button asChild size="sm" className="w-full">
                     <Link to="/trabajo/$id" params={{ id: j.id }}>
