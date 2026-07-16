@@ -25,9 +25,14 @@ export function useNearestSort() {
     }
   }, [active]);
 
-  const sortJobs = useCallback(
-    <T extends Job>(jobs: T[]): T[] => {
-      if (!active || !origin) return jobs;
+  const buildRoute = useCallback(
+    <T extends Job>(jobs: T[]): { sorted: T[]; legs: Map<string, number>; order: Map<string, number> } => {
+      const legs = new Map<string, number>();
+      const order = new Map<string, number>();
+      if (!active || !origin) {
+        jobs.forEach((j, i) => order.set(j.id, i + 1));
+        return { sorted: jobs, legs, order };
+      }
       const getCoord = (j: T) => {
         const lat = j.direccion_lat != null ? Number(j.direccion_lat) : null;
         const lng = j.direccion_lng != null ? Number(j.direccion_lng) : null;
@@ -41,7 +46,6 @@ export function useNearestSort() {
         if (c) withCoords.push({ j, c });
         else withoutCoords.push(j);
       });
-      // Ruta lógica: vecino más cercano desde la ubicación actual, encadenando.
       const route: T[] = [];
       let current = origin;
       while (withCoords.length > 0) {
@@ -55,24 +59,16 @@ export function useNearestSort() {
           }
         }
         const [next] = withCoords.splice(bestIdx, 1);
+        legs.set(next.j.id, bestDist);
         route.push(next.j);
         current = next.c;
       }
-      return [...route, ...withoutCoords];
+      const sorted = [...route, ...withoutCoords];
+      sorted.forEach((j, i) => order.set(j.id, i + 1));
+      return { sorted, legs, order };
     },
     [active, origin],
   );
 
-  const distanceFor = useCallback(
-    (j: Job): number | null => {
-      if (!origin) return null;
-      const lat = j.direccion_lat != null ? Number(j.direccion_lat) : null;
-      const lng = j.direccion_lng != null ? Number(j.direccion_lng) : null;
-      if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return null;
-      return haversineMeters(origin, { lat, lng });
-    },
-    [origin],
-  );
-
-  return { active, loading, toggle, sortJobs, distanceFor };
+  return { active, loading, toggle, buildRoute };
 }
