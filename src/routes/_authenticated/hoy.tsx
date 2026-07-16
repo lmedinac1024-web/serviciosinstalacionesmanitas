@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Navigation2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
+import { Button } from "@/components/ui/button";
 import type { Job, JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { useNearestSort } from "@/hooks/useNearestSort";
 
 export const Route = createFileRoute("/_authenticated/hoy")({
   component: Hoy,
