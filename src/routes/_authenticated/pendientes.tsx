@@ -91,8 +91,8 @@ function Pendientes() {
     [effectiveAllData, filtro],
   );
 
-  const nearest = useNearestSort();
-  const route = useMemo(() => nearest.buildRoute(filteredData), [nearest, filteredData]);
+  const nearest = useNearestSort(filteredData);
+  const route = nearest.route;
   const effectiveData = route.sorted;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -122,18 +122,34 @@ function Pendientes() {
             {filtro === f.id && ` · ${counts[f.id]}`}
           </button>
         ))}
+        {nearest.active && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => nearest.setMode(nearest.effectiveMode === "transit" ? "distance" : "transit")}
+            disabled={nearest.transitLoading}
+            className="ml-auto shrink-0"
+          >
+            {nearest.effectiveMode === "transit" ? "🚌 Transporte público" : "📍 Distancia"}
+          </Button>
+        )}
         <Button
           size="sm"
           variant={nearest.active ? "default" : "outline"}
           onClick={() => void nearest.toggle()}
-          disabled={nearest.loading}
-          className="ml-auto shrink-0"
+          disabled={nearest.loading || nearest.transitLoading}
+          className={cn("shrink-0", !nearest.active && "ml-auto")}
         >
           <Navigation2 className="mr-1.5 h-4 w-4" />
-          {nearest.loading ? "Ubicando..." : "Ruta lógica"}
+          {nearest.loading
+            ? "Ubicando..."
+            : nearest.active
+              ? nearest.effectiveMode === "transit"
+                ? "Ruta: transporte público"
+                : "Ruta: distancia"
+              : "Ruta lógica"}
         </Button>
       </div>
-
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
@@ -147,10 +163,14 @@ function Pendientes() {
         </div>
       ) : (
         <div className="space-y-2">
-          {effectiveData.map((j, idx) => {
+          {effectiveData.map((j: Job, idx: number) => {
             const esPendiente = j.estado === "pendiente" || j.estado === "en_proceso";
-            const leg = route.legs.get(j.id);
-            const legLabel = leg != null ? (leg < 1000 ? `${leg} m` : `${(leg / 1000).toFixed(1)} km`) : null;
+            const legInfo = route.legInfo.get(j.id);
+            const legLabel = formatRouteLeg(
+              legInfo?.durationSeconds,
+              legInfo?.distanceMeters ?? route.legs.get(j.id),
+              nearest.effectiveMode,
+            );
             return (
               <div key={j.id} className="space-y-1.5">
                 {nearest.active && (
@@ -171,7 +191,6 @@ function Pendientes() {
               </div>
             );
           })}
-
         </div>
       )}
     </AppShell>
