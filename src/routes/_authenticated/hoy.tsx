@@ -73,7 +73,7 @@ function Hoy() {
   }, [data, queuedActions]);
 
   const nearest = useNearestSort();
-  const sortedData = useMemo(() => nearest.sortJobs(effectiveData), [nearest, effectiveData]);
+  const route = useMemo(() => nearest.buildRoute(effectiveData), [nearest, effectiveData]);
 
   return (
     <AppShell title="Hoy">
@@ -85,27 +85,29 @@ function Hoy() {
           disabled={nearest.loading}
         >
           <Navigation2 className="mr-1.5 h-4 w-4" />
-          {nearest.loading ? "Ubicando..." : nearest.active ? "Ordenado por cercanía" : "Ordenar por cercanía"}
+          {nearest.loading ? "Ubicando..." : nearest.active ? "Ruta lógica activa" : "Ordenar por ruta lógica"}
         </Button>
       </div>
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
-      ) : sortedData.length === 0 ? (
+      ) : route.sorted.length === 0 ? (
         <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
           No hay trabajos para hoy.
         </div>
       ) : (
         <div className="space-y-2">
-          {sortedData.map((j) => {
-            const d = nearest.distanceFor(j);
+          {route.sorted.map((j, idx) => {
+            const leg = route.legs.get(j.id);
+            const legLabel = leg != null ? (leg < 1000 ? `${leg} m` : `${(leg / 1000).toFixed(1)} km`) : null;
             return (
               <div key={j.id} className="space-y-1">
-                <JobCard job={j} />
                 {nearest.active && (
-                  <div className="pl-1 text-xs text-muted-foreground">
-                    {d != null ? `📍 ${d < 1000 ? `${d} m` : `${(d / 1000).toFixed(1)} km`} de tu ubicación` : "📍 Sin coordenadas"}
+                  <div className="pl-1 text-xs font-medium text-primary">
+                    {`🗺️ Parada ${idx + 1}`}
+                    {legLabel ? ` · ${idx === 0 ? "desde tu ubicación" : "desde la anterior"}: ${legLabel}` : " · sin coordenadas"}
                   </div>
                 )}
+                <JobCard job={j} />
               </div>
             );
           })}
@@ -113,5 +115,6 @@ function Hoy() {
       )}
     </AppShell>
   );
+
 }
 
