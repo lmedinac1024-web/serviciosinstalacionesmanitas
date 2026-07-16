@@ -121,7 +121,18 @@ function Pendientes() {
             {filtro === f.id && ` · ${counts[f.id]}`}
           </button>
         ))}
+        <Button
+          size="sm"
+          variant={nearest.active ? "default" : "outline"}
+          onClick={() => void nearest.toggle()}
+          disabled={nearest.loading}
+          className="ml-auto shrink-0"
+        >
+          <Navigation2 className="mr-1.5 h-4 w-4" />
+          {nearest.loading ? "Ubicando..." : "Cercanía"}
+        </Button>
       </div>
+
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
