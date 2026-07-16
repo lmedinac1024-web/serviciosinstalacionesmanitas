@@ -25,34 +25,50 @@ export function useNearestSort() {
     }
   }, [active]);
 
-  const sortJobs = useCallback(
-    <T extends Job>(jobs: T[]): T[] => {
-      if (!active || !origin) return jobs;
-      const withDist = jobs.map((j) => {
+  const buildRoute = useCallback(
+    <T extends Job>(jobs: T[]): { sorted: T[]; legs: Map<string, number>; order: Map<string, number> } => {
+      const legs = new Map<string, number>();
+      const order = new Map<string, number>();
+      if (!active || !origin) {
+        jobs.forEach((j, i) => order.set(j.id, i + 1));
+        return { sorted: jobs, legs, order };
+      }
+      const getCoord = (j: T) => {
         const lat = j.direccion_lat != null ? Number(j.direccion_lat) : null;
         const lng = j.direccion_lng != null ? Number(j.direccion_lng) : null;
-        const dist =
-          lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng)
-            ? haversineMeters(origin, { lat, lng })
-            : Number.POSITIVE_INFINITY;
-        return { j, dist };
+        if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return null;
+        return { lat, lng };
+      };
+      const withCoords: { j: T; c: { lat: number; lng: number } }[] = [];
+      const withoutCoords: T[] = [];
+      jobs.forEach((j) => {
+        const c = getCoord(j);
+        if (c) withCoords.push({ j, c });
+        else withoutCoords.push(j);
       });
-      withDist.sort((a, b) => a.dist - b.dist);
-      return withDist.map((x) => x.j);
+      const route: T[] = [];
+      let current = origin;
+      while (withCoords.length > 0) {
+        let bestIdx = 0;
+        let bestDist = haversineMeters(current, withCoords[0].c);
+        for (let i = 1; i < withCoords.length; i++) {
+          const d = haversineMeters(current, withCoords[i].c);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+        const [next] = withCoords.splice(bestIdx, 1);
+        legs.set(next.j.id, bestDist);
+        route.push(next.j);
+        current = next.c;
+      }
+      const sorted = [...route, ...withoutCoords];
+      sorted.forEach((j, i) => order.set(j.id, i + 1));
+      return { sorted, legs, order };
     },
     [active, origin],
   );
 
-  const distanceFor = useCallback(
-    (j: Job): number | null => {
-      if (!origin) return null;
-      const lat = j.direccion_lat != null ? Number(j.direccion_lat) : null;
-      const lng = j.direccion_lng != null ? Number(j.direccion_lng) : null;
-      if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return null;
-      return haversineMeters(origin, { lat, lng });
-    },
-    [origin],
-  );
-
-  return { active, loading, toggle, sortJobs, distanceFor };
+  return { active, loading, toggle, buildRoute };
 }
