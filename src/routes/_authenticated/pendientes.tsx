@@ -9,7 +9,7 @@ import { Camera, Navigation2 } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
-import { useNearestSort } from "@/hooks/useNearestSort";
+import { useNearestSort, formatRouteLeg } from "@/hooks/useNearestSort";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pendientes")({
