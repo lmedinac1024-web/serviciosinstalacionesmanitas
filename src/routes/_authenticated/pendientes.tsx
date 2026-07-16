@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
 import { Button } from "@/components/ui/button";
-import { Camera } from "lucide-react";
+import { Camera, Navigation2 } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { useNearestSort } from "@/hooks/useNearestSort";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pendientes")({
