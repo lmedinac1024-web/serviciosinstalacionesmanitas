@@ -87,7 +87,7 @@ export function googleMapsUrl(
         j.direccion_completa?.trim() ||
         j.direccion ||
         "";
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=transit`;
 }
 
 export function cleanPhone(phone?: string | null): string {

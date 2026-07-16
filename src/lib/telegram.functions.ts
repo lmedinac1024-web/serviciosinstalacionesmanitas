@@ -99,7 +99,7 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
             ? { lat: Number(job.gps_cancelacion_lat), lng: Number(job.gps_cancelacion_lng) }
             : null;
     const directionsUrl = originCoord
-      ? `https://www.google.com/maps/dir/?api=1&origin=${originCoord.lat},${originCoord.lng}&destination=${encodeURIComponent(destinationParam)}&travelmode=driving`
+      ? `https://www.google.com/maps/dir/?api=1&origin=${originCoord.lat},${originCoord.lng}&destination=${encodeURIComponent(destinationParam)}&travelmode=transit`
       : null;
     const hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
