@@ -130,7 +130,7 @@ function Pendientes() {
           className="ml-auto shrink-0"
         >
           <Navigation2 className="mr-1.5 h-4 w-4" />
-          {nearest.loading ? "Ubicando..." : "Cercanía"}
+          {nearest.loading ? "Ubicando..." : "Ruta lógica"}
         </Button>
       </div>
 
