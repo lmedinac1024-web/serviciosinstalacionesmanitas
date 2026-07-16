@@ -54,9 +54,9 @@ export const computeTransitRoute = createServerFn({ method: "POST" })
       origins: origins.map(toLatLngWaypoint),
       destinations: destinations.map(toLatLngWaypoint),
       travelMode: "TRANSIT",
-      routingPreference: "BEST",
       languageCode: "es",
       units: "METRIC",
+      // routingPreference no se aplica al modo TRANSIT; lo omitimos.
     };
 
     try {
