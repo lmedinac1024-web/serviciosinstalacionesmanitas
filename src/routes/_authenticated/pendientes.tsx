@@ -148,9 +148,15 @@ function Pendientes() {
         <div className="space-y-2">
           {effectiveData.map((j) => {
             const esPendiente = j.estado === "pendiente" || j.estado === "en_proceso";
+            const d = nearest.distanceFor(j);
             return (
               <div key={j.id} className="space-y-1.5">
                 <JobCard job={j} />
+                {nearest.active && (
+                  <div className="pl-1 text-xs text-muted-foreground">
+                    {d != null ? `📍 ${d < 1000 ? `${d} m` : `${(d / 1000).toFixed(1)} km`} de tu ubicación` : "📍 Sin coordenadas"}
+                  </div>
+                )}
                 {esPendiente && isPastOrToday(j.fecha) && (
                   <Button asChild size="sm" className="w-full">
                     <Link to="/trabajo/$id" params={{ id: j.id }}>
@@ -162,6 +168,7 @@ function Pendientes() {
               </div>
             );
           })}
+
         </div>
       )}
     </AppShell>
