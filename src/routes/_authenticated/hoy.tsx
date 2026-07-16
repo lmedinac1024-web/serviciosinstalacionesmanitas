@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Navigation2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
+import { Button } from "@/components/ui/button";
 import type { Job, JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { useNearestSort } from "@/hooks/useNearestSort";
 
 export const Route = createFileRoute("/_authenticated/hoy")({
   component: Hoy,
@@ -69,21 +72,46 @@ function Hoy() {
     return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
   }, [data, queuedActions]);
 
+  const nearest = useNearestSort();
+  const sortedData = useMemo(() => nearest.sortJobs(effectiveData), [nearest, effectiveData]);
+
   return (
     <AppShell title="Hoy">
+      <div className="mb-3 flex justify-end">
+        <Button
+          size="sm"
+          variant={nearest.active ? "default" : "outline"}
+          onClick={() => void nearest.toggle()}
+          disabled={nearest.loading}
+        >
+          <Navigation2 className="mr-1.5 h-4 w-4" />
+          {nearest.loading ? "Ubicando..." : nearest.active ? "Ordenado por cercanía" : "Ordenar por cercanía"}
+        </Button>
+      </div>
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
-      ) : effectiveData.length === 0 ? (
+      ) : sortedData.length === 0 ? (
         <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
           No hay trabajos para hoy.
         </div>
       ) : (
         <div className="space-y-2">
-          {effectiveData.map((j) => (
-            <JobCard key={j.id} job={j} />
-          ))}
+          {sortedData.map((j) => {
+            const d = nearest.distanceFor(j);
+            return (
+              <div key={j.id} className="space-y-1">
+                <JobCard job={j} />
+                {nearest.active && (
+                  <div className="pl-1 text-xs text-muted-foreground">
+                    {d != null ? `📍 ${d < 1000 ? `${d} m` : `${(d / 1000).toFixed(1)} km`} de tu ubicación` : "📍 Sin coordenadas"}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </AppShell>
   );
 }
+

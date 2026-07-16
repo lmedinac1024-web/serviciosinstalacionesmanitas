@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
 import { Button } from "@/components/ui/button";
-import { Camera } from "lucide-react";
+import { Camera, Navigation2 } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { useNearestSort } from "@/hooks/useNearestSort";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pendientes")({
@@ -81,7 +82,7 @@ function Pendientes() {
     return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
   }, [data, queuedActions]);
 
-  const effectiveData = useMemo(
+  const filteredData = useMemo(
     () => effectiveAllData.filter((job) => {
       if (filtro === "pendientes") return job.estado === "pendiente" || job.estado === "en_proceso";
       if (filtro === "realizados") return job.estado === "realizado" || job.estado.startsWith("cancelado");
@@ -89,6 +90,9 @@ function Pendientes() {
     }),
     [effectiveAllData, filtro],
   );
+
+  const nearest = useNearestSort();
+  const effectiveData = useMemo(() => nearest.sortJobs(filteredData), [nearest, filteredData]);
 
   const today = new Date().toISOString().slice(0, 10);
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
@@ -117,7 +121,18 @@ function Pendientes() {
             {filtro === f.id && ` · ${counts[f.id]}`}
           </button>
         ))}
+        <Button
+          size="sm"
+          variant={nearest.active ? "default" : "outline"}
+          onClick={() => void nearest.toggle()}
+          disabled={nearest.loading}
+          className="ml-auto shrink-0"
+        >
+          <Navigation2 className="mr-1.5 h-4 w-4" />
+          {nearest.loading ? "Ubicando..." : "Cercanía"}
+        </Button>
       </div>
+
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
@@ -133,9 +148,15 @@ function Pendientes() {
         <div className="space-y-2">
           {effectiveData.map((j) => {
             const esPendiente = j.estado === "pendiente" || j.estado === "en_proceso";
+            const d = nearest.distanceFor(j);
             return (
               <div key={j.id} className="space-y-1.5">
                 <JobCard job={j} />
+                {nearest.active && (
+                  <div className="pl-1 text-xs text-muted-foreground">
+                    {d != null ? `📍 ${d < 1000 ? `${d} m` : `${(d / 1000).toFixed(1)} km`} de tu ubicación` : "📍 Sin coordenadas"}
+                  </div>
+                )}
                 {esPendiente && isPastOrToday(j.fecha) && (
                   <Button asChild size="sm" className="w-full">
                     <Link to="/trabajo/$id" params={{ id: j.id }}>
@@ -147,6 +168,7 @@ function Pendientes() {
               </div>
             );
           })}
+
         </div>
       )}
     </AppShell>
