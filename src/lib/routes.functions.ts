@@ -68,6 +68,7 @@ export const computeTransitRoute = createServerFn({ method: "POST" })
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
             "X-Connection-Api-Key": GOOGLE_MAPS_API_KEY,
             "Content-Type": "application/json",
+            "X-Goog-FieldMask": "duration,distance_meters,origin_index,destination_index",
           },
           body: JSON.stringify(body),
         },
@@ -106,17 +107,26 @@ export const computeTransitRoute = createServerFn({ method: "POST" })
       }
 
       const j = await r.json();
-      const rows: Array<{ elements?: Array<{ status?: string; duration?: string; distanceMeters?: number }> }> =
-        j.rows ?? [];
+      // Routes API v2 computeRouteMatrix returns a flat array of elements.
+      const elements: Array<{
+        originIndex?: number;
+        destinationIndex?: number;
+        duration?: string;
+        distanceMeters?: number;
+        condition?: string;
+      }> = Array.isArray(j) ? j : [];
 
-      const durations: (number | null)[][] = rows.map((row) =>
-        (row.elements ?? []).map((el) => {
-          if (el.status !== "OK" || !el.duration) return null;
-          // duration comes as "123s"
-          const seconds = Number(el.duration.replace("s", ""));
-          return Number.isFinite(seconds) ? seconds : null;
-        }),
-      );
+      const durations: (number | null)[][] = [];
+      const distances: (number | null)[][] = [];
+      elements.forEach((el) => {
+        const o = el.originIndex ?? 0;
+        const d = el.destinationIndex ?? 0;
+        if (!durations[o]) durations[o] = [];
+        if (!distances[o]) distances[o] = [];
+        const seconds = el.duration ? Number(el.duration.replace("s", "")) : null;
+        durations[o][d] = Number.isFinite(seconds) ? seconds : null;
+        distances[o][d] = el.distanceMeters ?? null;
+      });
 
       const jobIndexById = new Map(validJobs.map((j, i) => [j.id, i]));
 
@@ -132,9 +142,9 @@ export const computeTransitRoute = createServerFn({ method: "POST" })
         for (const jobId of remaining) {
           const destIdx = jobIndexById.get(jobId);
           if (destIdx == null) continue;
-          const d = durations[currentIdx]?.[destIdx];
-          if (d != null && d < bestDuration) {
-            bestDuration = d;
+          const seconds = durations[currentIdx]?.[destIdx];
+          if (seconds != null && seconds < bestDuration) {
+            bestDuration = seconds;
             bestId = jobId;
           }
         }
@@ -148,11 +158,10 @@ export const computeTransitRoute = createServerFn({ method: "POST" })
         remaining.delete(bestId);
         sorted.push(bestId);
         const destIdx = jobIndexById.get(bestId)!;
-        const el = rows[currentIdx]?.elements?.[destIdx];
         legs.push({
           jobId: bestId,
           durationSeconds: bestDuration,
-          distanceMeters: el?.distanceMeters,
+          distanceMeters: distances[currentIdx]?.[destIdx] ?? undefined,
         });
         currentIdx = destIdx + 1; // job origins start at index 1
       }
