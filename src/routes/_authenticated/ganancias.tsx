@@ -42,7 +42,18 @@ function endOfMonth(d: Date) {
 type Rango = "dia" | "semana" | "mes" | "custom";
 
 function Ganancias() {
+  const { data: me } = useUserRole();
+  const [empleadoFiltro, setEmpleadoFiltro] = useState<string>("todos");
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
+  const { data: empleados = [] } = useQuery({
+    queryKey: ["profiles", "empleados-list"],
+    enabled: !!me?.canManage,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").order("display_name");
+      return data ?? [];
+    },
+  });
+
   const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "pagables"],
     queryFn: async () => {
