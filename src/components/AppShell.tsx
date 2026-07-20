@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   ListChecks,
   CalendarDays,
+  CheckCircle2,
   Wallet,
   History,
   Settings,
@@ -32,6 +33,7 @@ type NavPath =
   | "/"
   | "/pendientes"
   | "/hoy"
+  | "/realizados"
   | "/ganancias"
   | "/historial"
   | "/cancelados"
@@ -48,6 +50,7 @@ const NAV_EMPLEADO: NavItem[] = [
   { to: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
   { to: "/pendientes", label: "Pendientes", icon: ListChecks },
   { to: "/hoy", label: "Hoy", icon: CalendarDays },
+  { to: "/realizados", label: "Realizados", icon: CheckCircle2 },
   { to: "/ganancias", label: "Ganancias", icon: Wallet },
   { to: "/historial", label: "Historial", icon: History },
   { to: "/cancelados", label: "Cancelados", icon: XCircle },
@@ -56,6 +59,7 @@ const NAV_EMPLEADO: NavItem[] = [
 const NAV_ADMIN: NavItem[] = [
   { to: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
   { to: "/pendientes", label: "Trabajos", icon: ListChecks },
+  { to: "/realizados", label: "Realizados", icon: CheckCircle2 },
   { to: "/ganancias", label: "Ganancias", icon: Wallet },
   { to: "/historial", label: "Historial", icon: History },
   { to: "/cancelados", label: "Cancelados", icon: XCircle },
@@ -262,7 +266,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
       {/* Bottom nav - mobile */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-card md:hidden">
-        <div className={cn("grid", NAV.length === 5 ? "grid-cols-5" : "grid-cols-4")}>
+        <div className="flex overflow-x-auto px-1">
           {NAV.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             const Icon = item.icon;
@@ -271,7 +275,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+                  "flex min-w-[82px] flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
