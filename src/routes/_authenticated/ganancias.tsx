@@ -136,9 +136,14 @@ function Ganancias() {
   const filtrados = useMemo(
     () => jobs.filter((j) => {
       const f = fechaOf(j);
-      return f >= from && f <= to;
+      if (f < from || f > to) return false;
+      if (me?.canManage && empleadoFiltro !== "todos") {
+        const uid = (j.empleado_id ?? j.user_id) as string | null | undefined;
+        if (uid !== empleadoFiltro) return false;
+      }
+      return true;
     }),
-    [jobs, from, to],
+    [jobs, from, to, me, empleadoFiltro],
   );
 
   const totalRango = filtrados.reduce((a, j) => a + jobTotal(j), 0);
@@ -157,7 +162,17 @@ function Ganancias() {
   }, [filtrados]);
 
   const hoy = toISODate(new Date());
-  const ganadoHoy = jobs.filter((j) => fechaOf(j) === hoy).reduce((a, j) => a + jobTotal(j), 0);
+  const ganadoHoy = useMemo(() => {
+    return jobs.filter((j) => {
+      if (fechaOf(j) !== hoy) return false;
+      if (me?.canManage && empleadoFiltro !== "todos") {
+        const uid = (j.empleado_id ?? j.user_id) as string | null | undefined;
+        if (uid !== empleadoFiltro) return false;
+      }
+      return true;
+    }).reduce((a, j) => a + jobTotal(j), 0);
+  }, [jobs, hoy, me, empleadoFiltro]);
+
 
   return (
     <AppShell title="Ganancias">
