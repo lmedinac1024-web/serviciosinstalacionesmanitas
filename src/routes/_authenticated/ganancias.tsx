@@ -9,10 +9,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/ganancias")({
   component: Ganancias,
 });
+
 
 function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -39,7 +42,18 @@ function endOfMonth(d: Date) {
 type Rango = "dia" | "semana" | "mes" | "custom";
 
 function Ganancias() {
+  const { data: me } = useUserRole();
+  const [empleadoFiltro, setEmpleadoFiltro] = useState<string>("todos");
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
+  const { data: empleados = [] } = useQuery({
+    queryKey: ["profiles", "empleados-list"],
+    enabled: !!me?.canManage,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").order("display_name");
+      return data ?? [];
+    },
+  });
+
   const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "pagables"],
     queryFn: async () => {
@@ -122,9 +136,14 @@ function Ganancias() {
   const filtrados = useMemo(
     () => jobs.filter((j) => {
       const f = fechaOf(j);
-      return f >= from && f <= to;
+      if (f < from || f > to) return false;
+      if (me?.canManage && empleadoFiltro !== "todos") {
+        const uid = (j.empleado_id ?? j.user_id) as string | null | undefined;
+        if (uid !== empleadoFiltro) return false;
+      }
+      return true;
     }),
-    [jobs, from, to],
+    [jobs, from, to, me, empleadoFiltro],
   );
 
   const totalRango = filtrados.reduce((a, j) => a + jobTotal(j), 0);
@@ -143,7 +162,17 @@ function Ganancias() {
   }, [filtrados]);
 
   const hoy = toISODate(new Date());
-  const ganadoHoy = jobs.filter((j) => fechaOf(j) === hoy).reduce((a, j) => a + jobTotal(j), 0);
+  const ganadoHoy = useMemo(() => {
+    return jobs.filter((j) => {
+      if (fechaOf(j) !== hoy) return false;
+      if (me?.canManage && empleadoFiltro !== "todos") {
+        const uid = (j.empleado_id ?? j.user_id) as string | null | undefined;
+        if (uid !== empleadoFiltro) return false;
+      }
+      return true;
+    }).reduce((a, j) => a + jobTotal(j), 0);
+  }, [jobs, hoy, me, empleadoFiltro]);
+
 
   return (
     <AppShell title="Ganancias">
@@ -151,13 +180,32 @@ function Ganancias() {
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (
         <div className="space-y-5">
+          {me?.canManage && (
+            <div className="rounded-xl border bg-card p-3">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Filtrar por empleado
+              </div>
+              <Select value={empleadoFiltro} onValueChange={setEmpleadoFiltro}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los empleados</SelectItem>
+                  {empleados.map((e) => (
+                    <SelectItem key={e.user_id} value={e.user_id}>
+                      {e.display_name || e.username || e.user_id.slice(0, 6)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {/* Ganado hoy siempre visible */}
           <div className="rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 to-transparent p-5">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Ganado hoy
+              Ganado hoy{me?.canManage && empleadoFiltro !== "todos" ? ` · ${empleados.find((e) => e.user_id === empleadoFiltro)?.display_name ?? ""}` : ""}
             </div>
             <div className="mt-1 text-3xl font-bold text-success">{formatEUR(ganadoHoy)}</div>
           </div>
+
 
           {/* Selector de rango */}
           <div className="rounded-xl border bg-card p-4 space-y-3">

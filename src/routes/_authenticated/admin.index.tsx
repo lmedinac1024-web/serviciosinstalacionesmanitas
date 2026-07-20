@@ -29,6 +29,7 @@ function startOfMonthISO() {
 
 function AdminDashboard() {
   const [rango, setRango] = useState<Rango>("mes");
+  const [empleadoSel, setEmpleadoSel] = useState<string>("todos");
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["admin", "jobs", "all"],
@@ -42,7 +43,7 @@ function AdminDashboard() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["admin", "profiles"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, username, display_name");
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").order("display_name");
       return data ?? [];
     },
   });
@@ -51,9 +52,16 @@ function AdminDashboard() {
   const weekStart = startOfWeekISO();
   const monthStart = startOfMonthISO();
 
+  const matchEmpleado = (j: Job) => {
+    if (empleadoSel === "todos") return true;
+    const uid = (j.empleado_id ?? j.user_id) as string | null;
+    return uid === empleadoSel;
+  };
+
   const stats = useMemo(() => {
-    const hoy = jobs.filter((j) => j.fecha === today);
-    const pagados = jobs.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
+    const base = jobs.filter(matchEmpleado);
+    const hoy = base.filter((j) => j.fecha === today);
+    const pagados = base.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
     const sum = (a: Job[]) => a.reduce((n, j) => n + jobTotal(j), 0);
     return {
       hoy: {
@@ -71,7 +79,9 @@ function AdminDashboard() {
       },
       pagados,
     };
-  }, [jobs, today, weekStart, monthStart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, today, weekStart, monthStart, empleadoSel]);
+
 
   // Rango seleccionado para tabla empleados
   const rangoInicio = rango === "hoy" ? today
@@ -109,11 +119,40 @@ function AdminDashboard() {
         </div>
       ) : (
         <div className="space-y-8">
+          {/* Filtro por empleado */}
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empleado:</span>
+            <select
+              value={empleadoSel}
+              onChange={(e) => setEmpleadoSel(e.target.value)}
+              className="rounded-md border bg-background px-2 py-1 text-sm"
+            >
+              <option value="todos">Todos</option>
+              {profiles.map((p) => (
+                <option key={p.user_id} value={p.user_id}>
+                  {p.display_name || p.username || p.user_id.slice(0, 6)}
+                </option>
+              ))}
+            </select>
+            {empleadoSel !== "todos" && (
+              <button
+                type="button"
+                onClick={() => setEmpleadoSel("todos")}
+                className="text-xs text-primary hover:underline"
+              >
+                limpiar
+              </button>
+            )}
+          </div>
+
           {/* KPIs ganancias */}
           <section>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ganancias</h2>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Ganancias{empleadoSel !== "todos" ? ` · ${profiles.find((p) => p.user_id === empleadoSel)?.display_name ?? ""}` : ""}
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <KpiCard label="Hoy" value={formatEUR(stats.ganado.hoy)} icon={TrendingUp} tone="success" />
+
               <KpiCard label="Esta semana" value={formatEUR(stats.ganado.semana)} icon={TrendingUp} />
               <KpiCard label="Este mes" value={formatEUR(stats.ganado.mes)} icon={TrendingUp} />
               <KpiCard label="Acumulado" value={formatEUR(stats.ganado.acumulado)} icon={Trophy} tone="primary" />
