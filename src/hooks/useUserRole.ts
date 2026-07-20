@@ -48,15 +48,28 @@ export function useUserRole() {
       if (!u) return null;
 
       const cached = readCachedRole(u.id);
-      const [rolesRes, profileRes] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", u.id),
-        supabase.from("profiles").select("username, display_name").eq("user_id", u.id).maybeSingle(),
-      ]);
+      let rolesRes, profileRes;
+      try {
+        [rolesRes, profileRes] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", u.id),
+          supabase.from("profiles").select("username, display_name").eq("user_id", u.id).maybeSingle(),
+        ]);
+      } catch (e) {
+        if (cached) return cached;
+        throw e;
+      }
       if (rolesRes.error) {
         if (cached) return cached;
         throw rolesRes.error;
       }
       const roles = (rolesRes.data ?? []).map((r) => r.role as string);
+      // Anti-degradación: si el fetch devuelve una lista vacía (típico hipo de red / RLS
+      // transitorio) y ya teníamos rol en caché, conservamos el rol cacheado en vez de
+      // rebajar a "empleado" (eso provocaba el "a ratos sí, a ratos no" al abrir admin,
+      // crear/editar servicio o importar orden).
+      if (roles.length === 0 && cached && cached.role !== "empleado") {
+        return cached;
+      }
       const isSuperAdmin = roles.includes("super_admin");
       const isAdmin = isSuperAdmin || roles.includes("admin");
       const isSupervisor = roles.includes("supervisor");
@@ -82,5 +95,8 @@ export function useUserRole() {
       return result;
     },
     staleTime: 60_000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+
   });
 }
