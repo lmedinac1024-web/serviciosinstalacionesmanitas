@@ -119,11 +119,40 @@ function AdminDashboard() {
         </div>
       ) : (
         <div className="space-y-8">
+          {/* Filtro por empleado */}
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empleado:</span>
+            <select
+              value={empleadoSel}
+              onChange={(e) => setEmpleadoSel(e.target.value)}
+              className="rounded-md border bg-background px-2 py-1 text-sm"
+            >
+              <option value="todos">Todos</option>
+              {profiles.map((p) => (
+                <option key={p.user_id} value={p.user_id}>
+                  {p.display_name || p.username || p.user_id.slice(0, 6)}
+                </option>
+              ))}
+            </select>
+            {empleadoSel !== "todos" && (
+              <button
+                type="button"
+                onClick={() => setEmpleadoSel("todos")}
+                className="text-xs text-primary hover:underline"
+              >
+                limpiar
+              </button>
+            )}
+          </div>
+
           {/* KPIs ganancias */}
           <section>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ganancias</h2>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Ganancias{empleadoSel !== "todos" ? ` · ${profiles.find((p) => p.user_id === empleadoSel)?.display_name ?? ""}` : ""}
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <KpiCard label="Hoy" value={formatEUR(stats.ganado.hoy)} icon={TrendingUp} tone="success" />
+
               <KpiCard label="Esta semana" value={formatEUR(stats.ganado.semana)} icon={TrendingUp} />
               <KpiCard label="Este mes" value={formatEUR(stats.ganado.mes)} icon={TrendingUp} />
               <KpiCard label="Acumulado" value={formatEUR(stats.ganado.acumulado)} icon={Trophy} tone="primary" />
