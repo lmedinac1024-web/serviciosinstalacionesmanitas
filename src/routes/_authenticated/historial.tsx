@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { STATUS_LABELS, type Job, type JobStatus } from "@/lib/jobs";
+import { useUserRole } from "@/hooks/useUserRole";
+
 
 export const Route = createFileRoute("/_authenticated/historial")({
   component: Historial,
@@ -37,11 +39,13 @@ function todayStr() {
 }
 
 function Historial() {
+  const { data: me } = useUserRole();
   const [range, setRange] = useState<RangeOpt>("todos");
   const [estado, setEstado] = useState<string>("todos");
   const [cliente, setCliente] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [tipo, setTipo] = useState("");
+  const [empleado, setEmpleado] = useState<string>("todos");
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["jobs", "historial"],
@@ -56,6 +60,20 @@ function Historial() {
     },
   });
 
+  const { data: empleados = [] } = useQuery({
+    queryKey: ["profiles", "empleados-list"],
+    enabled: !!me?.canManage,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").order("display_name");
+      return data ?? [];
+    },
+  });
+  const empleadoNombre = (uid: string | null | undefined) => {
+    if (!uid) return "—";
+    const p = empleados.find((e) => e.user_id === uid);
+    return p?.display_name || p?.username || "—";
+  };
+
   const filtered = useMemo(() => {
     return data.filter((j) => {
       if (range === "hoy" && j.fecha !== todayStr()) return false;
@@ -66,9 +84,13 @@ function Historial() {
       if (cliente && !j.cliente.toLowerCase().includes(cliente.toLowerCase())) return false;
       if (ciudad && !(j.ciudad ?? "").toLowerCase().includes(ciudad.toLowerCase())) return false;
       if (tipo && !(j.tipo_servicio ?? "").toLowerCase().includes(tipo.toLowerCase())) return false;
+      if (me?.canManage && empleado !== "todos") {
+        const uid = (j.empleado_id ?? j.user_id) as string | null | undefined;
+        if (uid !== empleado) return false;
+      }
       return true;
     });
-  }, [data, range, estado, cliente, ciudad, tipo]);
+  }, [data, range, estado, cliente, ciudad, tipo, empleado, me]);
 
   return (
     <AppShell title="Historial">
@@ -98,7 +120,21 @@ function Historial() {
           <Input placeholder="Cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
           <Input placeholder="Ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} />
           <Input placeholder="Tipo de servicio" value={tipo} onChange={(e) => setTipo(e.target.value)} />
+          {me?.canManage && (
+            <Select value={empleado} onValueChange={setEmpleado}>
+              <SelectTrigger><SelectValue placeholder="Empleado" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los empleados</SelectItem>
+                {empleados.map((e) => (
+                  <SelectItem key={e.user_id} value={e.user_id}>
+                    {e.display_name || e.username || e.user_id.slice(0, 6)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
+
 
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Cargando...</div>
