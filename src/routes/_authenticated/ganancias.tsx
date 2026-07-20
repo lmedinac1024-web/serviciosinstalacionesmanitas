@@ -180,13 +180,32 @@ function Ganancias() {
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (
         <div className="space-y-5">
+          {me?.canManage && (
+            <div className="rounded-xl border bg-card p-3">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Filtrar por empleado
+              </div>
+              <Select value={empleadoFiltro} onValueChange={setEmpleadoFiltro}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los empleados</SelectItem>
+                  {empleados.map((e) => (
+                    <SelectItem key={e.user_id} value={e.user_id}>
+                      {e.display_name || e.username || e.user_id.slice(0, 6)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {/* Ganado hoy siempre visible */}
           <div className="rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 to-transparent p-5">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Ganado hoy
+              Ganado hoy{me?.canManage && empleadoFiltro !== "todos" ? ` · ${empleados.find((e) => e.user_id === empleadoFiltro)?.display_name ?? ""}` : ""}
             </div>
             <div className="mt-1 text-3xl font-bold text-success">{formatEUR(ganadoHoy)}</div>
           </div>
+
 
           {/* Selector de rango */}
           <div className="rounded-xl border bg-card p-4 space-y-3">
