@@ -29,6 +29,7 @@ function startOfMonthISO() {
 
 function AdminDashboard() {
   const [rango, setRango] = useState<Rango>("mes");
+  const [empleadoSel, setEmpleadoSel] = useState<string>("todos");
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["admin", "jobs", "all"],
@@ -42,7 +43,7 @@ function AdminDashboard() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["admin", "profiles"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, username, display_name");
+      const { data } = await supabase.from("profiles").select("user_id, username, display_name").order("display_name");
       return data ?? [];
     },
   });
@@ -51,9 +52,16 @@ function AdminDashboard() {
   const weekStart = startOfWeekISO();
   const monthStart = startOfMonthISO();
 
+  const matchEmpleado = (j: Job) => {
+    if (empleadoSel === "todos") return true;
+    const uid = (j.empleado_id ?? j.user_id) as string | null;
+    return uid === empleadoSel;
+  };
+
   const stats = useMemo(() => {
-    const hoy = jobs.filter((j) => j.fecha === today);
-    const pagados = jobs.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
+    const base = jobs.filter(matchEmpleado);
+    const hoy = base.filter((j) => j.fecha === today);
+    const pagados = base.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
     const sum = (a: Job[]) => a.reduce((n, j) => n + jobTotal(j), 0);
     return {
       hoy: {
@@ -71,7 +79,9 @@ function AdminDashboard() {
       },
       pagados,
     };
-  }, [jobs, today, weekStart, monthStart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, today, weekStart, monthStart, empleadoSel]);
+
 
   // Rango seleccionado para tabla empleados
   const rangoInicio = rango === "hoy" ? today
