@@ -128,6 +128,7 @@ function AdminDashboard() {
               onChange={(e) => setEmpleadoSel(e.target.value)}
               className="rounded-md border bg-background px-2 py-1 text-sm"
             >
+              <option value="" disabled>Selecciona…</option>
               <option value="todos">Todos</option>
               {profiles.map((p) => (
                 <option key={p.user_id} value={p.user_id}>
@@ -135,16 +136,24 @@ function AdminDashboard() {
                 </option>
               ))}
             </select>
-            {empleadoSel !== "todos" && (
+            {hasSelection && (
               <button
                 type="button"
-                onClick={() => setEmpleadoSel("todos")}
+                onClick={() => setEmpleadoSel("")}
                 className="text-xs text-primary hover:underline"
               >
                 limpiar
               </button>
             )}
           </div>
+
+          {!hasSelection ? (
+            <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">
+              Selecciona un empleado (o «Todos») para ver la información del dashboard.
+            </div>
+          ) : (
+          <>
+
 
           {/* KPIs ganancias */}
           <section>
