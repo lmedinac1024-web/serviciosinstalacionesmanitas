@@ -233,7 +233,10 @@ function AdminDashboard() {
               </table>
             </div>
           </section>
+          </>
+          )}
         </div>
+
       )}
     </AdminShell>
   );
