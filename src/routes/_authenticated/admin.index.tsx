@@ -57,6 +57,7 @@ function AdminDashboard() {
     const uid = (j.empleado_id ?? j.user_id) as string | null;
     return uid === empleadoSel;
   };
+  const hasSelection = empleadoSel !== "";
 
   const stats = useMemo(() => {
     const base = jobs.filter(matchEmpleado);
