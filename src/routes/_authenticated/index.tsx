@@ -94,24 +94,32 @@ function Dashboard() {
   }, [allJobs, queuedActions]);
 
   const today = todayStr();
-  const weekStart = startOfWeekISO();
-  const monthStart = startOfMonthISO();
+  const weekStart = startOfWeekStr();
+  const monthStart = startOfMonthStr();
+
+  // Filtro por empleado (solo admin): sin selección no se muestran cifras.
+  const scoped = useMemo(() => {
+    if (!isAdmin) return jobs;
+    if (empleadoSel === "" ) return [];
+    if (empleadoSel === "todos") return jobs;
+    return jobs.filter((j) => (j.empleado_id ?? j.user_id) === empleadoSel);
+  }, [jobs, isAdmin, empleadoSel]);
 
   // Un servicio "paga" cuando está realizado o cancelado por el trabajador (y no anulado).
-  const pagados = jobs.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
-  const realizados = jobs.filter((j) => j.estado === "realizado");
+  const pagados = scoped.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
+  const realizados = scoped.filter((j) => j.estado === "realizado");
 
-  const pendientesHoy = jobs.filter((j) => j.fecha === today && j.estado === "pendiente");
-  const realizadosHoy = realizados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
-  const canceladosHoy = jobs.filter((j) => j.fecha === today && j.estado.startsWith("cancelado"));
-  const enProcesoHoy = jobs.filter((j) => j.fecha === today && j.estado === "en_proceso");
+  const pendientesHoy = scoped.filter((j) => j.fecha === today && j.estado === "pendiente");
+  const realizadosHoy = realizados.filter((j) => j.fecha === today);
+  const canceladosHoy = scoped.filter((j) => j.fecha === today && j.estado.startsWith("cancelado"));
+  const enProcesoHoy = scoped.filter((j) => j.fecha === today && j.estado === "en_proceso");
 
   const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
-  const pagadosHoy = pagados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
-  const ganadoHoy = sum(pagadosHoy);
-  const ganadoSemana = sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= weekStart));
-  const ganadoMes = sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= monthStart));
+  const ganadoHoy = sum(pagados.filter((j) => j.fecha === today));
+  const ganadoSemana = sum(pagados.filter((j) => j.fecha >= weekStart));
+  const ganadoMes = sum(pagados.filter((j) => j.fecha >= monthStart));
   const totalAcumulado = sum(pagados);
+
 
   const proximos = jobs.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").slice(0, 5);
 
