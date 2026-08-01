@@ -119,8 +119,10 @@ function Dashboard() {
   const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
   const ganadoHoy = sum(pagados.filter((j) => j.fecha === today));
   const ganadoSemana = sum(pagados.filter((j) => j.fecha >= weekStart));
-  const ganadoMes = sum(pagados.filter((j) => j.fecha >= monthStart));
-  const totalAcumulado = sum(pagados);
+  const enMesActual = (j: Job) => j.fecha >= monthStart && j.fecha <= monthEnd;
+  const ganadoMes = sum(pagados.filter(enMesActual));
+  // El acumulado es mes a mes: suma del 01 al último día del mes en curso.
+  const totalAcumulado = ganadoMes;
 
 
   const proximos = jobs.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").slice(0, 5);
