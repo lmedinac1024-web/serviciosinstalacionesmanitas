@@ -108,7 +108,7 @@ function Pendientes() {
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
 
   const counts = {
-    pendientes: effectiveAllData.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").length,
+    pendientes: effectiveAllData.filter((j) => (j.estado === "pendiente" || j.estado === "en_proceso") && !(j.fecha && j.fecha < inicioMes)).length,
     realizados: effectiveAllData.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado")).length,
     todos: effectiveAllData.length,
   };
