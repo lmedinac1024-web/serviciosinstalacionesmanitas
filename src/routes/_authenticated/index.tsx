@@ -34,6 +34,8 @@ function Dashboard() {
   const { data: me } = useUserRole();
   const isAdmin = me?.isAdmin;
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
+  const [empleadoSel, setEmpleadoSel] = useState<string>("");
+
 
   const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "all"],
