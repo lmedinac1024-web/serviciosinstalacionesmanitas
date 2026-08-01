@@ -154,6 +154,31 @@ function Dashboard() {
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (
         <div className="space-y-6">
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Empleado:</span>
+              <select
+                value={empleadoSel}
+                onChange={(e) => setEmpleadoSel(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1 text-sm"
+              >
+                <option value="" disabled>Selecciona…</option>
+                <option value="todos">Todos</option>
+                {profiles.map((p) => (
+                  <option key={p.user_id} value={p.user_id}>
+                    {p.display_name || p.username || p.user_id.slice(0, 6)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isAdmin && empleadoSel === "" ? (
+            <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
+              Selecciona un empleado (o «Todos») para ver las cifras.
+            </div>
+          ) : (
+          <>
           {/* Hero KPIs */}
           <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <BigKpi label="Ganado hoy" value={formatEUR(ganadoHoy)} icon={TrendingUp} tone="success" />
@@ -161,6 +186,7 @@ function Dashboard() {
             <BigKpi label="Este mes" value={formatEUR(ganadoMes)} icon={TrendingUp} />
             <BigKpi label="Acumulado" value={formatEUR(totalAcumulado)} icon={Trophy} tone="primary" />
           </section>
+
 
           {/* Estado del día */}
           <section>
