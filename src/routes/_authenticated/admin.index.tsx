@@ -52,6 +52,11 @@ function AdminDashboard() {
   const today = todayStr();
   const weekStart = startOfWeekISO();
   const monthStart = startOfMonthISO();
+  const monthEnd = (() => {
+    const d = new Date();
+    const e = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, "0")}-${String(e.getDate()).padStart(2, "0")}`;
+  })();
 
   const matchEmpleado = (j: Job) => {
     if (empleadoSel === "todos") return true;
@@ -76,8 +81,9 @@ function AdminDashboard() {
       ganado: {
         hoy: sum(pagados.filter((j) => j.fecha === today)),
         semana: sum(pagados.filter((j) => j.fecha >= weekStart.slice(0, 10))),
-        mes: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10))),
-        acumulado: sum(pagados),
+        mes: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10) && j.fecha <= monthEnd)),
+        // Acumulado mes a mes: del 01 al último día del mes en curso.
+        acumulado: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10) && j.fecha <= monthEnd)),
       },
       pagados,
     };
