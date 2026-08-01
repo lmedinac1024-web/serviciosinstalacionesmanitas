@@ -25,6 +25,10 @@ function startOfMonthStr(): string {
   const d = new Date();
   return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
 }
+function endOfMonthStr(): string {
+  const d = new Date();
+  return toISODate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+}
 function todayStr(): string {
   return toISODate(new Date());
 }
