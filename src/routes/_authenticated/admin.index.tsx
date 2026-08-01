@@ -52,6 +52,11 @@ function AdminDashboard() {
   const today = todayStr();
   const weekStart = startOfWeekISO();
   const monthStart = startOfMonthISO();
+  const monthEnd = (() => {
+    const d = new Date();
+    const e = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, "0")}-${String(e.getDate()).padStart(2, "0")}`;
+  })();
 
   const matchEmpleado = (j: Job) => {
     if (empleadoSel === "todos") return true;
