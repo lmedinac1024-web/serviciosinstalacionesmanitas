@@ -19,13 +19,14 @@ function todayStr() {
 }
 function startOfWeekISO() {
   const d = new Date(); const day = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - day); d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  d.setDate(d.getDate() - day); d.setHours(12, 0, 0, 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 function startOfMonthISO() {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
+
 
 function AdminDashboard() {
   const [rango, setRango] = useState<Rango>("mes");

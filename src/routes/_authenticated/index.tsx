@@ -12,26 +12,30 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
 
-function startOfWeekISO(): string {
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function startOfWeekStr(): string {
   const d = new Date();
   const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  return toISODate(d);
 }
-function startOfMonthISO(): string {
+function startOfMonthStr(): string {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
 }
 function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return toISODate(new Date());
 }
+
 
 function Dashboard() {
   const { data: me } = useUserRole();
   const isAdmin = me?.isAdmin;
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
+  const [empleadoSel, setEmpleadoSel] = useState<string>("");
+
 
   const { data: allJobs = [], isLoading } = useQuery({
     queryKey: ["jobs", "all"],
@@ -92,24 +96,32 @@ function Dashboard() {
   }, [allJobs, queuedActions]);
 
   const today = todayStr();
-  const weekStart = startOfWeekISO();
-  const monthStart = startOfMonthISO();
+  const weekStart = startOfWeekStr();
+  const monthStart = startOfMonthStr();
+
+  // Filtro por empleado (solo admin): sin selección no se muestran cifras.
+  const scoped = useMemo(() => {
+    if (!isAdmin) return jobs;
+    if (empleadoSel === "" ) return [];
+    if (empleadoSel === "todos") return jobs;
+    return jobs.filter((j) => (j.empleado_id ?? j.user_id) === empleadoSel);
+  }, [jobs, isAdmin, empleadoSel]);
 
   // Un servicio "paga" cuando está realizado o cancelado por el trabajador (y no anulado).
-  const pagados = jobs.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
-  const realizados = jobs.filter((j) => j.estado === "realizado");
+  const pagados = scoped.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado"));
+  const realizados = scoped.filter((j) => j.estado === "realizado");
 
-  const pendientesHoy = jobs.filter((j) => j.fecha === today && j.estado === "pendiente");
-  const realizadosHoy = realizados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
-  const canceladosHoy = jobs.filter((j) => j.fecha === today && j.estado.startsWith("cancelado"));
-  const enProcesoHoy = jobs.filter((j) => j.fecha === today && j.estado === "en_proceso");
+  const pendientesHoy = scoped.filter((j) => j.fecha === today && j.estado === "pendiente");
+  const realizadosHoy = realizados.filter((j) => j.fecha === today);
+  const canceladosHoy = scoped.filter((j) => j.fecha === today && j.estado.startsWith("cancelado"));
+  const enProcesoHoy = scoped.filter((j) => j.fecha === today && j.estado === "en_proceso");
 
   const sum = (arr: Job[]) => arr.reduce((a, j) => a + jobTotal(j), 0);
-  const pagadosHoy = pagados.filter((j) => j.hora_fin && j.hora_fin.slice(0, 10) === today);
-  const ganadoHoy = sum(pagadosHoy);
-  const ganadoSemana = sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= weekStart));
-  const ganadoMes = sum(pagados.filter((j) => j.hora_fin && j.hora_fin >= monthStart));
+  const ganadoHoy = sum(pagados.filter((j) => j.fecha === today));
+  const ganadoSemana = sum(pagados.filter((j) => j.fecha >= weekStart));
+  const ganadoMes = sum(pagados.filter((j) => j.fecha >= monthStart));
   const totalAcumulado = sum(pagados);
+
 
   const proximos = jobs.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").slice(0, 5);
 
@@ -142,6 +154,31 @@ function Dashboard() {
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (
         <div className="space-y-6">
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Empleado:</span>
+              <select
+                value={empleadoSel}
+                onChange={(e) => setEmpleadoSel(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1 text-sm"
+              >
+                <option value="" disabled>Selecciona…</option>
+                <option value="todos">Todos</option>
+                {profiles.map((p) => (
+                  <option key={p.user_id} value={p.user_id}>
+                    {p.display_name || p.username || p.user_id.slice(0, 6)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isAdmin && empleadoSel === "" ? (
+            <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
+              Selecciona un empleado (o «Todos») para ver las cifras.
+            </div>
+          ) : (
+          <>
           {/* Hero KPIs */}
           <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <BigKpi label="Ganado hoy" value={formatEUR(ganadoHoy)} icon={TrendingUp} tone="success" />
@@ -149,6 +186,7 @@ function Dashboard() {
             <BigKpi label="Este mes" value={formatEUR(ganadoMes)} icon={TrendingUp} />
             <BigKpi label="Acumulado" value={formatEUR(totalAcumulado)} icon={Trophy} tone="primary" />
           </section>
+
 
           {/* Estado del día */}
           <section>
@@ -231,7 +269,10 @@ function Dashboard() {
               </div>
             )}
           </section>
+          </>
+          )}
         </div>
+
       )}
     </AppShell>
   );
