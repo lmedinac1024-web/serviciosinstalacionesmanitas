@@ -76,8 +76,9 @@ function AdminDashboard() {
       ganado: {
         hoy: sum(pagados.filter((j) => j.fecha === today)),
         semana: sum(pagados.filter((j) => j.fecha >= weekStart.slice(0, 10))),
-        mes: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10))),
-        acumulado: sum(pagados),
+        mes: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10) && j.fecha <= monthEnd)),
+        // Acumulado mes a mes: del 01 al último día del mes en curso.
+        acumulado: sum(pagados.filter((j) => j.fecha >= monthStart.slice(0, 10) && j.fecha <= monthEnd)),
       },
       pagados,
     };
