@@ -269,7 +269,10 @@ function Dashboard() {
               </div>
             )}
           </section>
+          </>
+          )}
         </div>
+
       )}
     </AppShell>
   );
