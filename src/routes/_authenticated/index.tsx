@@ -12,21 +12,23 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
 
-function startOfWeekISO(): string {
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function startOfWeekStr(): string {
   const d = new Date();
   const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  return toISODate(d);
 }
-function startOfMonthISO(): string {
+function startOfMonthStr(): string {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
 }
 function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return toISODate(new Date());
 }
+
 
 function Dashboard() {
   const { data: me } = useUserRole();
