@@ -102,6 +102,7 @@ function Dashboard() {
   const today = todayStr();
   const weekStart = startOfWeekStr();
   const monthStart = startOfMonthStr();
+  const monthEnd = endOfMonthStr();
 
   // Filtro por empleado (solo admin): sin selección no se muestran cifras.
   const scoped = useMemo(() => {
