@@ -82,13 +82,22 @@ function Pendientes() {
     return data.map((job) => ({ ...job, ...(patchesByJob.get(job.id) ?? {}) }));
   }, [data, queuedActions]);
 
+  // El pago es mes a mes: los pendientes de meses anteriores se descartan
+  // automáticamente (siguen en la base de datos, pero no se listan).
+  const inicioMes = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  }, []);
+
   const filteredData = useMemo(
     () => effectiveAllData.filter((job) => {
-      if (filtro === "pendientes") return job.estado === "pendiente" || job.estado === "en_proceso";
+      const esPendiente = job.estado === "pendiente" || job.estado === "en_proceso";
+      if (esPendiente && job.fecha && job.fecha < inicioMes) return false;
+      if (filtro === "pendientes") return esPendiente;
       if (filtro === "realizados") return job.estado === "realizado" || job.estado.startsWith("cancelado");
       return true;
     }),
-    [effectiveAllData, filtro],
+    [effectiveAllData, filtro, inicioMes],
   );
 
   const nearest = useNearestSort(filteredData);
@@ -99,7 +108,7 @@ function Pendientes() {
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
 
   const counts = {
-    pendientes: effectiveAllData.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").length,
+    pendientes: effectiveAllData.filter((j) => (j.estado === "pendiente" || j.estado === "en_proceso") && !(j.fecha && j.fecha < inicioMes)).length,
     realizados: effectiveAllData.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado")).length,
     todos: effectiveAllData.length,
   };
