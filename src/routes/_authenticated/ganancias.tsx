@@ -244,10 +244,25 @@ function Ganancias() {
               ))}
             </div>
 
-            {rango !== "custom" ? (
+            {rango === "mes" ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="month"
+                  value={dia.slice(0, 7)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v) setDia(`${v}-01`);
+                  }}
+                  className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <Button size="sm" variant="ghost" onClick={() => setDia(toISODate(new Date()))}>
+                  Mes actual
+                </Button>
+              </div>
+            ) : rango !== "custom" ? (
               <div className="flex items-center gap-2">
                 <Button size="icon" variant="outline"
-                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "mes" ? -30 : rango === "semana" ? -7 : -1)))}>
+                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "semana" ? -7 : -1)))}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <input
@@ -257,7 +272,7 @@ function Ganancias() {
                   className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
                 />
                 <Button size="icon" variant="outline"
-                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "mes" ? 30 : rango === "semana" ? 7 : 1)))}>
+                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "semana" ? 7 : 1)))}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setDia(toISODate(new Date()))}>Hoy</Button>
