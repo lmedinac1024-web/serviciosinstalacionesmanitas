@@ -21,13 +21,17 @@ function startOfWeekStr(): string {
   d.setDate(d.getDate() - day);
   return toISODate(d);
 }
-function startOfMonthStr(): string {
+function currentMonthStr(): string {
   const d = new Date();
-  return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-function endOfMonthStr(): string {
-  const d = new Date();
-  return toISODate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+function monthRange(mes: string): { start: string; end: string } {
+  const [y, m] = mes.split("-").map(Number);
+  return { start: toISODate(new Date(y, m - 1, 1)), end: toISODate(new Date(y, m, 0)) };
+}
+function monthLabel(mes: string): string {
+  const [y, m] = mes.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 }
 function todayStr(): string {
   return toISODate(new Date());
@@ -39,6 +43,7 @@ function Dashboard() {
   const isAdmin = me?.isAdmin;
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
   const [empleadoSel, setEmpleadoSel] = useState<string>("");
+  const [mesSel, setMesSel] = useState<string>(currentMonthStr());
 
 
   const { data: allJobs = [], isLoading } = useQuery({
@@ -101,8 +106,8 @@ function Dashboard() {
 
   const today = todayStr();
   const weekStart = startOfWeekStr();
-  const monthStart = startOfMonthStr();
-  const monthEnd = endOfMonthStr();
+  const { start: monthStart, end: monthEnd } = monthRange(mesSel);
+  const esMesActual = mesSel === currentMonthStr();
 
   // Filtro por empleado (solo admin): sin selección no se muestran cifras.
   const scoped = useMemo(() => {
@@ -161,24 +166,44 @@ function Dashboard() {
         <div className="text-sm text-muted-foreground">Cargando...</div>
       ) : (
         <div className="space-y-6">
-          {isAdmin && (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Empleado:</span>
-              <select
-                value={empleadoSel}
-                onChange={(e) => setEmpleadoSel(e.target.value)}
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Empleado:</span>
+                <select
+                  value={empleadoSel}
+                  onChange={(e) => setEmpleadoSel(e.target.value)}
+                  className="rounded-md border bg-background px-2 py-1 text-sm"
+                >
+                  <option value="" disabled>Selecciona…</option>
+                  <option value="todos">Todos</option>
+                  {profiles.map((p) => (
+                    <option key={p.user_id} value={p.user_id}>
+                      {p.display_name || p.username || p.user_id.slice(0, 6)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Mes:</span>
+              <input
+                type="month"
+                value={mesSel}
+                onChange={(e) => setMesSel(e.target.value || currentMonthStr())}
                 className="rounded-md border bg-background px-2 py-1 text-sm"
-              >
-                <option value="" disabled>Selecciona…</option>
-                <option value="todos">Todos</option>
-                {profiles.map((p) => (
-                  <option key={p.user_id} value={p.user_id}>
-                    {p.display_name || p.username || p.user_id.slice(0, 6)}
-                  </option>
-                ))}
-              </select>
+              />
+              {!esMesActual && (
+                <button
+                  type="button"
+                  onClick={() => setMesSel(currentMonthStr())}
+                  className="text-xs font-medium text-primary"
+                >
+                  Mes actual
+                </button>
+              )}
             </div>
-          )}
+          </div>
 
           {isAdmin && empleadoSel === "" ? (
             <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
@@ -190,9 +215,10 @@ function Dashboard() {
           <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <BigKpi label="Ganado hoy" value={formatEUR(ganadoHoy)} icon={TrendingUp} tone="success" />
             <BigKpi label="Esta semana" value={formatEUR(ganadoSemana)} icon={TrendingUp} />
-            <BigKpi label="Este mes" value={formatEUR(ganadoMes)} icon={TrendingUp} />
-            <BigKpi label="Acumulado" value={formatEUR(totalAcumulado)} icon={Trophy} tone="primary" />
+            <BigKpi label={esMesActual ? "Este mes" : monthLabel(mesSel)} value={formatEUR(ganadoMes)} icon={TrendingUp} />
+            <BigKpi label={`Acumulado ${monthLabel(mesSel)}`} value={formatEUR(totalAcumulado)} icon={Trophy} tone="primary" />
           </section>
+
 
 
           {/* Estado del día */}
