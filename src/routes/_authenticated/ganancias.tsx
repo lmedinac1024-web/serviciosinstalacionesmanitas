@@ -176,6 +176,25 @@ function Ganancias() {
     }).reduce((a, j) => a + jobTotal(j), 0);
   }, [jobs, hoy, me, empleadoFiltro]);
 
+  const nombreEmpleado = (uid: string | null | undefined) => {
+    const p = empleados.find((e) => e.user_id === uid);
+    return p?.display_name || p?.username || (uid === me?.userId ? (me?.displayName ?? "Yo") : "Sin asignar");
+  };
+
+  const informe = () => construirInforme(filtrados, from, to, nombreEmpleado);
+
+  const onCSV = () => {
+    if (filtrados.length === 0) return toast.error("No hay trabajos en el rango seleccionado");
+    exportarCSV(informe());
+    toast.success("Informe CSV descargado");
+  };
+  const onPDF = () => {
+    if (filtrados.length === 0) return toast.error("No hay trabajos en el rango seleccionado");
+    const ok = exportarPDF(informe());
+    if (!ok) toast.error("Permite las ventanas emergentes para generar el PDF");
+  };
+
+
 
   return (
     <AppShell title="Ganancias">
