@@ -6,11 +6,14 @@ import { formatEUR, jobTotal, isPaid, type Job, type JobStatus } from "@/lib/job
 import { StatusBadge } from "@/components/StatusBadge";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileDown, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { construirInforme, exportarCSV, exportarPDF } from "@/lib/export-informe";
+import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/ganancias")({
   component: Ganancias,
