@@ -6,11 +6,14 @@ import { formatEUR, jobTotal, isPaid, type Job, type JobStatus } from "@/lib/job
 import { StatusBadge } from "@/components/StatusBadge";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileDown, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { construirInforme, exportarCSV, exportarPDF } from "@/lib/export-informe";
+import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/ganancias")({
   component: Ganancias,
@@ -173,6 +176,25 @@ function Ganancias() {
     }).reduce((a, j) => a + jobTotal(j), 0);
   }, [jobs, hoy, me, empleadoFiltro]);
 
+  const nombreEmpleado = (uid: string | null | undefined) => {
+    const p = empleados.find((e) => e.user_id === uid);
+    return p?.display_name || p?.username || (uid === me?.userId ? (me?.displayName ?? "Yo") : "Sin asignar");
+  };
+
+  const informe = () => construirInforme(filtrados, from, to, nombreEmpleado);
+
+  const onCSV = () => {
+    if (filtrados.length === 0) return toast.error("No hay trabajos en el rango seleccionado");
+    exportarCSV(informe());
+    toast.success("Informe CSV descargado");
+  };
+  const onPDF = () => {
+    if (filtrados.length === 0) return toast.error("No hay trabajos en el rango seleccionado");
+    const ok = exportarPDF(informe());
+    if (!ok) toast.error("Permite las ventanas emergentes para generar el PDF");
+  };
+
+
 
   return (
     <AppShell title="Ganancias">
@@ -271,6 +293,27 @@ function Ganancias() {
               <div className="mt-1 text-2xl font-bold">{filtrados.length}</div>
             </div>
           </div>
+
+          {/* Exportar informe */}
+          <div className="rounded-xl border bg-card p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Exportar informe
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ganancias por empleado del periodo {from} → {to}
+              {rango !== "mes" ? " (elige «Mes» para el informe mensual)" : ""}.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={onPDF}>
+                <FileText className="mr-2 h-4 w-4" /> PDF
+              </Button>
+              <Button size="sm" variant="outline" onClick={onCSV}>
+                <FileDown className="mr-2 h-4 w-4" /> CSV
+              </Button>
+            </div>
+          </div>
+
+
 
           {/* Desglose por día */}
           <div>
