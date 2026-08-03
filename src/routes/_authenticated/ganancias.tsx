@@ -262,7 +262,7 @@ function Ganancias() {
             ) : rango !== "custom" ? (
               <div className="flex items-center gap-2">
                 <Button size="icon" variant="outline"
-                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "mes" ? -30 : rango === "semana" ? -7 : -1)))}>
+                  onClick={() => setDia(toISODate(addDays(new Date(dia + "T00:00:00"), rango === "semana" ? -7 : -1)))}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <input
