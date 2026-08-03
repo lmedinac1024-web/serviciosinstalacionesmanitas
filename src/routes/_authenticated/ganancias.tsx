@@ -294,6 +294,27 @@ function Ganancias() {
             </div>
           </div>
 
+          {/* Exportar informe */}
+          <div className="rounded-xl border bg-card p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Exportar informe
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ganancias por empleado del periodo {from} → {to}
+              {rango !== "mes" ? " (elige «Mes» para el informe mensual)" : ""}.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={onPDF}>
+                <FileText className="mr-2 h-4 w-4" /> PDF
+              </Button>
+              <Button size="sm" variant="outline" onClick={onCSV}>
+                <FileDown className="mr-2 h-4 w-4" /> CSV
+              </Button>
+            </div>
+          </div>
+
+
+
           {/* Desglose por día */}
           <div>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
