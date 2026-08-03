@@ -43,6 +43,7 @@ function Dashboard() {
   const isAdmin = me?.isAdmin;
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
   const [empleadoSel, setEmpleadoSel] = useState<string>("");
+  const [mesSel, setMesSel] = useState<string>(currentMonthStr());
 
 
   const { data: allJobs = [], isLoading } = useQuery({
