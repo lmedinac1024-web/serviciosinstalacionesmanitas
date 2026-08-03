@@ -105,8 +105,8 @@ function Dashboard() {
 
   const today = todayStr();
   const weekStart = startOfWeekStr();
-  const monthStart = startOfMonthStr();
-  const monthEnd = endOfMonthStr();
+  const { start: monthStart, end: monthEnd } = monthRange(mesSel);
+  const esMesActual = mesSel === currentMonthStr();
 
   // Filtro por empleado (solo admin): sin selección no se muestran cifras.
   const scoped = useMemo(() => {
