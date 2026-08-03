@@ -21,13 +21,17 @@ function startOfWeekStr(): string {
   d.setDate(d.getDate() - day);
   return toISODate(d);
 }
-function startOfMonthStr(): string {
+function currentMonthStr(): string {
   const d = new Date();
-  return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-function endOfMonthStr(): string {
-  const d = new Date();
-  return toISODate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+function monthRange(mes: string): { start: string; end: string } {
+  const [y, m] = mes.split("-").map(Number);
+  return { start: toISODate(new Date(y, m - 1, 1)), end: toISODate(new Date(y, m, 0)) };
+}
+function monthLabel(mes: string): string {
+  const [y, m] = mes.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 }
 function todayStr(): string {
   return toISODate(new Date());
