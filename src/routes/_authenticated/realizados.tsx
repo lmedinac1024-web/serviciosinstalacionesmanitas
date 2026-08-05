@@ -98,7 +98,7 @@ function Realizados() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-          Aún no hay trabajos realizados.
+          Aún no hay trabajos realizados este mes.
         </div>
       ) : (
         <div className="space-y-2">
