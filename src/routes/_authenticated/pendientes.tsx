@@ -91,8 +91,9 @@ function Pendientes() {
 
   const filteredData = useMemo(
     () => effectiveAllData.filter((job) => {
+      // Todo el listado es mes a mes: solo trabajos del mes en curso.
+      if (job.fecha && job.fecha < inicioMes) return false;
       const esPendiente = job.estado === "pendiente" || job.estado === "en_proceso";
-      if (esPendiente && job.fecha && job.fecha < inicioMes) return false;
       if (filtro === "pendientes") return esPendiente;
       if (filtro === "realizados") return job.estado === "realizado" || job.estado.startsWith("cancelado");
       return true;
@@ -107,11 +108,13 @@ function Pendientes() {
   const today = new Date().toISOString().slice(0, 10);
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
 
+  const delMes = effectiveAllData.filter((j) => !(j.fecha && j.fecha < inicioMes));
   const counts = {
-    pendientes: effectiveAllData.filter((j) => (j.estado === "pendiente" || j.estado === "en_proceso") && !(j.fecha && j.fecha < inicioMes)).length,
-    realizados: effectiveAllData.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado")).length,
-    todos: effectiveAllData.length,
+    pendientes: delMes.filter((j) => j.estado === "pendiente" || j.estado === "en_proceso").length,
+    realizados: delMes.filter((j) => j.estado === "realizado" || j.estado.startsWith("cancelado")).length,
+    todos: delMes.length,
   };
+
 
   return (
     <AppShell title="Trabajos">
