@@ -30,7 +30,7 @@ function startOfMonthISO() {
 
 function AdminDashboard() {
   const [rango, setRango] = useState<Rango>("mes");
-  const [empleadoSel, setEmpleadoSel] = useState<string>("");
+  const [empleadoSel, setEmpleadoSel] = useState<string>("todos");
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["admin", "jobs", "all"],

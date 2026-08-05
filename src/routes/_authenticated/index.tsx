@@ -42,7 +42,7 @@ function Dashboard() {
   const { data: me } = useUserRole();
   const isAdmin = me?.isAdmin;
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
-  const [empleadoSel, setEmpleadoSel] = useState<string>("");
+  const [empleadoSel, setEmpleadoSel] = useState<string>("todos");
   const [mesSel, setMesSel] = useState<string>(currentMonthStr());
 
 
