@@ -58,11 +58,17 @@ function Realizados() {
     retry: 1,
   });
 
+  // El listado se reinicia cada mes: solo trabajos del mes en curso.
+  const inicioMes = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  }, []);
+
   const filtered = useMemo(() => {
-    const base = data.filter((j) => !j.eliminado_logico);
+    const base = data.filter((j) => !j.eliminado_logico && (j.fecha ?? "") >= inicioMes);
     if (!me?.isAdmin || empleadoSel === "todos") return base;
     return base.filter((j) => (j.empleado_id ?? j.user_id) === empleadoSel);
-  }, [data, me?.isAdmin, empleadoSel]);
+  }, [data, me?.isAdmin, empleadoSel, inicioMes]);
 
   return (
     <AppShell title="Realizados">
@@ -92,7 +98,7 @@ function Realizados() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-          Aún no hay trabajos realizados.
+          Aún no hay trabajos realizados este mes.
         </div>
       ) : (
         <div className="space-y-2">
