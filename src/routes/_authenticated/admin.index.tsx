@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/")({ component: AdminDashboard });
 
-type Rango = "hoy" | "semana" | "mes" | "todo";
+type Rango = "hoy" | "semana" | "mes";
 
 function todayStr() {
   const d = new Date();
@@ -91,11 +91,10 @@ function AdminDashboard() {
   }, [jobs, today, weekStart, monthStart, empleadoSel]);
 
 
-  // Rango seleccionado para tabla empleados
+  // Rango seleccionado para tabla empleados: siempre desde el inicio del período en curso.
   const rangoInicio = rango === "hoy" ? today
     : rango === "semana" ? weekStart.slice(0, 10)
-    : rango === "mes" ? monthStart.slice(0, 10)
-    : "0000-00-00";
+    : monthStart.slice(0, 10);
 
   const ranking = useMemo(() => {
     const nameOf = (uid: string | null) => {
@@ -198,7 +197,7 @@ function AdminDashboard() {
                 <Users className="h-3.5 w-3.5" /> Total por empleado
               </h2>
               <div className="inline-flex rounded-md border bg-card p-0.5 text-xs">
-                {(["hoy", "semana", "mes", "todo"] as const).map((r) => (
+                {(["hoy", "semana", "mes"] as const).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRango(r)}
@@ -207,7 +206,7 @@ function AdminDashboard() {
                       rango === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {r === "todo" ? "Todo" : r}
+                    {r === "mes" ? "Mes en curso" : r}
                   </button>
                 ))}
               </div>
