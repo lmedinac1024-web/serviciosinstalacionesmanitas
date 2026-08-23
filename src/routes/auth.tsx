@@ -9,6 +9,7 @@ import { usernameToEmail } from "@/lib/auth-helpers";
 import logoAsset from "@/assets/logo-manitas.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getUser();
