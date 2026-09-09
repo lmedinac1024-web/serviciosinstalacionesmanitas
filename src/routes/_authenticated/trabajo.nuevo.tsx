@@ -188,7 +188,7 @@ function NuevoServicio() {
       </AppShell>
     );
   }
-  if (!me.canManage) return <Navigate to="/" />;
+  
 
   async function handleFile(file: File | null | undefined) {
     if (!file) return;
@@ -311,7 +311,8 @@ function NuevoServicio() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.empleado_id) return toast.error("Falta trabajador asignado");
+    const asignadoA = me?.canManage ? form.empleado_id : (me?.userId ?? "");
+    if (!asignadoA) return toast.error("Falta trabajador asignado");
     if (!form.tipo_servicio) return toast.error("Falta tipo de servicio");
     if (!form.cliente.trim()) return toast.error("Falta nombre del cliente");
     if (!form.telefono.trim()) return toast.error("Falta teléfono");
@@ -329,8 +330,8 @@ function NuevoServicio() {
       const horaProgramada = form.hora || form.hora_inicio || null;
 
       const insertPayload = {
-        user_id: form.empleado_id,
-        empleado_id: form.empleado_id,
+        user_id: asignadoA,
+        empleado_id: asignadoA,
         assigned_by: me?.userId ?? null,
         creado_por: me?.userId ?? null,
         cliente_id: null,
