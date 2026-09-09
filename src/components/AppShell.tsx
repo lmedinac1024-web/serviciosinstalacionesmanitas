@@ -190,14 +190,12 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </nav>
 
         <div className="space-y-2 border-t p-3">
-          {isAdmin && (
-            <Link
-              to="/trabajo/nuevo"
-              className="flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-            >
-              <Plus className="h-4 w-4" /> Nuevo servicio
-            </Link>
-          )}
+          <Link
+            to="/trabajo/nuevo"
+            className="flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Nuevo servicio
+          </Link>
           <button
             onClick={handleSync}
             disabled={syncing}
