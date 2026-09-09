@@ -450,6 +450,7 @@ function NuevoServicio() {
         </div>
 
 
+        {me.canManage ? (
         <Field label="Asignar trabajador *">
           {empleados.length === 0 ? (
             <div className="rounded border bg-muted/40 p-3 text-sm text-muted-foreground">
@@ -487,6 +488,11 @@ function NuevoServicio() {
             </>
           )}
         </Field>
+        ) : (
+          <div className="rounded border bg-muted/40 p-3 text-sm text-muted-foreground">
+            Este servicio se creará a tu nombre: <span className="font-medium text-foreground">{me.displayName || me.username}</span>
+          </div>
+        )}
 
         <Field label="Tipo de servicio *">
           <Select value={form.tipo_servicio} onValueChange={(v) => set("tipo_servicio", v)}>
