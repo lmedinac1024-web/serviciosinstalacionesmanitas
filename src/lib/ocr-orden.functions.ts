@@ -271,7 +271,7 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3.8-flash",
           response_format: { type: "json_object" },
           messages: [
             {
