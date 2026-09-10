@@ -238,7 +238,13 @@ function NuevoServicio() {
       // 3) Leer con IA
       const res = await runOcr({ data: { imagenBase64: base64, mime } });
       if (!res.ok) {
-        toast.error(`No se pudo leer la orden (${res.reason})`);
+        const mensajes: Record<string, string> = {
+          credits_exhausted: "Sin saldo para leer imágenes. Avisa al administrador.",
+          rate_limited: "Demasiadas lecturas seguidas. Espera unos segundos y prueba otra vez.",
+          missing_ai_key: "La lectura automática no está configurada. Avisa al administrador.",
+          invalid_json: "La foto no se entendió bien. Haz otra más nítida y de cerca.",
+        };
+        toast.error(mensajes[res.reason] ?? "No se pudo leer la orden. Prueba con otra foto más nítida.");
         return;
       }
         const c = res.campos;

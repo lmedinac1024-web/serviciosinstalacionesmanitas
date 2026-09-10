@@ -248,15 +248,8 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { imagenBase64: string; mime: string }) => d)
   .handler(async ({ data, context }): Promise<OcrOrdenResultado> => {
-    // Guard de rol: admin / super_admin / supervisor
-    const [{ data: isAdmin }, { data: isSuper }, { data: isSup }] = await Promise.all([
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" }),
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
-    ]);
-    if (!isAdmin && !isSuper && !isSup) {
-      return { ok: false, reason: "forbidden" };
-    }
+    // Cualquier usuario autenticado (incluidos empleados) puede leer una orden.
+    void context;
 
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
     if (!LOVABLE_API_KEY) return { ok: false, reason: "missing_ai_key" };
@@ -278,7 +271,7 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3.8-flash",
           response_format: { type: "json_object" },
           messages: [
             {
