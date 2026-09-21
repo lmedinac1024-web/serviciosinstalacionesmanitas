@@ -306,8 +306,13 @@ function NuevoServicio() {
         toast.success("Dirección verificada correctamente");
         return { lat: res.lat, lng: res.lng };
       }
-      setGeo({ status: "fail", msg: "reason" in res ? res.reason : "error" });
-      toast.warning("Ubicación no disponible");
+      const motivo = "reason" in res ? res.reason : "error";
+      setGeo({ status: "fail", msg: motivo });
+      toast.warning(
+        motivo === "not_precise"
+          ? "No se encontró el portal exacto: revisa calle, número y código postal"
+          : "Ubicación no disponible",
+      );
       return null;
     } catch (e) {
       setGeo({ status: "fail", msg: e instanceof Error ? e.message : "error" });
