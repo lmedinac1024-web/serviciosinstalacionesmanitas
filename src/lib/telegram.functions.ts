@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { direccionParaMapas } from "@/lib/address";
 
 const TELEGRAM_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
@@ -83,7 +84,12 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
     const street = [job.direccion, job.numero].filter(Boolean).join(", ").trim();
     const postalCity = [job.codigo_postal, job.ciudad].filter(Boolean).join(" ");
     const address = [job.direccion, job.numero, job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
-    const mapsAddress = [[job.direccion, job.numero].filter(Boolean).join(" "), job.codigo_postal, job.ciudad].filter(Boolean).join(", ");
+    const mapsAddress = direccionParaMapas({
+      direccion: job.direccion,
+      numero: job.numero,
+      codigo_postal: job.codigo_postal,
+      ciudad: job.ciudad,
+    });
     const destinationParam =
       job.direccion_lat != null && job.direccion_lng != null
         ? `${job.direccion_lat},${job.direccion_lng}`

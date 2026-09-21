@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { direccionParaMapas } from "@/lib/address";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 
@@ -21,12 +22,17 @@ export const geocodeAddress = createServerFn({ method: "POST" })
     if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
       return { ok: false as const, reason: "not_connected" as const };
     }
-    const address = [data.direccion, data.codigo_postal, data.ciudad].filter(Boolean).join(", ");
-    if (!address.trim()) return { ok: false as const, reason: "empty" as const };
-
+    const address = direccionParaMapas({
+      direccion: data.direccion,
+      codigo_postal: data.codigo_postal,
+      ciudad: data.ciudad,
+    });
+    if (!address.replace(/España/gi, "").replace(/[,\s]/g, "")) {
+      return { ok: false as const, reason: "empty" as const };
+    }
 
     try {
-      const url = `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}`;
+      const url = `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=es&language=es&components=country:ES`;
       const r = await fetch(url, {
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -37,8 +43,31 @@ export const geocodeAddress = createServerFn({ method: "POST" })
       if (!r.ok || j.status !== "OK" || !j.results?.[0]?.geometry?.location) {
         return { ok: false as const, reason: "not_found" as const, status: j.status ?? `HTTP ${r.status}` };
       }
-      const loc = j.results[0].geometry.location;
-      return { ok: true as const, lat: Number(loc.lat), lng: Number(loc.lng), formatted: j.results[0].formatted_address as string };
+      type GeoResult = {
+        geometry?: { location?: { lat: number; lng: number }; location_type?: string };
+        types?: string[];
+        formatted_address?: string;
+      };
+      const results: GeoResult[] = j.results;
+      const esPreciso = (res: GeoResult) => {
+        const lt = res.geometry?.location_type;
+        const t = res.types ?? [];
+        return (
+          lt === "ROOFTOP" ||
+          lt === "RANGE_INTERPOLATED" ||
+          t.includes("street_address") ||
+          t.includes("premise") ||
+          t.includes("subpremise")
+        );
+      };
+      // Solo aceptamos coordenadas a nivel de portal: un resultado aproximado
+      // (solo ciudad o solo código postal) manda al trabajador a otro sitio.
+      const elegido = results.find(esPreciso);
+      if (!elegido?.geometry?.location) {
+        return { ok: false as const, reason: "not_precise" as const, status: "APPROXIMATE" };
+      }
+      const loc = elegido.geometry.location;
+      return { ok: true as const, lat: Number(loc.lat), lng: Number(loc.lng), formatted: elegido.formatted_address as string };
     } catch (e) {
       return { ok: false as const, reason: "error" as const, error: e instanceof Error ? e.message : "unknown" };
     }
