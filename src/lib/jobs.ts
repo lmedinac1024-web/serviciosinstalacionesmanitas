@@ -81,9 +81,12 @@ export function googleMapsUrl(
   const destination =
     j.direccion_lat != null && j.direccion_lng != null
       ? `${j.direccion_lat},${j.direccion_lng}`
-      : [[j.direccion, j.numero].filter(Boolean).join(" "), j.codigo_postal, j.ciudad]
-          .filter(Boolean)
-          .join(", ") ||
+      : direccionParaMapas({
+          direccion: j.direccion,
+          numero: j.numero,
+          codigo_postal: j.codigo_postal,
+          ciudad: j.ciudad,
+        }) ||
         j.direccion_completa?.trim() ||
         j.direccion ||
         "";
