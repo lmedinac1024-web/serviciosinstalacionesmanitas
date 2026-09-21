@@ -452,11 +452,14 @@ function Detalle() {
     if (working) return;
     setWorking(true);
     const at = new Date().toISOString();
-    const header = `Iniciando tarea — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
+    const horaServicio = job!.hora_programada?.slice(0, 5) ?? "Sin hora";
+    const serviceLine = `SERVICIO DE LAS ${horaServicio}`;
+    const clientLine = job!.cliente ? `👤 Cliente: ${job!.cliente}` : "";
+    const phoneLine = job!.telefono_cliente ? `📞 Teléfono: ${job!.telefono_cliente}` : "";
     const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
-    const obsLine = job!.observaciones ? `📝 Observaciones / reparaciones: ${job!.observaciones}` : "";
-    const text = [header, tipoLine, addressLine, obsLine].filter(Boolean).join("\n");
+    const obsLine = job!.observaciones ? `📝 Observaciones: ${job!.observaciones}` : "";
+    const text = [serviceLine, addressLine, clientLine, phoneLine, tipoLine, obsLine].filter(Boolean).join("\n");
 
     // Disparar compartir nativo desde el gesto del usuario, sin bloquear
     const sharePromise = (async () => {
@@ -523,15 +526,13 @@ function Detalle() {
     setWorking(true);
     setFinishOpen(false);
 
-    // Compartir desglose por nativo (fire-and-forget desde el gesto del usuario)
-    const header = `✅ Tarea finalizada — ${job!.cliente ?? ""}${job!.referencia ? ` · ${job!.referencia}` : ""}`;
-    const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
-    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
+    // Al finalizar se comparte únicamente el resultado del trabajo, sin dirección
+    // ni datos del cliente, para facilitar el cierre del parte.
     const listLines = selected.length > 0
-      ? ["📋 Trabajos realizados:", ...selected.map((s) => `• ${s}`)].join("\n")
+      ? ["TRABAJOS REALIZADOS", ...selected.map((s) => `• ${s}`)].join("\n")
       : "";
-    const extraLine = extra ? `📝 Notas: ${extra}` : "";
-    const shareText = [header, tipoLine, addressLine, listLines, extraLine].filter(Boolean).join("\n");
+    const observationsLine = extra ? `OBSERVACIONES\n${extra}` : "";
+    const shareText = [listLines, observationsLine].filter(Boolean).join("\n\n");
     void (async () => {
       try {
         if (typeof navigator === "undefined") return;
@@ -914,11 +915,11 @@ function Detalle() {
                         ))}
                       </div>
                       <div>
-                        <div className="mb-1.5 text-xs font-medium">Notas adicionales</div>
+        <div className="mb-1.5 text-xs font-medium">Observaciones</div>
                         <Textarea
                           value={finishExtra}
                           onChange={(e) => setFinishExtra(e.target.value)}
-                          placeholder="Detalles de lo realizado (opcional)"
+                          placeholder="Anota cualquier anomalía o trabajo que no se pudo realizar (opcional)"
                           rows={3}
                         />
                       </div>
