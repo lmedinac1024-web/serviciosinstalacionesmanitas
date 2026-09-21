@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { direccionParaMapas } from "@/lib/address";
 
 const TELEGRAM_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
