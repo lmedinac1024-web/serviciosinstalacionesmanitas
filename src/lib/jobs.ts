@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import { direccionParaMapas } from "@/lib/address";
 
 export type Job = Database["public"]["Tables"]["servicios"]["Row"];
 export type JobInsert = Database["public"]["Tables"]["servicios"]["Insert"];
