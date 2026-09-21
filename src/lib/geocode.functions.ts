@@ -21,12 +21,17 @@ export const geocodeAddress = createServerFn({ method: "POST" })
     if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
       return { ok: false as const, reason: "not_connected" as const };
     }
-    const address = [data.direccion, data.codigo_postal, data.ciudad].filter(Boolean).join(", ");
-    if (!address.trim()) return { ok: false as const, reason: "empty" as const };
-
+    const address = direccionParaMapas({
+      direccion: data.direccion,
+      codigo_postal: data.codigo_postal,
+      ciudad: data.ciudad,
+    });
+    if (!address.replace(/España/gi, "").replace(/[,\s]/g, "")) {
+      return { ok: false as const, reason: "empty" as const };
+    }
 
     try {
-      const url = `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}`;
+      const url = `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=es&language=es&components=country:ES`;
       const r = await fetch(url, {
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
