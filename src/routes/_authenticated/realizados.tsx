@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/realizados")({
   errorComponent: RealizadosError,
 });
 
-function RealizadosError({ error, reset }: { error: Error; reset: () => void }) {
+function RealizadosError({ error, reset }: import("@tanstack/react-router").ErrorComponentProps) {
   const router = useRouter();
   return (
     <AppShell title="Realizados">
