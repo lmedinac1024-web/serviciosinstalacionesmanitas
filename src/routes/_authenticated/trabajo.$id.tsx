@@ -53,6 +53,7 @@ const FINISH_CHECKLIST = [
   "Pruebas de funcionamiento",
   "Limpieza de la zona",
   "Explicación al cliente",
+  "No estaba el cliente",
 ];
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
