@@ -9,36 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticated/ajustes'
-import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authenticated/cancelados'
-import { Route as AuthenticatedGananciasRouteImport } from './routes/_authenticated/ganancias'
-import { Route as AuthenticatedHistorialRouteImport } from './routes/_authenticated/historial'
-import { Route as AuthenticatedHoyRouteImport } from './routes/_authenticated/hoy'
-import { Route as AuthenticatedPendientesRouteImport } from './routes/_authenticated/pendientes'
 import { Route as AuthenticatedRealizadosRouteImport } from './routes/_authenticated/realizados'
+import { Route as AuthenticatedPendientesRouteImport } from './routes/_authenticated/pendientes'
+import { Route as AuthenticatedHoyRouteImport } from './routes/_authenticated/hoy'
+import { Route as AuthenticatedHistorialRouteImport } from './routes/_authenticated/historial'
+import { Route as AuthenticatedGananciasRouteImport } from './routes/_authenticated/ganancias'
+import { Route as AuthenticatedCanceladosRouteImport } from './routes/_authenticated/cancelados'
+import { Route as AuthenticatedAjustesRouteImport } from './routes/_authenticated/ajustes'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
-import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
-import { Route as AuthenticatedAdminEmpleadosRouteImport } from './routes/_authenticated/admin.empleados'
-import { Route as AuthenticatedAdminObrasRouteImport } from './routes/_authenticated/admin.obras'
-import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated/admin.roles'
-import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin.solicitudes'
-import { Route as AuthenticatedAdminTelegramRouteImport } from './routes/_authenticated/admin.telegram'
-import { Route as AuthenticatedTrabajoIdRouteImport } from './routes/_authenticated/trabajo.$id'
 import { Route as AuthenticatedTrabajoNuevoRouteImport } from './routes/_authenticated/trabajo.nuevo'
-import { Route as AuthenticatedAdminObrasIdRouteImport } from './routes/_authenticated/admin.obras.$id'
+import { Route as AuthenticatedTrabajoIdRouteImport } from './routes/_authenticated/trabajo.$id'
+import { Route as AuthenticatedAdminTelegramRouteImport } from './routes/_authenticated/admin.telegram'
+import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin.solicitudes'
+import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated/admin.roles'
+import { Route as AuthenticatedAdminObrasRouteImport } from './routes/_authenticated/admin.obras'
+import { Route as AuthenticatedAdminEmpleadosRouteImport } from './routes/_authenticated/admin.empleados'
+import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminObrasNuevaRouteImport } from './routes/_authenticated/admin.obras.nueva'
+import { Route as AuthenticatedAdminObrasIdRouteImport } from './routes/_authenticated/admin.obras.$id'
 
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -46,34 +46,9 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAjustesRoute = AuthenticatedAjustesRouteImport.update({
-  id: '/ajustes',
-  path: '/ajustes',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCanceladosRoute = AuthenticatedCanceladosRouteImport.update({
-  id: '/cancelados',
-  path: '/cancelados',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedGananciasRoute = AuthenticatedGananciasRouteImport.update({
-  id: '/ganancias',
-  path: '/ganancias',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHistorialRoute = AuthenticatedHistorialRouteImport.update({
-  id: '/historial',
-  path: '/historial',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHoyRoute = AuthenticatedHoyRouteImport.update({
-  id: '/hoy',
-  path: '/hoy',
+const AuthenticatedRealizadosRoute = AuthenticatedRealizadosRouteImport.update({
+  id: '/realizados',
+  path: '/realizados',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPendientesRoute = AuthenticatedPendientesRouteImport.update({
@@ -81,9 +56,34 @@ const AuthenticatedPendientesRoute = AuthenticatedPendientesRouteImport.update({
   path: '/pendientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRealizadosRoute = AuthenticatedRealizadosRouteImport.update({
-  id: '/realizados',
-  path: '/realizados',
+const AuthenticatedHoyRoute = AuthenticatedHoyRouteImport.update({
+  id: '/hoy',
+  path: '/hoy',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHistorialRoute = AuthenticatedHistorialRouteImport.update({
+  id: '/historial',
+  path: '/historial',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGananciasRoute = AuthenticatedGananciasRouteImport.update({
+  id: '/ganancias',
+  path: '/ganancias',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCanceladosRoute = AuthenticatedCanceladosRouteImport.update({
+  id: '/cancelados',
+  path: '/cancelados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAjustesRoute = AuthenticatedAjustesRouteImport.update({
+  id: '/ajustes',
+  path: '/ajustes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -91,61 +91,61 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminClientesRoute =
-  AuthenticatedAdminClientesRouteImport.update({
-    id: '/clientes',
-    path: '/clientes',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminEmpleadosRoute =
-  AuthenticatedAdminEmpleadosRouteImport.update({
-    id: '/empleados',
-    path: '/empleados',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminObrasRoute = AuthenticatedAdminObrasRouteImport.update({
-  id: '/obras',
-  path: '/obras',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminRolesRoute = AuthenticatedAdminRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminSolicitudesRoute =
-  AuthenticatedAdminSolicitudesRouteImport.update({
-    id: '/solicitudes',
-    path: '/solicitudes',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminTelegramRoute =
-  AuthenticatedAdminTelegramRouteImport.update({
-    id: '/telegram',
-    path: '/telegram',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedTrabajoIdRoute = AuthenticatedTrabajoIdRouteImport.update({
-  id: '/trabajo/$id',
-  path: '/trabajo/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedTrabajoNuevoRoute =
   AuthenticatedTrabajoNuevoRouteImport.update({
     id: '/trabajo/nuevo',
     path: '/trabajo/nuevo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminObrasIdRoute =
-  AuthenticatedAdminObrasIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminObrasRoute,
+const AuthenticatedTrabajoIdRoute = AuthenticatedTrabajoIdRouteImport.update({
+  id: '/trabajo/$id',
+  path: '/trabajo/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminTelegramRoute =
+  AuthenticatedAdminTelegramRouteImport.update({
+    id: '/telegram',
+    path: '/telegram',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSolicitudesRoute =
+  AuthenticatedAdminSolicitudesRouteImport.update({
+    id: '/solicitudes',
+    path: '/solicitudes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminRolesRoute = AuthenticatedAdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminObrasRoute = AuthenticatedAdminObrasRouteImport.update({
+  id: '/obras',
+  path: '/obras',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminEmpleadosRoute =
+  AuthenticatedAdminEmpleadosRouteImport.update({
+    id: '/empleados',
+    path: '/empleados',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminClientesRoute =
+  AuthenticatedAdminClientesRouteImport.update({
+    id: '/clientes',
+    path: '/clientes',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminObrasNuevaRoute =
   AuthenticatedAdminObrasNuevaRouteImport.update({
     id: '/nueva',
     path: '/nueva',
+    getParentRoute: () => AuthenticatedAdminObrasRoute,
+  } as any)
+const AuthenticatedAdminObrasIdRoute =
+  AuthenticatedAdminObrasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
     getParentRoute: () => AuthenticatedAdminObrasRoute,
   } as any)
 
@@ -298,18 +298,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -319,46 +319,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/ajustes': {
-      id: '/_authenticated/ajustes'
-      path: '/ajustes'
-      fullPath: '/ajustes'
-      preLoaderRoute: typeof AuthenticatedAjustesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cancelados': {
-      id: '/_authenticated/cancelados'
-      path: '/cancelados'
-      fullPath: '/cancelados'
-      preLoaderRoute: typeof AuthenticatedCanceladosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/ganancias': {
-      id: '/_authenticated/ganancias'
-      path: '/ganancias'
-      fullPath: '/ganancias'
-      preLoaderRoute: typeof AuthenticatedGananciasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/historial': {
-      id: '/_authenticated/historial'
-      path: '/historial'
-      fullPath: '/historial'
-      preLoaderRoute: typeof AuthenticatedHistorialRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/hoy': {
-      id: '/_authenticated/hoy'
-      path: '/hoy'
-      fullPath: '/hoy'
-      preLoaderRoute: typeof AuthenticatedHoyRouteImport
+    '/_authenticated/realizados': {
+      id: '/_authenticated/realizados'
+      path: '/realizados'
+      fullPath: '/realizados'
+      preLoaderRoute: typeof AuthenticatedRealizadosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pendientes': {
@@ -368,11 +333,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPendientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/realizados': {
-      id: '/_authenticated/realizados'
-      path: '/realizados'
-      fullPath: '/realizados'
-      preLoaderRoute: typeof AuthenticatedRealizadosRouteImport
+    '/_authenticated/hoy': {
+      id: '/_authenticated/hoy'
+      path: '/hoy'
+      fullPath: '/hoy'
+      preLoaderRoute: typeof AuthenticatedHoyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/historial': {
+      id: '/_authenticated/historial'
+      path: '/historial'
+      fullPath: '/historial'
+      preLoaderRoute: typeof AuthenticatedHistorialRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ganancias': {
+      id: '/_authenticated/ganancias'
+      path: '/ganancias'
+      fullPath: '/ganancias'
+      preLoaderRoute: typeof AuthenticatedGananciasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cancelados': {
+      id: '/_authenticated/cancelados'
+      path: '/cancelados'
+      fullPath: '/cancelados'
+      preLoaderRoute: typeof AuthenticatedCanceladosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ajustes': {
+      id: '/_authenticated/ajustes'
+      path: '/ajustes'
+      fullPath: '/ajustes'
+      preLoaderRoute: typeof AuthenticatedAjustesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/': {
@@ -382,32 +382,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/clientes': {
-      id: '/_authenticated/admin/clientes'
-      path: '/clientes'
-      fullPath: '/admin/clientes'
-      preLoaderRoute: typeof AuthenticatedAdminClientesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/_authenticated/trabajo/nuevo': {
+      id: '/_authenticated/trabajo/nuevo'
+      path: '/trabajo/nuevo'
+      fullPath: '/trabajo/nuevo'
+      preLoaderRoute: typeof AuthenticatedTrabajoNuevoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/empleados': {
-      id: '/_authenticated/admin/empleados'
-      path: '/empleados'
-      fullPath: '/admin/empleados'
-      preLoaderRoute: typeof AuthenticatedAdminEmpleadosRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/_authenticated/trabajo/$id': {
+      id: '/_authenticated/trabajo/$id'
+      path: '/trabajo/$id'
+      fullPath: '/trabajo/$id'
+      preLoaderRoute: typeof AuthenticatedTrabajoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/obras': {
-      id: '/_authenticated/admin/obras'
-      path: '/obras'
-      fullPath: '/admin/obras'
-      preLoaderRoute: typeof AuthenticatedAdminObrasRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/roles': {
-      id: '/_authenticated/admin/roles'
-      path: '/roles'
-      fullPath: '/admin/roles'
-      preLoaderRoute: typeof AuthenticatedAdminRolesRouteImport
+    '/_authenticated/admin/telegram': {
+      id: '/_authenticated/admin/telegram'
+      path: '/telegram'
+      fullPath: '/admin/telegram'
+      preLoaderRoute: typeof AuthenticatedAdminTelegramRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/solicitudes': {
@@ -417,39 +410,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSolicitudesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/telegram': {
-      id: '/_authenticated/admin/telegram'
-      path: '/telegram'
-      fullPath: '/admin/telegram'
-      preLoaderRoute: typeof AuthenticatedAdminTelegramRouteImport
+    '/_authenticated/admin/roles': {
+      id: '/_authenticated/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AuthenticatedAdminRolesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/trabajo/$id': {
-      id: '/_authenticated/trabajo/$id'
-      path: '/trabajo/$id'
-      fullPath: '/trabajo/$id'
-      preLoaderRoute: typeof AuthenticatedTrabajoIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/admin/obras': {
+      id: '/_authenticated/admin/obras'
+      path: '/obras'
+      fullPath: '/admin/obras'
+      preLoaderRoute: typeof AuthenticatedAdminObrasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/trabajo/nuevo': {
-      id: '/_authenticated/trabajo/nuevo'
-      path: '/trabajo/nuevo'
-      fullPath: '/trabajo/nuevo'
-      preLoaderRoute: typeof AuthenticatedTrabajoNuevoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/admin/empleados': {
+      id: '/_authenticated/admin/empleados'
+      path: '/empleados'
+      fullPath: '/admin/empleados'
+      preLoaderRoute: typeof AuthenticatedAdminEmpleadosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/obras/$id': {
-      id: '/_authenticated/admin/obras/$id'
-      path: '/$id'
-      fullPath: '/admin/obras/$id'
-      preLoaderRoute: typeof AuthenticatedAdminObrasIdRouteImport
-      parentRoute: typeof AuthenticatedAdminObrasRoute
+    '/_authenticated/admin/clientes': {
+      id: '/_authenticated/admin/clientes'
+      path: '/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AuthenticatedAdminClientesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/obras/nueva': {
       id: '/_authenticated/admin/obras/nueva'
       path: '/nueva'
       fullPath: '/admin/obras/nueva'
       preLoaderRoute: typeof AuthenticatedAdminObrasNuevaRouteImport
+      parentRoute: typeof AuthenticatedAdminObrasRoute
+    }
+    '/_authenticated/admin/obras/$id': {
+      id: '/_authenticated/admin/obras/$id'
+      path: '/$id'
+      fullPath: '/admin/obras/$id'
+      preLoaderRoute: typeof AuthenticatedAdminObrasIdRouteImport
       parentRoute: typeof AuthenticatedAdminObrasRoute
     }
   }
