@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -54,6 +55,7 @@ const FINISH_CHECKLIST = [
   "Limpieza de la zona",
   "Explicación al cliente",
   "No estaba el cliente",
+  "Otros",
 ];
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
@@ -105,6 +107,9 @@ function Detalle() {
   const [finishOpen, setFinishOpen] = useState(false);
   const [finishItems, setFinishItems] = useState<Record<string, boolean>>({});
   const [finishExtra, setFinishExtra] = useState("");
+  const [otrosNombre, setOtrosNombre] = useState("");
+  const [otrosDni, setOtrosDni] = useState("");
+  const [otrosTelefono, setOtrosTelefono] = useState("");
   const [working, setWorking] = useState(false);
   const [, setGpsMeta] = useState<GpsMeta | null>(null);
   const [importeFinal, setImporteFinal] = useState<string>("");
@@ -520,6 +525,16 @@ function Detalle() {
     if (working) return;
     const selected = FINISH_CHECKLIST.filter((k) => finishItems[k]);
     const extra = finishExtra.trim();
+    const otrosSel = finishItems["Otros"] === true;
+    const otrosDatos = [
+      otrosNombre.trim() ? `Nombre: ${otrosNombre.trim()}` : "",
+      otrosDni.trim() ? `DNI: ${otrosDni.trim()}` : "",
+      otrosTelefono.trim() ? `Teléfono: ${otrosTelefono.trim()}` : "",
+    ].filter(Boolean).join(" · ");
+    if (otrosSel && !otrosDatos) {
+      toast.error("En «Otros» indica al menos nombre, DNI o teléfono");
+      return;
+    }
     if (selected.length === 0 && !extra) {
       toast.error("Marca al menos una tarea realizada o añade una nota");
       return;
@@ -529,8 +544,9 @@ function Detalle() {
 
     // Al finalizar se comparte únicamente el resultado del trabajo, sin dirección
     // ni datos del cliente, para facilitar el cierre del parte.
+    const selectedLines = selected.map((s) => (s === "Otros" && otrosDatos ? `• Otros (${otrosDatos})` : `• ${s}`));
     const listLines = selected.length > 0
-      ? ["TRABAJOS REALIZADOS", ...selected.map((s) => `• ${s}`)].join("\n")
+      ? ["TRABAJOS REALIZADOS", ...selectedLines].join("\n")
       : "";
     const observationsLine = extra ? `OBSERVACIONES\n${extra}` : "";
     const shareText = [listLines, observationsLine].filter(Boolean).join("\n\n");
@@ -546,7 +562,7 @@ function Detalle() {
     try {
       const gpsPatch = await buildGpsPatch("final");
       const trabajosText = [
-        selected.length > 0 ? selected.map((s) => `• ${s}`).join("\n") : "",
+        selected.length > 0 ? selectedLines.join("\n") : "",
         extra ? `Notas: ${extra}` : "",
       ].filter(Boolean).join("\n");
       const prevObs = (job?.observaciones ?? "").trim();
@@ -590,6 +606,9 @@ function Detalle() {
       setWorking(false);
       setFinishItems({});
       setFinishExtra("");
+      setOtrosNombre("");
+      setOtrosDni("");
+      setOtrosTelefono("");
     }
   }
 
@@ -891,7 +910,7 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={() => { setFinishItems({}); setFinishExtra(""); setFinishOpen(true); }}
+                  onClick={() => { setFinishItems({}); setFinishExtra(""); setOtrosNombre(""); setOtrosDni(""); setOtrosTelefono(""); setFinishOpen(true); }}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
@@ -915,6 +934,27 @@ function Detalle() {
                           </label>
                         ))}
                       </div>
+                      {finishItems["Otros"] && (
+                        <div className="space-y-2 rounded-md border p-2">
+                          <div className="text-xs font-medium">Datos de «Otros»</div>
+                          <Input
+                            value={otrosNombre}
+                            onChange={(e) => setOtrosNombre(e.target.value)}
+                            placeholder="Nombre y apellidos"
+                          />
+                          <Input
+                            value={otrosDni}
+                            onChange={(e) => setOtrosDni(e.target.value)}
+                            placeholder="DNI / NIE"
+                          />
+                          <Input
+                            value={otrosTelefono}
+                            onChange={(e) => setOtrosTelefono(e.target.value)}
+                            placeholder="Teléfono"
+                            inputMode="tel"
+                          />
+                        </div>
+                      )}
                       <div>
         <div className="mb-1.5 text-xs font-medium">Observaciones</div>
                         <Textarea
