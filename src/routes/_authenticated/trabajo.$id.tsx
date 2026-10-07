@@ -543,8 +543,9 @@ function Detalle() {
 
     // Al finalizar se comparte únicamente el resultado del trabajo, sin dirección
     // ni datos del cliente, para facilitar el cierre del parte.
+    const selectedLines = selected.map((s) => (s === "Otros" && otrosDatos ? `• Otros (${otrosDatos})` : `• ${s}`));
     const listLines = selected.length > 0
-      ? ["TRABAJOS REALIZADOS", ...selected.map((s) => `• ${s}`)].join("\n")
+      ? ["TRABAJOS REALIZADOS", ...selectedLines].join("\n")
       : "";
     const observationsLine = extra ? `OBSERVACIONES\n${extra}` : "";
     const shareText = [listLines, observationsLine].filter(Boolean).join("\n\n");
@@ -560,7 +561,7 @@ function Detalle() {
     try {
       const gpsPatch = await buildGpsPatch("final");
       const trabajosText = [
-        selected.length > 0 ? selected.map((s) => `• ${s}`).join("\n") : "",
+        selected.length > 0 ? selectedLines.join("\n") : "",
         extra ? `Notas: ${extra}` : "",
       ].filter(Boolean).join("\n");
       const prevObs = (job?.observaciones ?? "").trim();
@@ -604,6 +605,9 @@ function Detalle() {
       setWorking(false);
       setFinishItems({});
       setFinishExtra("");
+      setOtrosNombre("");
+      setOtrosDni("");
+      setOtrosTelefono("");
     }
   }
 
