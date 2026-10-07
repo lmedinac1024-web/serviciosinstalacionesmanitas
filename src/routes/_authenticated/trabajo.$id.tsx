@@ -909,7 +909,7 @@ function Detalle() {
                 <Button
                   size="lg"
                   className="h-14 w-full bg-success text-success-foreground text-base hover:bg-success/90"
-                  onClick={() => { setFinishItems({}); setFinishExtra(""); setFinishOpen(true); }}
+                  onClick={() => { setFinishItems({}); setFinishExtra(""); setOtrosNombre(""); setOtrosDni(""); setOtrosTelefono(""); setFinishOpen(true); }}
                   disabled={working}
                 >
                   <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar tarea
@@ -933,6 +933,27 @@ function Detalle() {
                           </label>
                         ))}
                       </div>
+                      {finishItems["Otros"] && (
+                        <div className="space-y-2 rounded-md border p-2">
+                          <div className="text-xs font-medium">Datos de «Otros»</div>
+                          <Input
+                            value={otrosNombre}
+                            onChange={(e) => setOtrosNombre(e.target.value)}
+                            placeholder="Nombre y apellidos"
+                          />
+                          <Input
+                            value={otrosDni}
+                            onChange={(e) => setOtrosDni(e.target.value)}
+                            placeholder="DNI / NIE"
+                          />
+                          <Input
+                            value={otrosTelefono}
+                            onChange={(e) => setOtrosTelefono(e.target.value)}
+                            placeholder="Teléfono"
+                            inputMode="tel"
+                          />
+                        </div>
+                      )}
                       <div>
         <div className="mb-1.5 text-xs font-medium">Observaciones</div>
                         <Textarea
