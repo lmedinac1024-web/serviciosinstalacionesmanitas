@@ -54,6 +54,7 @@ const FINISH_CHECKLIST = [
   "Limpieza de la zona",
   "Explicación al cliente",
   "No estaba el cliente",
+  "Otros",
 ];
 
 export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
@@ -105,6 +106,9 @@ function Detalle() {
   const [finishOpen, setFinishOpen] = useState(false);
   const [finishItems, setFinishItems] = useState<Record<string, boolean>>({});
   const [finishExtra, setFinishExtra] = useState("");
+  const [otrosNombre, setOtrosNombre] = useState("");
+  const [otrosDni, setOtrosDni] = useState("");
+  const [otrosTelefono, setOtrosTelefono] = useState("");
   const [working, setWorking] = useState(false);
   const [, setGpsMeta] = useState<GpsMeta | null>(null);
   const [importeFinal, setImporteFinal] = useState<string>("");
