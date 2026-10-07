@@ -524,6 +524,16 @@ function Detalle() {
     if (working) return;
     const selected = FINISH_CHECKLIST.filter((k) => finishItems[k]);
     const extra = finishExtra.trim();
+    const otrosSel = finishItems["Otros"] === true;
+    const otrosDatos = [
+      otrosNombre.trim() ? `Nombre: ${otrosNombre.trim()}` : "",
+      otrosDni.trim() ? `DNI: ${otrosDni.trim()}` : "",
+      otrosTelefono.trim() ? `Teléfono: ${otrosTelefono.trim()}` : "",
+    ].filter(Boolean).join(" · ");
+    if (otrosSel && !otrosDatos) {
+      toast.error("En «Otros» indica al menos nombre, DNI o teléfono");
+      return;
+    }
     if (selected.length === 0 && !extra) {
       toast.error("Marca al menos una tarea realizada o añade una nota");
       return;
