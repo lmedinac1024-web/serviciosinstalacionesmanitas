@@ -52,6 +52,9 @@ function ErrorComponent({ error, reset }: import("@tanstack/react-router").Error
         <p className="mt-2 text-sm text-muted-foreground">
           Hubo un fallo momentáneo. Pulsa Reintentar.
         </p>
+        <p className="mt-2 break-words text-xs text-muted-foreground">
+          {error instanceof Error ? error.message : String(error ?? "")}
+        </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

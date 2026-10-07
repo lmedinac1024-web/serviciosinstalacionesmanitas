@@ -20,7 +20,27 @@ import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
 import { MapPin, AlertCircle, Navigation, Camera, Upload, X, ScanText, Loader2 } from "lucide-react";
 import { haversineMeters } from "@/lib/geo";
 
-export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({ component: NuevoServicio });
+export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({
+  component: NuevoServicio,
+  errorComponent: NuevoServicioError,
+});
+
+function NuevoServicioError({ error, reset }: import("@tanstack/react-router").ErrorComponentProps) {
+  const msg = error instanceof Error ? error.message : String(error ?? "");
+  useEffect(() => { console.error("[nuevo-servicio]", error); }, [error]);
+  return (
+    <AppShell title="Nuevo servicio">
+      <div className="rounded-lg border bg-card p-4 text-center text-sm">
+        <div className="font-semibold text-destructive">No se pudo abrir el formulario</div>
+        <div className="mt-2 break-words text-xs text-muted-foreground">{msg || "Error desconocido"}</div>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Button onClick={() => reset()}>Reintentar</Button>
+          <Button variant="outline" onClick={() => { clearDraft(); reset(); }}>Empezar formulario vacío</Button>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
 
 type Empleado = { user_id: string; username: string; display_name: string | null };
 
@@ -62,8 +82,17 @@ function restoreDraft(): FormState {
   try {
     const raw = window.localStorage.getItem(DRAFT_KEY);
     if (!raw) return initial;
-    const saved = JSON.parse(raw) as Partial<FormState>;
-    return { ...initial, ...saved, fecha: saved.fecha || initial.fecha };
+    const saved = JSON.parse(raw) as Record<string, unknown>;
+    if (!saved || typeof saved !== "object") return initial;
+    // Sanear: cada campo debe ser texto; valores raros de borradores antiguos rompían la pantalla.
+    const out = { ...initial };
+    for (const k of Object.keys(initial) as (keyof FormState)[]) {
+      const v = saved[k];
+      if (typeof v === "string") out[k] = v;
+      else if (typeof v === "number") out[k] = String(v);
+    }
+    if (!out.fecha) out.fecha = initial.fecha;
+    return out;
   } catch {
     return initial;
   }
