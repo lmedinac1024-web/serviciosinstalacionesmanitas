@@ -235,12 +235,11 @@ function Detalle() {
     const header = `${faseTxt} — ${job?.cliente ?? ""}${job?.referencia ? ` · ${job.referencia}` : ""}`;
     const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
     const tipoLine = job?.tipo_servicio ? `🛠️ Tipo: ${job.tipo_servicio}` : "";
-    const obsLine = job?.observaciones ? `📝 Observaciones / reparaciones: ${job.observaciones}` : "";
-    let text = [header, addressLine, tipoLine, obsLine].filter(Boolean).join("\n");
+    let text = [header, addressLine, tipoLine].filter(Boolean).join("\n");
     if (fase === "cancel") {
       const reasonEntry = cancelReason ? CANCEL_REASONS.find((r) => r.label === cancelReason) ?? null : null;
       const motivo = [reasonEntry?.label ?? "Cancelado", cancelExtra.trim()].filter(Boolean).join(" — ");
-      text = [header, addressLine, tipoLine, obsLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
+      text = [header, addressLine, tipoLine, `❌ Motivo: ${motivo}`].filter(Boolean).join("\n");
     }
     return { fase, file, title: faseTxt, text };
   }
@@ -462,10 +461,9 @@ function Detalle() {
     const serviceLine = `SERVICIO DE LAS ${horaServicio}`;
     const clientLine = job!.cliente ? `👤 Cliente: ${job!.cliente}` : "";
     const phoneLine = job!.telefono_cliente ? `📞 Teléfono: ${job!.telefono_cliente}` : "";
-    const tipoLine = job!.tipo_servicio ? `🛠️ Tipo: ${job!.tipo_servicio}` : "";
-    const addressLine = direccionCompleta ? `📍 Dirección: ${direccionCompleta}` : "";
-    const obsLine = job!.observaciones ? `📝 Observaciones: ${job!.observaciones}` : "";
-    const text = [serviceLine, addressLine, clientLine, phoneLine, tipoLine, obsLine].filter(Boolean).join("\n");
+    const addressFull = [direccionCompleta, job!.piso ? `Piso ${job!.piso}` : "", job!.puerta ? `Puerta ${job!.puerta}` : ""].filter(Boolean).join(", ");
+    const addressLine = addressFull ? `📍 Dirección: ${addressFull}` : "";
+    const text = [serviceLine, addressLine, clientLine, phoneLine].filter(Boolean).join("\n");
 
     // Disparar compartir nativo desde el gesto del usuario, sin bloquear
     const sharePromise = (async () => {
