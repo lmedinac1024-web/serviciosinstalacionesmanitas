@@ -16,7 +16,7 @@ const NAV: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/obras", label: "Obras", icon: Briefcase },
   { to: "/admin/empleados", label: "Empleados", icon: Users },
-  { to: "/admin/clientes", label: "Clientes", icon: UserSquare2 },
+  { to: "/admin/clientes", label: "Asegurados", icon: UserSquare2 },
   { to: "/admin/telegram", label: "Telegram", icon: Send },
   { to: "/admin/solicitudes", label: "Solicitudes", icon: KeyRound },
 ];

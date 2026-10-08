@@ -111,7 +111,7 @@ export const sendJobUpdateToTelegram = createServerFn({ method: "POST" })
 
     const commonHeader =
       (empleadoName ? `<b>Empleado:</b> ${escapeHtml(empleadoName)}\n` : "") +
-      `<b>Cliente:</b> ${escapeHtml(job.cliente ?? "")}\n` +
+      `<b>Asegurado:</b> ${escapeHtml(job.cliente ?? "")}\n` +
       (job.tipo_servicio ? `<b>Servicio:</b> ${escapeHtml(job.tipo_servicio)}\n` : "") +
       `<b>Dirección:</b> ${escapeHtml(address)}\n` +
       (job.telefono_cliente ? `<b>Tel:</b> ${escapeHtml(job.telefono_cliente)}\n` : "") +

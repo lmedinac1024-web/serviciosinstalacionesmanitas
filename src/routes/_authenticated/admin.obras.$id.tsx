@@ -20,7 +20,7 @@ const STATUS_OPCIONES: { value: JobStatus; label: string }[] = [
   { value: "pendiente", label: "Pendiente" },
   { value: "en_proceso", label: "En curso" },
   { value: "realizado", label: "Realizado" },
-  { value: "cancelado_cliente", label: "Cancelado — cliente" },
+  { value: "cancelado_cliente", label: "Cancelado — asegurado" },
   { value: "cancelado_no_estaba", label: "Cancelado — no estaba" },
   { value: "cancelado_direccion", label: "Cancelado — dirección" },
   { value: "cancelado_otro", label: "Cancelado — otro" },
@@ -161,7 +161,7 @@ function EditarObra() {
             </div>
           </Section>
 
-          <Section title="Cliente y dirección">
+          <Section title="Asegurado y dirección">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Cliente"><Input value={form.cliente ?? ""} onChange={(e) => set("cliente", e.target.value)} /></Field>
               <Field label="Teléfono"><Input value={form.telefono_cliente ?? ""} onChange={(e) => set("telefono_cliente", e.target.value)} /></Field>

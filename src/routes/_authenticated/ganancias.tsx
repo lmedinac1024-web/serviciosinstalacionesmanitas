@@ -366,7 +366,7 @@ function Ganancias() {
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 text-left">Fecha</th>
-                    <th className="px-3 py-2 text-left">Cliente</th>
+                    <th className="px-3 py-2 text-left">Asegurado</th>
                     <th className="px-3 py-2 text-left">Estado</th>
                     <th className="px-3 py-2 text-right">Importe</th>
                     <th className="px-3 py-2 text-right">Llegada</th>
