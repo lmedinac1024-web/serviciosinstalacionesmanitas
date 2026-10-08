@@ -44,11 +44,11 @@ function AdminClientes() {
     },
   });
 
-  if (loadingRole) return <AppShell title="Clientes"><div className="text-sm text-muted-foreground">…</div></AppShell>;
+  if (loadingRole) return <AppShell title="Asegurados"><div className="text-sm text-muted-foreground">…</div></AppShell>;
   if (!me?.isAdmin) return <Navigate to="/" />;
 
   async function remove(id: string) {
-    if (!confirm("¿Eliminar cliente?")) return;
+    if (!confirm("¿Eliminar asegurado?")) return;
     const { error } = await supabase.from("clientes").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["clientes"] });
@@ -56,17 +56,17 @@ function AdminClientes() {
   }
 
   return (
-    <AppShell title="Clientes">
+    <AppShell title="Asegurados">
       <div className="mx-auto max-w-4xl space-y-4">
         <div className="flex justify-end">
           <Button onClick={() => { setEditing(null); setOpen(true); }}>
-            <Plus className="mr-1.5 h-4 w-4" /> Nuevo cliente
+            <Plus className="mr-1.5 h-4 w-4" /> Nuevo asegurado
           </Button>
         </div>
 
         {clientes.length === 0 ? (
           <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
-            Aún no hay clientes. Crea el primero.
+            Aún no hay asegurados. Crea el primero.
           </div>
         ) : (
           <div className="divide-y rounded-lg border bg-card">
@@ -160,7 +160,7 @@ function ClienteDialog({ open, onOpenChange, editing }: { open: boolean; onOpenC
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Nuevo cliente"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editing ? "Editar asegurado" : "Nuevo asegurado"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div><Label>Nombre *</Label><Input required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></div>
           <div><Label>Teléfono</Label><Input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value })} /></div>

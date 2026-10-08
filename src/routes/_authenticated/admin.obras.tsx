@@ -114,7 +114,7 @@ function AdminObras() {
           <Label className="text-xs">Buscar</Label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Cliente, dirección, referencia, teléfono"
+            <Input className="pl-8" placeholder="Asegurado, dirección, referencia, teléfono"
               value={filtros.texto} onChange={(e) => setFiltros((f) => ({ ...f, texto: e.target.value }))} />
           </div>
         </div>
@@ -171,7 +171,7 @@ function AdminObras() {
               <tr>
                 <th className="px-3 py-2.5 text-left font-semibold">Fecha</th>
                 <th className="px-3 py-2.5 text-left font-semibold">Ref</th>
-                <th className="px-3 py-2.5 text-left font-semibold">Cliente</th>
+                <th className="px-3 py-2.5 text-left font-semibold">Asegurado</th>
                 <th className="px-3 py-2.5 text-left font-semibold">Dirección</th>
                 <th className="px-3 py-2.5 text-left font-semibold">Empleado</th>
                 <th className="px-3 py-2.5 text-left font-semibold">Estado</th>

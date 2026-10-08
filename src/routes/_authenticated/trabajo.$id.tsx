@@ -53,8 +53,8 @@ const FINISH_CHECKLIST = [
   "Ajustes y regulación",
   "Pruebas de funcionamiento",
   "Limpieza de la zona",
-  "Explicación al cliente",
-  "No estaba el cliente",
+  "Explicación al asegurado",
+  "No estaba el asegurado",
   "Otros",
 ];
 
@@ -851,7 +851,7 @@ function Detalle() {
                 onClick={() => { void iniciarTareaDirecta(); }}
                 disabled={working}
               >
-                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir datos del cliente
+                <Share2 className="mr-2 h-5 w-5" /> Iniciar Tarea — Compartir datos del asegurado
                 {!online && <span className="ml-2 text-xs opacity-80">(offline)</span>}
               </Button>
             )}
@@ -1033,10 +1033,10 @@ function Detalle() {
               if (!p) return null;
               const label =
                 f === "inicio"
-                  ? "Compartir datos del cliente + foto (marcar llegada)"
+                  ? "Compartir datos del asegurado + foto (marcar llegada)"
                   : f === "final"
-                    ? "Compartir foto final + datos del cliente (finalizar)"
-                    : "Compartir foto + datos del cliente (cancelar)";
+                    ? "Compartir foto final + datos del asegurado (finalizar)"
+                    : "Compartir foto + datos del asegurado (cancelar)";
               return (
                 <Button
                   key={f}
@@ -1050,7 +1050,7 @@ function Detalle() {
               );
             })}
             <div className="text-xs text-muted-foreground">
-              Se comparten los datos del cliente (dirección, nombre, tipo y observaciones) con la foto y el servicio pasa al siguiente estado.
+              Se comparten los datos del asegurado (dirección, nombre, tipo y observaciones) con la foto y el servicio pasa al siguiente estado.
             </div>
 
           </div>
@@ -1358,7 +1358,7 @@ function AdminOverride({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">Cliente</label>
+          <label className="text-xs font-medium">Asegurado</label>
           <input type="text" value={cliente} onChange={(e) => setCliente(e.target.value)}
             className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
@@ -1447,7 +1447,7 @@ function AdminOverride({
                 <div>
                   <label className="text-xs font-medium">Motivo de anulación *</label>
                   <Textarea value={motivoAnul} onChange={(e) => setMotivoAnul(e.target.value)}
-                    placeholder="Ej: Duplicado, creado por error, cliente inexistente..." rows={3} />
+                    placeholder="Ej: Duplicado, creado por error, asegurado inexistente..." rows={3} />
                 </div>
               </div>
               <DialogFooter>

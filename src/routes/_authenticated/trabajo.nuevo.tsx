@@ -308,7 +308,7 @@ function NuevoServicio() {
       setGeo({ status: "idle" });
 
       if (res.aviso_cp) toast.warning("Código postal corregido automáticamente, revisar");
-      if (res.aviso_cliente) toast.warning("Cliente sin nombre, revisar antes de guardar");
+      if (res.aviso_cliente) toast.warning("Asegurado sin nombre, revisar antes de guardar");
       if (res.aviso_trabajador) toast.warning("No se encontró trabajador coincidente, selecciona uno manualmente");
       toast.success("Orden leída — revisa los datos antes de crear el servicio");
     } catch (e) {
@@ -544,7 +544,7 @@ function NuevoServicio() {
         </Field>
 
         <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cliente</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Asegurado</div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nombre cliente *"><Input required value={form.cliente} onChange={(e) => set("cliente", e.target.value)} placeholder="Juan Pérez" /></Field>
             <Field label="Teléfono *"><Input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+34 600 000 000" /></Field>

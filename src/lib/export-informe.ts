@@ -78,7 +78,7 @@ export function exportarCSV(data: InformeData) {
   }
   lineas.push([esc("TOTAL"), "", "", "", data.total.toFixed(2)].join(";"));
   lineas.push("");
-  lineas.push(["Fecha", "Empleado", "Cliente", "Estado", "Total EUR"].map(esc).join(";"));
+  lineas.push(["Fecha", "Empleado", "Asegurado", "Estado", "Total EUR"].map(esc).join(";"));
   for (const d of data.detalle) {
     lineas.push([esc(d.fecha), esc(d.empleado), esc(d.cliente), esc(d.estado), d.total.toFixed(2)].join(";"));
   }
@@ -113,7 +113,7 @@ ${data.filas
 <tr class="total"><td>TOTAL</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">${formatEUR(data.total)}</td></tr>
 </tbody></table>
 <h2>Detalle de trabajos</h2>
-<table><thead><tr><th>Fecha</th><th>Empleado</th><th>Cliente</th><th>Estado</th><th class="num">Total</th></tr></thead><tbody>
+<table><thead><tr><th>Fecha</th><th>Empleado</th><th>Asegurado</th><th>Estado</th><th class="num">Total</th></tr></thead><tbody>
 ${data.detalle
   .map(
     (d) =>

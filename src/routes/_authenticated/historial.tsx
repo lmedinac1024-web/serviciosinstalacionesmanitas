@@ -117,7 +117,7 @@ function Historial() {
               <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
-          <Input placeholder="Cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+          <Input placeholder="Asegurado" value={cliente} onChange={(e) => setCliente(e.target.value)} />
           <Input placeholder="Ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} />
           <Input placeholder="Tipo de servicio" value={tipo} onChange={(e) => setTipo(e.target.value)} />
           {me?.canManage && (

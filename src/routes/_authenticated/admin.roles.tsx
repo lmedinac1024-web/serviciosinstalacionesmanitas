@@ -48,7 +48,7 @@ function AdminRoles() {
               <div className="font-medium text-foreground">Jerarquía de roles</div>
               <ul className="mt-1 list-disc pl-5">
                 <li><b>Super Admin</b>: gestiona la app y los roles de otros usuarios.</li>
-                <li><b>Admin</b>: gestiona el equipo (empleados, clientes, categorías, Telegram).</li>
+                <li><b>Admin</b>: gestiona el equipo (empleados, asegurados, categorías, Telegram).</li>
                 <li><b>Empleado</b>: sólo ve y ejecuta sus servicios.</li>
               </ul>
             </div>

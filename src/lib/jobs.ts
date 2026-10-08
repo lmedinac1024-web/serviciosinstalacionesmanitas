@@ -20,13 +20,13 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
  * El detalle enumerado se guarda en `motivo_cancelacion` como texto.
  */
 export const CANCEL_REASONS: { status: JobStatus; label: string }[] = [
-  { status: "cancelado_no_estaba", label: "Cliente no está en casa" },
+  { status: "cancelado_no_estaba", label: "Asegurado no está en casa" },
   { status: "cancelado_direccion", label: "Dirección incorrecta" },
   { status: "cancelado_otro", label: "No se puede acceder" },
   { status: "cancelado_otro", label: "Material no disponible" },
   { status: "cancelado_otro", label: "No cubre" },
   { status: "cancelado_otro", label: "Error en el servicio" },
-  { status: "cancelado_cliente", label: "Cliente cancela" },
+  { status: "cancelado_cliente", label: "Asegurado cancela" },
   { status: "cancelado_otro", label: "Otro motivo" },
 ];
 
