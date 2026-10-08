@@ -1,6 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { List, Map as MapIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+const JobsMap = lazy(() => import("@/components/JobsMap"));
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
@@ -42,6 +45,7 @@ function Dashboard() {
   const { data: me } = useUserRole();
   const isAdmin = me?.isAdmin;
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
+  const [vistaProx, setVistaProx] = useState<"lista" | "mapa">("lista");
   const [empleadoSel, setEmpleadoSel] = useState<string>("todos");
   const [mesSel, setMesSel] = useState<string>(currentMonthStr());
 
@@ -292,10 +296,26 @@ function Dashboard() {
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Próximos trabajos</h2>
               <Link to="/pendientes" className="text-xs font-medium text-primary">Ver todos</Link>
             </div>
+            {proximos.length > 0 && (
+              <div className="mb-2 grid grid-cols-2 gap-1 rounded-lg border bg-card p-1">
+                <Button size="sm" variant={vistaProx === "lista" ? "default" : "ghost"} onClick={() => setVistaProx("lista")}>
+                  <List className="mr-1.5 h-4 w-4" /> Lista
+                </Button>
+                <Button size="sm" variant={vistaProx === "mapa" ? "default" : "ghost"} onClick={() => setVistaProx("mapa")}>
+                  <MapIcon className="mr-1.5 h-4 w-4" /> Mapa
+                </Button>
+              </div>
+            )}
             {proximos.length === 0 ? (
               <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
                 No hay trabajos pendientes.
               </div>
+            ) : vistaProx === "mapa" ? (
+              <ClientOnly fallback={<div className="text-sm text-muted-foreground">Cargando mapa...</div>}>
+                <Suspense fallback={<div className="text-sm text-muted-foreground">Cargando mapa...</div>}>
+                  <JobsMap jobs={proximos} />
+                </Suspense>
+              </ClientOnly>
             ) : (
               <div className="space-y-2">
                 {proximos.map((j) => <JobCard key={j.id} job={j} />)}
