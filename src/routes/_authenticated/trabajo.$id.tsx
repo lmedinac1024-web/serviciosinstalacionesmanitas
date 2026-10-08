@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw, Share2,
+  Phone, MessageCircle, MapPin, CheckCircle2, XCircle, Camera, ImageIcon, User, RotateCcw, Share2, IdCard,
 } from "lucide-react";
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
@@ -525,9 +525,9 @@ function Detalle() {
     const extra = finishExtra.trim();
     const otrosSel = finishItems["Otros"] === true;
     const otrosDatos = [
-      otrosNombre.trim() ? `Nombre: ${otrosNombre.trim()}` : "",
-      otrosDni.trim() ? `DNI: ${otrosDni.trim()}` : "",
-      otrosTelefono.trim() ? `Teléfono: ${otrosTelefono.trim()}` : "",
+      otrosNombre.trim() ? `👤 Nombre: ${otrosNombre.trim()}` : "",
+      otrosDni.trim() ? `🪪 DNI: ${otrosDni.trim()}` : "",
+      otrosTelefono.trim() ? `📞 Teléfono: ${otrosTelefono.trim()}` : "",
     ].filter(Boolean).join(" · ");
     if (otrosSel && !otrosDatos) {
       toast.error("En «Otros» indica al menos nombre, DNI o teléfono");
@@ -935,22 +935,34 @@ function Detalle() {
                       {finishItems["Otros"] && (
                         <div className="space-y-2 rounded-md border p-2">
                           <div className="text-xs font-medium">Datos de «Otros»</div>
-                          <Input
-                            value={otrosNombre}
-                            onChange={(e) => setOtrosNombre(e.target.value)}
-                            placeholder="Nombre y apellidos"
-                          />
-                          <Input
-                            value={otrosDni}
-                            onChange={(e) => setOtrosDni(e.target.value)}
-                            placeholder="DNI / NIE"
-                          />
-                          <Input
-                            value={otrosTelefono}
-                            onChange={(e) => setOtrosTelefono(e.target.value)}
-                            placeholder="Teléfono"
-                            inputMode="tel"
-                          />
+                          <div className="relative">
+                            <User className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              className="pl-8"
+                              value={otrosNombre}
+                              onChange={(e) => setOtrosNombre(e.target.value)}
+                              placeholder="Nombre y apellidos"
+                            />
+                          </div>
+                          <div className="relative">
+                            <IdCard className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              className="pl-8"
+                              value={otrosDni}
+                              onChange={(e) => setOtrosDni(e.target.value)}
+                              placeholder="DNI / NIE"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Phone className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              className="pl-8"
+                              value={otrosTelefono}
+                              onChange={(e) => setOtrosTelefono(e.target.value)}
+                              placeholder="Teléfono"
+                              inputMode="tel"
+                            />
+                          </div>
                         </div>
                       )}
                       <div>
