@@ -8,15 +8,7 @@ export const geocodeAddress = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { direccion: string; codigo_postal?: string | null; ciudad?: string | null }) => d)
   .handler(async ({ data, context }) => {
-    // Admin / super_admin / supervisor pueden geocodificar (crea servicios).
-    const [{ data: isAdmin }, { data: isSuper }, { data: isSup }] = await Promise.all([
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" }),
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
-    ]);
-    if (!isAdmin && !isSuper && !isSup) {
-      return { ok: false as const, reason: "forbidden" as const };
-    }
+    void context; // cualquier usuario autenticado puede geocodificar
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
     const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
     if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
