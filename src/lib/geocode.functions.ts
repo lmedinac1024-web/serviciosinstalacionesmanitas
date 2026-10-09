@@ -54,7 +54,21 @@ export const geocodeAddress = createServerFn({ method: "POST" })
       };
       // Solo aceptamos coordenadas a nivel de portal: un resultado aproximado
       // (solo ciudad o solo código postal) manda al trabajador a otro sitio.
-      const elegido = results.find(esPreciso);
+      // Además exigimos que coincidan el código postal y el número de portal
+      // escritos en la orden: nada de "lo más parecido".
+      const cpIn = (data.codigo_postal ?? "").toString().trim();
+      const numIn = (data.direccion.match(/\b(\d{1,4})\b/)?.[1] ?? "");
+      type Comp = { long_name: string; types: string[] };
+      const coincide = (res: GeoResult & { address_components?: Comp[] }) => {
+        const comps = res.address_components ?? [];
+        const cp = comps.find((c) => c.types.includes("postal_code"))?.long_name ?? "";
+        const num = comps.find((c) => c.types.includes("street_number"))?.long_name ?? "";
+        if (cpIn && cp && cp !== cpIn) return false;
+        if (numIn && !num) return false;
+        if (numIn && num && !num.split(/[-\s]/).includes(numIn) && !num.startsWith(numIn)) return false;
+        return true;
+      };
+      const elegido = results.find((r) => esPreciso(r) && coincide(r));
       if (!elegido?.geometry?.location) {
         return { ok: false as const, reason: "not_precise" as const, status: "APPROXIMATE" };
       }
