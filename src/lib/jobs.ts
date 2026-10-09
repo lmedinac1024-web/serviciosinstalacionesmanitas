@@ -79,18 +79,18 @@ export function googleMapsUrl(
 ): string {
   // Ruta desde la ubicación actual del usuario (Google Maps usa "Tu ubicación"
   // cuando se omite el parámetro origin) hasta el destino.
+  // Siempre navegamos con la dirección escrita tal cual (nunca con
+  // coordenadas guardadas, que podrían ser aproximadas).
   const destination =
-    j.direccion_lat != null && j.direccion_lng != null
-      ? `${j.direccion_lat},${j.direccion_lng}`
-      : direccionParaMapas({
-          direccion: j.direccion,
-          numero: j.numero,
-          codigo_postal: j.codigo_postal,
-          ciudad: j.ciudad,
-        }) ||
-        j.direccion_completa?.trim() ||
-        j.direccion ||
-        "";
+    direccionParaMapas({
+      direccion: j.direccion,
+      numero: j.numero,
+      codigo_postal: j.codigo_postal,
+      ciudad: j.ciudad,
+    }) ||
+    j.direccion_completa?.trim() ||
+    j.direccion ||
+    "";
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=transit`;
 }
 
