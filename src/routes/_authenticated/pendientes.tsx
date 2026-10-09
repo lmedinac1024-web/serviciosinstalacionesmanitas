@@ -1,19 +1,27 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { JobCard } from "@/components/JobCard";
 import { Button } from "@/components/ui/button";
-import { Camera, Navigation2 } from "lucide-react";
+import { Camera, List, Map as MapIcon } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import type { JobStatus } from "@/lib/jobs";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
-import { useNearestSort, formatRouteLeg } from "@/hooks/useNearestSort";
-import { cn } from "@/lib/utils";
+
+const JobsMap = lazy(() => import("@/components/JobsMap"));
 
 export const Route = createFileRoute("/_authenticated/pendientes")({
   component: Pendientes,
+  head: () => ({ meta: [
+    { title: "Trabajos pendientes | ServiHogar" },
+    { name: "description", content: "Servicios pendientes de ServiHogar en lista y mapa, con los datos de cada asegurado." },
+    { property: "og:title", content: "Trabajos pendientes | ServiHogar" },
+    { property: "og:description", content: "Consulta las ubicaciones y los datos de tus servicios pendientes." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type Filtro = "pendientes" | "realizados" | "todos";
@@ -26,6 +34,7 @@ const FILTROS: { id: Filtro; label: string }[] = [
 
 function Pendientes() {
   const [filtro, setFiltro] = useState<Filtro>("pendientes");
+  const [vista, setVista] = useState<"lista" | "mapa">("lista");
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
 
   const { data = [], isLoading } = useQuery({
@@ -101,9 +110,13 @@ function Pendientes() {
     [effectiveAllData, filtro, inicioMes],
   );
 
-  const nearest = useNearestSort(filteredData);
-  const route = nearest.route;
-  const effectiveData = route.sorted;
+  const effectiveData = filteredData;
+  // El mapa siempre muestra todos los servicios abiertos, no solo los de hoy
+  // ni los de la pestaña activa. La cola offline se aplica antes de filtrar.
+  const mapJobs = useMemo(() => effectiveAllData.filter((job) =>
+    !job.eliminado_logico && !(job.fecha && job.fecha < inicioMes) &&
+    (job.estado === "pendiente" || job.estado === "en_proceso")
+  ), [effectiveAllData, inicioMes]);
 
   const today = new Date().toISOString().slice(0, 10);
   const isPastOrToday = (fecha: string | null | undefined) => !!fecha && fecha <= today;
@@ -118,53 +131,42 @@ function Pendientes() {
 
   return (
     <AppShell title="Trabajos">
-      <div className="mb-3 flex gap-1.5 overflow-x-auto">
+      <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border bg-card p-1">
+        <Button size="sm" variant={vista === "lista" ? "default" : "ghost"} aria-pressed={vista === "lista"} onClick={() => setVista("lista")}>
+          <List className="mr-1.5 h-4 w-4" /> Lista
+        </Button>
+        <Button size="sm" variant={vista === "mapa" ? "default" : "ghost"} aria-pressed={vista === "mapa"} onClick={() => setVista("mapa")}>
+          <MapIcon className="mr-1.5 h-4 w-4" /> Mapa
+        </Button>
+      </div>
+      {vista === "lista" && <div className="mb-3 flex gap-1.5 overflow-x-auto">
         {FILTROS.map((f) => (
-          <button
+          <Button
             key={f.id}
+            size="sm"
+            variant={filtro === f.id ? "default" : "outline"}
+            aria-pressed={filtro === f.id}
             onClick={() => setFiltro(f.id)}
-            className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition",
-              filtro === f.id
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card text-muted-foreground hover:bg-muted"
-            )}
+            className="shrink-0"
           >
             {f.label}
             {filtro === f.id && ` · ${counts[f.id]}`}
-          </button>
-        ))}
-        {nearest.active && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => nearest.setMode(nearest.effectiveMode === "transit" ? "distance" : "transit")}
-            disabled={nearest.transitLoading}
-            className="ml-auto shrink-0"
-          >
-            {nearest.effectiveMode === "transit" ? "🚌 Transporte público" : "📍 Distancia"}
           </Button>
-        )}
-        <Button
-          size="sm"
-          variant={nearest.active ? "default" : "outline"}
-          onClick={() => void nearest.toggle()}
-          disabled={nearest.loading || nearest.transitLoading}
-          className={cn("shrink-0", !nearest.active && "ml-auto")}
-        >
-          <Navigation2 className="mr-1.5 h-4 w-4" />
-          {nearest.loading
-            ? "Ubicando..."
-            : nearest.active
-              ? nearest.effectiveMode === "transit"
-                ? "Ruta: transporte público"
-                : "Ruta: distancia"
-              : "Ruta lógica"}
-        </Button>
-      </div>
+        ))}
+      </div>}
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Cargando...</div>
+      ) : vista === "mapa" ? (
+        mapJobs.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">No tienes trabajos pendientes.</div>
+        ) : (
+          <ClientOnly fallback={<div className="text-sm text-muted-foreground">Cargando mapa...</div>}>
+            <Suspense fallback={<div className="text-sm text-muted-foreground">Cargando mapa...</div>}>
+              <JobsMap jobs={mapJobs} />
+            </Suspense>
+          </ClientOnly>
+        )
       ) : effectiveData.length === 0 ? (
         <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
           {filtro === "pendientes"
@@ -175,22 +177,10 @@ function Pendientes() {
         </div>
       ) : (
         <div className="space-y-2">
-          {effectiveData.map((j: Job, idx: number) => {
+          {effectiveData.map((j: Job) => {
             const esPendiente = j.estado === "pendiente" || j.estado === "en_proceso";
-            const legInfo = route.legInfo.get(j.id);
-            const legLabel = formatRouteLeg(
-              legInfo?.durationSeconds,
-              legInfo?.distanceMeters ?? route.legs.get(j.id),
-              nearest.effectiveMode,
-            );
             return (
               <div key={j.id} className="space-y-1.5">
-                {nearest.active && (
-                  <div className="pl-1 text-xs font-medium text-primary">
-                    {`🗺️ Parada ${idx + 1}`}
-                    {legLabel ? ` · ${idx === 0 ? "desde tu ubicación" : "desde la anterior"}: ${legLabel}` : " · sin coordenadas"}
-                  </div>
-                )}
                 <JobCard job={j} />
                 {esPendiente && isPastOrToday(j.fecha) && (
                   <Button asChild size="sm" className="w-full">
