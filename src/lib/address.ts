@@ -64,8 +64,9 @@ export function quitarPisoPuerta(calle: string): string {
 }
 
 /**
- * Devuelve la dirección lista para Google Maps:
- * tipo de vía expandido, sin piso/puerta, con CP, ciudad y país.
+ * Devuelve la dirección para Google Maps EXACTAMENTE como está escrita en la
+ * orden (calle, número, CP, ciudad). No se reinterpreta, no se expanden
+ * abreviaturas ni se quita nada: el usuario exige la dirección tal cual.
  */
 export function direccionParaMapas(input: {
   direccion?: string | null;
@@ -73,9 +74,7 @@ export function direccionParaMapas(input: {
   codigo_postal?: string | null;
   ciudad?: string | null;
 }): string {
-  let calle = (input.direccion ?? "").trim();
-  calle = quitarPisoPuerta(calle);
-  calle = expandirTipoVia(calle);
+  const calle = (input.direccion ?? "").trim().replace(/\s+/g, " ");
 
   const numero = (input.numero ?? "").toString().trim();
   // Evita duplicar el número si ya venía dentro de la calle.

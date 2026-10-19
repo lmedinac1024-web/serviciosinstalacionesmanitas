@@ -63,12 +63,15 @@ export const geocodeAddress = createServerFn({ method: "POST" })
         const comps = res.address_components ?? [];
         const cp = comps.find((c) => c.types.includes("postal_code"))?.long_name ?? "";
         const num = comps.find((c) => c.types.includes("street_number"))?.long_name ?? "";
-        if (cpIn && cp && cp !== cpIn) return false;
+        if (cpIn && cp !== cpIn) return false;
         if (numIn && !num) return false;
         if (numIn && num && !num.split(/[-\s]/).includes(numIn) && !num.startsWith(numIn)) return false;
         return true;
       };
-      const elegido = results.find((r) => esPreciso(r) && coincide(r));
+      // partial_match = Google tuvo que "adivinar" parte de la dirección → rechazado.
+      const elegido = results.find(
+        (r) => esPreciso(r) && coincide(r) && !(r as { partial_match?: boolean }).partial_match,
+      );
       if (!elegido?.geometry?.location) {
         return { ok: false as const, reason: "not_precise" as const, status: "APPROXIMATE" };
       }
