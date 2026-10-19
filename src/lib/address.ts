@@ -14,6 +14,8 @@ const TIPO_VIA: Record<string, string> = {
   calle: "Calle",
   carrer: "Carrer",
   cr: "Carrer",
+  cc: "Carrer",
+  "c.c": "Carrer",
   av: "Avenida",
   avd: "Avenida",
   avda: "Avenida",
