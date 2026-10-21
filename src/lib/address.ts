@@ -73,7 +73,12 @@ export function expandirTipoVia(calle: string): string {
 
 /** Quita piso, puerta, escalera y similares del texto de la calle. */
 export function quitarPisoPuerta(calle: string): string {
-  return calle.replace(PISO_RE, "").replace(/[,\s-]+$/, "").trim();
+  return calle
+    // "ESQ. AV. ROMA" / "ESQUINA ..." es una referencia de esquina: confunde a Google.
+    .replace(/\s*\besq(?:uina)?\b\.?.*$/i, "")
+    .replace(PISO_RE, "")
+    .replace(/[,\s-]+$/, "")
+    .trim();
 }
 
 /**
