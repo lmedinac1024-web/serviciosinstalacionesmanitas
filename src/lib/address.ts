@@ -34,6 +34,19 @@ const TIPO_VIA: Record<string, string> = {
   trav: "Travessera",
   trv: "Travesía",
   ctra: "Carretera",
+  crta: "Carretera",
+  cra: "Carretera",
+  ct: "Carretera",
+  "ct.ct": "Carretera",
+  "ctra.ctra": "Carretera",
+  ptge: "Passatge",
+  pje: "Pasaje",
+  pasaje: "Pasaje",
+  gv: "Gran Via",
+  "g.v": "Gran Via",
+  "c.c.": "Carrer",
+  rda: "Ronda",
+  urb: "Urbanización",
   cno: "Camino",
   ronda: "Ronda",
   via: "Vía",
@@ -64,9 +77,8 @@ export function quitarPisoPuerta(calle: string): string {
 }
 
 /**
- * Devuelve la dirección para Google Maps EXACTAMENTE como está escrita en la
- * orden (calle, número, CP, ciudad). No se reinterpreta, no se expanden
- * abreviaturas ni se quita nada: el usuario exige la dirección tal cual.
+ * Devuelve la dirección para Google Maps: la de la orden con el tipo de vía
+ * corregido y sin piso/puerta. Número, CP y ciudad se mantienen tal cual.
  */
 export function direccionParaMapas(input: {
   direccion?: string | null;
@@ -74,7 +86,10 @@ export function direccionParaMapas(input: {
   codigo_postal?: string | null;
   ciudad?: string | null;
 }): string {
-  const calle = (input.direccion ?? "").trim().replace(/\s+/g, " ");
+  // Se corrigen abreviaturas y errores de escritura del tipo de vía
+  // ("CT.CT" → "Carretera", "CAL" → "Calle") y se quita piso/puerta, para que
+  // Google Maps lleve al portal exacto (mismo número y código postal).
+  const calle = quitarPisoPuerta(expandirTipoVia((input.direccion ?? "").trim().replace(/\s+/g, " ")));
 
   const numero = (input.numero ?? "").toString().trim();
   // Evita duplicar el número si ya venía dentro de la calle.
