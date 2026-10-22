@@ -12,8 +12,15 @@ import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/li
 import { useUserRole } from "@/hooks/useUserRole";
 import { Trophy, Users, TrendingUp, CheckCircle2, Clock, XCircle, UserSquare2, Send, KeyRound, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WeeklyVisits } from "@/components/WeeklyVisits";
 
-export const Route = createFileRoute("/_authenticated/")({ component: Dashboard });
+export const Route = createFileRoute("/_authenticated/")({ component: Dashboard, head: () => ({ meta: [
+  { title: "ServiHogar · Mi dashboard de visitas" },
+  { name: "description", content: "Visitas por día, ganancias semanales y total mensual por empleado en ServiHogar." },
+  { property: "og:title", content: "ServiHogar · Mi dashboard de visitas" },
+  { property: "og:description", content: "Detalle de asegurados, direcciones, horas y ganancias por semana y mes." },
+  { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+] }) });
 
 function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -291,6 +298,7 @@ function Dashboard() {
           )}
 
           {/* Próximos */}
+          <WeeklyVisits jobs={scoped} month={mesSel} />
           <section>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Próximos trabajos</h2>

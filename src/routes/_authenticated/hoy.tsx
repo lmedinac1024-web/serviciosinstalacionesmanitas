@@ -13,6 +13,13 @@ import { useNearestSort, formatRouteLeg } from "@/hooks/useNearestSort";
 
 export const Route = createFileRoute("/_authenticated/hoy")({
   component: Hoy,
+  head: () => ({ meta: [
+    { title: "ServiHogar · Servicios de hoy" },
+    { name: "description", content: "Servicios de hoy, horarios y ubicaciones de los asegurados en lista o mapa." },
+    { property: "og:title", content: "ServiHogar · Servicios de hoy" },
+    { property: "og:description", content: "Consulta tus servicios de hoy y tu ubicación en el mapa." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function Hoy() {

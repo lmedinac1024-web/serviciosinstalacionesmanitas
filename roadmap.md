@@ -1,3 +1,4 @@
 - [ ] Corregir abreviaturas de dirección al extraer órdenes de imágenes, preservando portal, CP y ciudad.
 - [ ] Mostrar ubicación propia en todos los mapas de servicios, con permiso y opción de centrar.
 - [ ] Probar normalización y verificar el mapa con servicios reales.
+- [ ] Añadir al inicio visitas por día y semanas de lunes a domingo con hora, valor, dirección, asegurado y total mensual, usando el mes y empleado seleccionados.
