@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { normalizarDireccionOrden } from "@/lib/address";
 
 /**
  * Datos extraídos de la orden de trabajo.
@@ -95,6 +96,7 @@ REGLAS:
   * "COMENTARIOS:" contiene la avería/trabajo. Ignora cambios de estado, SMS, póliza, compañía y asignaciones internas.
 - CÓDIGO POSTAL: 5 dígitos. Si aparece con 4 (ej. "8930") añade un 0 delante → "08930". Si aparecen dos CP posibles, prioriza el que esté después de la etiqueta "Código Postal".
 - DIRECCIÓN: separa calle, número, piso y puerta. Ejemplos:
+- Conserva literalmente el nombre de la vía, el portal completo (incluidos rangos como 79-83 y sufijos como 76 BIS), el piso, la puerta y la ciudad de la imagen. No sustituyas la dirección por un negocio, una referencia cercana u otra calle; no adivines un CP distinto. Las abreviaturas del tipo de vía se expanden automáticamente después de leer la imagen; no inventes palabras del nombre de la calle.
   * "CAL MANZANARES 25 1 1  08014-BARCELONA" → direccion="CAL MANZANARES", numero="25", piso="1", puerta="1", codigo_postal="08014", ciudad="Barcelona".
   * "C INDÚSTRIA 76 6 4 BARCELONA - BARCELONA (08025)" → direccion="C INDÚSTRIA", numero="76", piso="6", puerta="4", codigo_postal="08025", ciudad="Barcelona".
   * "Rambla de la Mina 32 1 - 1 08039 Sant Adria de Besos Código Postal 8930" → direccion="Rambla de la Mina", numero="32", piso="1", puerta="1", codigo_postal="08930", ciudad="Sant Adrià de Besòs".
@@ -370,7 +372,7 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
     const nombre_cliente = primerTexto(parsed.nombre_cliente) ?? fallback.nombre_cliente ?? null;
     const aviso_cliente = !nombre_cliente || normalize(nombre_cliente).includes("sin info");
 
-    const campos = {
+    const campos = normalizarDireccionOrden({
       nombre_cliente,
       telefono: telefonoPrincipal,
       telefonos_extra: extraArr,
@@ -400,7 +402,7 @@ export const parseOrdenImagen = createServerFn({ method: "POST" })
       numero_operacion: primerTexto(parsed.numero_operacion),
       numero_servicio: primerTexto(parsed.numero_servicio) ?? fallback.numero_servicio ?? null,
       trabajador_id,
-    };
+    });
 
     return {
       ok: true,
