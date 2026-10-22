@@ -71,6 +71,25 @@ export function expandirTipoVia(calle: string): string {
   return tipo ? `${tipo} ${m[2]}` : s;
 }
 
+/** Corrige solo abreviaturas conocidas; conserva el resto de la orden. */
+export function normalizarDireccionOrden<T extends {
+  direccion: string | null;
+  numero: string | null;
+  piso: string | null;
+  puerta: string | null;
+  codigo_postal: string | null;
+  ciudad: string | null;
+  direccion_completa: string | null;
+}>(orden: T): T {
+  const direccion = orden.direccion ? expandirTipoVia(orden.direccion) : null;
+  const via = [direccion, orden.numero, orden.piso ? `Piso ${orden.piso}` : "", orden.puerta ? `Puerta ${orden.puerta}` : ""].filter(Boolean).join(" ");
+  const localidad = [orden.codigo_postal, orden.ciudad].filter(Boolean).join(" ");
+  const direccion_completa = direccion
+    ? [via, localidad, "España"].filter(Boolean).join(", ")
+    : orden.direccion_completa ? expandirTipoVia(orden.direccion_completa) : null;
+  return { ...orden, direccion, direccion_completa };
+}
+
 /** Quita piso, puerta, escalera y similares del texto de la calle. */
 export function quitarPisoPuerta(calle: string): string {
   return calle
