@@ -80,7 +80,7 @@ export function normalizarDireccionOrden<T extends {
   codigo_postal: string | null;
   ciudad: string | null;
   direccion_completa: string | null;
-}>(orden: T): T {
+}>(orden: T): Omit<T, "direccion" | "direccion_completa"> & { direccion: string | null; direccion_completa: string | null } {
   const direccion = orden.direccion ? expandirTipoVia(orden.direccion) : null;
   const via = [direccion, orden.numero, orden.piso ? `Piso ${orden.piso}` : "", orden.puerta ? `Puerta ${orden.puerta}` : ""].filter(Boolean).join(" ");
   const localidad = [orden.codigo_postal, orden.ciudad].filter(Boolean).join(" ");

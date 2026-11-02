@@ -1,4 +1,4 @@
 - [ ] Corregir abreviaturas de dirección al extraer órdenes de imágenes, preservando portal, CP y ciudad.
 - [ ] Mostrar ubicación propia en todos los mapas de servicios, con permiso y opción de centrar.
 - [ ] Probar normalización y verificar el mapa con servicios reales.
-- [ ] Añadir al inicio visitas por día y semanas de lunes a domingo con hora, valor, dirección, asegurado y total mensual, usando el mes y empleado seleccionados.
+- [ ] Agrupar el dashboard en bloques del 1 al 7, 8 al 14, 15 al 21, 22 al 28 y últimos días, con colores y totales diarios, semanales y mensuales.

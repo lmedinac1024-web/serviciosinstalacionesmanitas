@@ -1,5 +1,4 @@
-/// <reference types="bun" />
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { expandirTipoVia, normalizarDireccionOrden, direccionParaMapas } from "./address";
 
 describe("abreviaturas de la dirección de la orden", () => {
