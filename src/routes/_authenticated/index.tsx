@@ -298,7 +298,7 @@ function Dashboard() {
           )}
 
           {/* Próximos */}
-          <WeeklyVisits jobs={scoped} month={mesSel} />
+          <WeeklyVisits jobs={scoped} month={mesSel} employee={isAdmin ? empleadoSel === "todos" ? "Todos los empleados" : nameOf(empleadoSel) : headerTitle} />
           <section>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Próximos trabajos</h2>
