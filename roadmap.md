@@ -1,4 +1,4 @@
 - [x] Corregir abreviaturas de dirección al extraer órdenes de imágenes, preservando portal, CP y ciudad; pruebas aprobadas.
 - [x] Añadir ubicación propia a los mapas de servicios, con permiso y opción de centrar.
 - [ ] Verificar mapa y dashboard con servicios reales: falta una sesión autorizada en la vista previa; las solicitudes de autorización anteriores se interrumpieron.
-- [x] Agrupar el dashboard en bloques del 1 al 7, 8 al 14, 15 al 21, 22 al 28 y últimos días, con colores y totales diarios, semanales y mensuales; 11 pruebas aprobadas.
+- [x] Agrupar el dashboard por lunes a domingo desde el primer lunes, conservando días iniciales y finales en el total mensual, colores y subtotales diarios y semanales.

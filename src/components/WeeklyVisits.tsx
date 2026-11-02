@@ -19,7 +19,7 @@ export function WeeklyVisits({ jobs, month }: { jobs: Job[]; month: string }) {
     <div className="divide-y border-y">
       {report.weeks.map((week, i) => <details key={week.start} open className="group py-3">
         <summary className={`flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 border-l-4 p-3 text-sm ${tones[i % tones.length]}`}>
-          <span className="flex items-center gap-2"><ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" /><span className="font-semibold">Semana {i + 1} · {dateLabel(week.start)} – {dateLabel(week.end)}</span></span>
+          <span className="flex items-center gap-2"><ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" /><span className="font-semibold">{week.weekNumber == null ? "Inicio de mes" : `Semana ${week.weekNumber}`} · {dateLabel(week.start)} – {dateLabel(week.end)}</span></span>
           <span className="flex items-center gap-3"><span className="text-xs">{week.count} servicios</span><strong className="tabular-nums">{formatEUR(week.total)}</strong></span>
         </summary>
         <div className="mt-3 divide-y">
@@ -40,7 +40,7 @@ export function WeeklyVisits({ jobs, month }: { jobs: Job[]; month: string }) {
             </div>}
           </div>)}
         </div>
-        <div className="flex items-center justify-between border-t py-3 text-sm font-semibold"><span>Total semana {i + 1}</span><span className="tabular-nums">{formatEUR(week.total)}</span></div>
+        <div className="flex items-center justify-between border-t py-3 text-sm font-semibold"><span>{week.weekNumber == null ? "Total inicio de mes" : `Total semana ${week.weekNumber}`}</span><span className="tabular-nums">{formatEUR(week.total)}</span></div>
       </details>)}
     </div>
     <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-success bg-success/10 p-4 font-bold"><span>Gran total del mes · {report.count} servicios</span><span className="text-xl tabular-nums text-success">{formatEUR(report.total)}</span></div>

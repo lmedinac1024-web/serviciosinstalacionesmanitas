@@ -12,4 +12,4 @@
 - Pending list and map share the offline-patched service data; map filters open statuses independently of list tabs so completed services disappear immediately, including before synchronization.
 - OCR address fields pass through the shared deterministic address normalizer before returning to forms; this expands known street-type abbreviations without changing destination identity.
 - All job map views use JobsMap's browser geolocation watch, cleaned up on unmount; the worker location stays local and separate from service coordinates.
-- Weekly dashboard totals use the shared pure weekly-visits aggregator over employee-scoped, offline-patched jobs; seven-day blocks start on day one and stop at month end to avoid cross-month double counting.
+- Weekly dashboard totals use the shared pure weekly-visits aggregator over employee-scoped, offline-patched jobs; Monday–Sunday weeks are numbered from the first Monday, with leading days grouped separately and all groups bounded by the selected month.
