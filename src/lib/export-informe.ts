@@ -85,6 +85,28 @@ export function exportarCSV(data: InformeData) {
   descargar(`informe-ganancias-${data.desde}_${data.hasta}.csv`, lineas.join("\r\n"), "text/csv;charset=utf-8");
 }
 
+const COLORES: [string, string][] = [["#2563eb", "#eff6ff"], ["#16a34a", "#f0fdf4"], ["#d97706", "#fffbeb"], ["#9333ea", "#faf5ff"], ["#dc2626", "#fef2f2"], ["#0891b2", "#ecfeff"]];
+const h = (s: string) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+const fmt = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+
+/** Agrupa por semanas lunes–domingo; días antes del primer lunes = "Inicio de mes". */
+export function semanas(detalle: InformeData["detalle"]) {
+  const grupos = new Map<string, { titulo: string; desde: string; hasta: string; filas: InformeData["detalle"]; total: number }>();
+  for (const d of [...detalle].sort((a, b) => a.fecha.localeCompare(b.fecha))) {
+    const [y, m, day] = d.fecha.split("-").map(Number);
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const firstMonday = 1 + ((8 - new Date(Date.UTC(y, m - 1, 1)).getUTCDay()) % 7);
+    let start: number, end: number, titulo: string;
+    if (day < firstMonday) { start = 1; end = firstMonday - 1; titulo = "Inicio de mes"; }
+    else { const n = Math.floor((day - firstMonday) / 7); start = firstMonday + n * 7; end = Math.min(start + 6, last); titulo = `Semana ${n + 1}`; }
+    const pre = d.fecha.slice(0, 8);
+    const key = pre + start;
+    const g = grupos.get(key) ?? { titulo, desde: pre + String(start).padStart(2, "0"), hasta: pre + String(end).padStart(2, "0"), filas: [], total: 0 };
+    g.filas.push(d); g.total += d.total; grupos.set(key, g);
+  }
+  return [...grupos.values()];
+}
+
 export function exportarPDF(data: InformeData) {
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <title>${data.titulo} ${data.desde} a ${data.hasta}</title>
@@ -98,6 +120,11 @@ export function exportarPDF(data: InformeData) {
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   tr.total td{font-weight:700;border-top:2px solid #0f172a}
   h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin:0 0 8px}
+  .sem{border-left:6px solid;padding:8px 10px;margin-bottom:14px;break-inside:avoid}
+  .semh{display:flex;justify-content:space-between;font-weight:700;font-size:13px;margin-bottom:6px}
+  .sem table{margin-bottom:0}
+  .gran{border:2px solid #16a34a;background:#f0fdf4;color:#166534;padding:12px;font-size:16px;font-weight:800;text-align:right}
+  body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
   @media print{body{margin:12mm}}
 </style></head><body>
 <h1>${data.titulo}</h1>
@@ -112,15 +139,18 @@ ${data.filas
   .join("")}
 <tr class="total"><td>TOTAL</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">${formatEUR(data.total)}</td></tr>
 </tbody></table>
-<h2>Detalle de trabajos</h2>
-<table><thead><tr><th>Fecha</th><th>Empleado</th><th>Asegurado</th><th>Estado</th><th class="num">Total</th></tr></thead><tbody>
-${data.detalle
+<h2>Detalle por semanas</h2>
+${semanas(data.detalle)
   .map(
-    (d) =>
-      `<tr><td>${d.fecha}</td><td>${d.empleado}</td><td>${d.cliente}</td><td>${d.estado}</td><td class="num">${formatEUR(d.total)}</td></tr>`,
+    (s, i) => `<div class="sem" style="border-color:${COLORES[i % COLORES.length][0]};background:${COLORES[i % COLORES.length][1]}">
+<div class="semh" style="color:${COLORES[i % COLORES.length][0]}"><span>${s.titulo} · del ${fmt(s.desde)} al ${fmt(s.hasta)}</span><span>${s.filas.length} servicios · ${formatEUR(s.total)}</span></div>
+<table><thead><tr><th>Fecha</th><th>Empleado</th><th>Asegurado</th><th>Estado</th><th class="num">Total</th></tr></thead><tbody>
+${s.filas.map((d) => `<tr><td>${fmt(d.fecha)}</td><td>${h(d.empleado)}</td><td>${h(d.cliente)}</td><td>${h(d.estado)}</td><td class="num">${formatEUR(d.total)}</td></tr>`).join("")}
+<tr class="total"><td colspan="4">Total ${s.titulo.toLowerCase()} · ${s.filas.length} servicios</td><td class="num">${formatEUR(s.total)}</td></tr>
+</tbody></table></div>`,
   )
   .join("")}
-</tbody></table>
+<div class="gran">GRAN TOTAL DEL MES · ${data.detalle.length} servicios · ${formatEUR(data.total)}</div>
 <script>window.onload=function(){window.print();}</script>
 </body></html>`;
 
