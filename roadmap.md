@@ -2,3 +2,4 @@
 - [x] Añadir ubicación propia a los mapas de servicios, con permiso y opción de centrar.
 - [ ] Verificar mapa y dashboard con servicios reales: falta una sesión autorizada en la vista previa; las solicitudes de autorización anteriores se interrumpieron.
 - [x] Agrupar el dashboard por lunes a domingo desde el primer lunes, conservando días iniciales y finales en el total mensual, colores y subtotales diarios y semanales.
+- [x] Añadir impresión del dashboard con el mes y empleado seleccionados y todo el detalle semanal desplegado.
