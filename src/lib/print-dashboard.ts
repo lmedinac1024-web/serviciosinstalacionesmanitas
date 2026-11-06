@@ -2,7 +2,7 @@ import { buildWeeklyVisits } from "./weekly-visits";
 import { displayStatus, formatEUR, jobTotal, type Job } from "./jobs";
 import type { ReportDoc } from "./report-view";
 
-const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" })[c] ?? c);
+const escape = (value: string) => value.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "2-digit" });
 
 export function dashboardPrintBody(jobs: Job[], month: string, employee: string): string {
