@@ -20,6 +20,7 @@ import { Route as AuthenticatedHistorialRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHoyRouteImport } from './routes/_authenticated/hoy'
 import { Route as AuthenticatedPendientesRouteImport } from './routes/_authenticated/pendientes'
 import { Route as AuthenticatedRealizadosRouteImport } from './routes/_authenticated/realizados'
+import { Route as AuthenticatedReporteRouteImport } from './routes/_authenticated/reporte'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminEmpleadosRouteImport } from './routes/_authenticated/admin.empleados'
@@ -84,6 +85,11 @@ const AuthenticatedPendientesRoute = AuthenticatedPendientesRouteImport.update({
 const AuthenticatedRealizadosRoute = AuthenticatedRealizadosRouteImport.update({
   id: '/realizados',
   path: '/realizados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReporteRoute = AuthenticatedReporteRouteImport.update({
+  id: '/reporte',
+  path: '/reporte',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/hoy': typeof AuthenticatedHoyRoute
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
+  '/reporte': typeof AuthenticatedReporteRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
   '/admin/obras': typeof AuthenticatedAdminObrasRouteWithChildren
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/hoy': typeof AuthenticatedHoyRoute
   '/pendientes': typeof AuthenticatedPendientesRoute
   '/realizados': typeof AuthenticatedRealizadosRoute
+  '/reporte': typeof AuthenticatedReporteRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/_authenticated/hoy': typeof AuthenticatedHoyRoute
   '/_authenticated/pendientes': typeof AuthenticatedPendientesRoute
   '/_authenticated/realizados': typeof AuthenticatedRealizadosRoute
+  '/_authenticated/reporte': typeof AuthenticatedReporteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/empleados': typeof AuthenticatedAdminEmpleadosRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/hoy'
     | '/pendientes'
     | '/realizados'
+    | '/reporte'
     | '/admin/clientes'
     | '/admin/empleados'
     | '/admin/obras'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/hoy'
     | '/pendientes'
     | '/realizados'
+    | '/reporte'
     | '/'
     | '/admin/clientes'
     | '/admin/empleados'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hoy'
     | '/_authenticated/pendientes'
     | '/_authenticated/realizados'
+    | '/_authenticated/reporte'
     | '/_authenticated/'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/empleados'
@@ -373,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/realizados'
       fullPath: '/realizados'
       preLoaderRoute: typeof AuthenticatedRealizadosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reporte': {
+      id: '/_authenticated/reporte'
+      path: '/reporte'
+      fullPath: '/reporte'
+      preLoaderRoute: typeof AuthenticatedReporteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/': {
@@ -503,6 +522,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHoyRoute: typeof AuthenticatedHoyRoute
   AuthenticatedPendientesRoute: typeof AuthenticatedPendientesRoute
   AuthenticatedRealizadosRoute: typeof AuthenticatedRealizadosRoute
+  AuthenticatedReporteRoute: typeof AuthenticatedReporteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedTrabajoIdRoute: typeof AuthenticatedTrabajoIdRoute
   AuthenticatedTrabajoNuevoRoute: typeof AuthenticatedTrabajoNuevoRoute
@@ -517,6 +537,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHoyRoute: AuthenticatedHoyRoute,
   AuthenticatedPendientesRoute: AuthenticatedPendientesRoute,
   AuthenticatedRealizadosRoute: AuthenticatedRealizadosRoute,
+  AuthenticatedReporteRoute: AuthenticatedReporteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedTrabajoIdRoute: AuthenticatedTrabajoIdRoute,
   AuthenticatedTrabajoNuevoRoute: AuthenticatedTrabajoNuevoRoute,

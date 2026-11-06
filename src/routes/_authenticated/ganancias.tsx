@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 import { listAll, subscribe as subscribeOffline, type PendingAction } from "@/lib/offline-queue";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { construirInforme, exportarCSV, exportarPDF } from "@/lib/export-informe";
+import { construirInforme, exportarCSV, informePDFDoc } from "@/lib/export-informe";
+import { setReport } from "@/lib/report-view";
 import { toast } from "sonner";
 
 
@@ -45,6 +46,7 @@ function endOfMonth(d: Date) {
 type Rango = "dia" | "semana" | "mes" | "custom";
 
 function Ganancias() {
+  const navigate = useNavigate();
   const { data: me } = useUserRole();
   const [empleadoFiltro, setEmpleadoFiltro] = useState<string>("todos");
   const [queuedActions, setQueuedActions] = useState<PendingAction[]>([]);
@@ -190,8 +192,8 @@ function Ganancias() {
   };
   const onPDF = () => {
     if (filtrados.length === 0) return toast.error("No hay trabajos en el rango seleccionado");
-    const ok = exportarPDF(informe());
-    if (!ok) toast.error("Permite las ventanas emergentes para generar el PDF");
+    setReport(informePDFDoc(informe()));
+    void navigate({ to: "/reporte" });
   };
 
 
