@@ -1,8 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Clock, MapPin, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { printDashboard } from "@/lib/print-dashboard";
-import { toast } from "sonner";
+import { dashboardReport } from "@/lib/print-dashboard";
+import { setReport } from "@/lib/report-view";
 import { formatEUR, displayStatus, jobTotal, type Job } from "@/lib/jobs";
 import { buildWeeklyVisits } from "@/lib/weekly-visits";
 
@@ -12,11 +12,12 @@ function dateLabel(date: string, weekday = false) {
 
 export function WeeklyVisits({ jobs, month, employee = "Mis servicios" }: { jobs: Job[]; month: string; employee?: string }) {
   const report = buildWeeklyVisits(jobs, month);
+  const navigate = useNavigate();
   const tones = ["border-info bg-info/10 text-info", "border-success bg-success/10 text-success", "border-warning bg-warning/10 text-warning-foreground", "border-primary bg-primary/10 text-primary", "border-destructive bg-destructive/10 text-destructive"];
   return <section className="space-y-3" aria-label="Visitas por semana">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Visitas por semana</h2>
-      <Button variant="outline" size="sm" onClick={() => { if (!printDashboard(jobs, month, employee)) toast.error("Permití las ventanas emergentes para imprimir el dashboard."); }}><Printer /> Imprimir dashboard</Button>
+      <Button variant="outline" size="sm" onClick={() => { setReport(dashboardReport(jobs, month, employee)); void navigate({ to: "/reporte" }); }}><Printer /> Imprimir dashboard</Button>
     </div>
     <div className="grid grid-cols-2 gap-3">
       <div className="border-l-4 border-info bg-info/10 p-4"><div className="text-xs text-muted-foreground">Servicios del mes</div><strong className="text-2xl text-info">{report.count}</strong></div>
