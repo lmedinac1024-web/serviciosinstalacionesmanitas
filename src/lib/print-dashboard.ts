@@ -1,7 +1,8 @@
 import { buildWeeklyVisits } from "./weekly-visits";
 import { displayStatus, formatEUR, jobTotal, type Job } from "./jobs";
+import type { ReportDoc } from "./report-view";
 
-const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" })[c] ?? c);
 const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "2-digit" });
 
 export function dashboardPrintBody(jobs: Job[], month: string, employee: string): string {
@@ -15,17 +16,27 @@ export function dashboardPrintBody(jobs: Job[], month: string, employee: string)
     <h2>Gran total del mes · ${report.count} servicios · ${escape(formatEUR(report.total))}</h2>`;
 }
 
-export function printDashboard(jobs: Job[], month: string, employee: string): boolean {
-  const popup = window.open("", "_blank");
-  if (!popup) return false;
-  popup.opener = null;
+/** Documento del dashboard imprimible, para mostrar dentro de la app en /reporte. */
+export function dashboardReport(jobs: Job[], month: string, employee: string): ReportDoc {
   const tokens = getComputedStyle(document.documentElement);
   const variables = ["card", "foreground", "border", "info", "success", "warning", "primary", "destructive"].map(name => `--${name}:${tokens.getPropertyValue(`--${name}`)};`).join("");
-  popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Dashboard ${escape(month)} · ${escape(employee)}</title><style>
-    :root{${variables}} body{font-family:Arial,sans-serif;background:var(--card);color:var(--foreground);margin:24px;font-size:12px;print-color-adjust:exact;-webkit-print-color-adjust:exact}h1{font-size:22px}h2{font-size:15px;padding:8px 0}h3{font-size:12px;margin:12px 0 6px}table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{padding:6px;border-bottom:1px solid var(--border);text-align:left;overflow-wrap:anywhere}th:first-child{width:9%}th:last-child{width:13%}.amount{text-align:right;white-space:nowrap}tr,h2,h3{break-inside:avoid}h3{break-after:avoid}.tone-0{border-left:4px solid var(--info)}.tone-1{border-left:4px solid var(--success)}.tone-2{border-left:4px solid var(--warning)}.tone-3{border-left:4px solid var(--primary)}.tone-4{border-left:4px solid var(--destructive)}section>h2{padding-left:8px}@page{size:A4;margin:12mm}@media print{body{margin:0}}
-    </style></head><body>${dashboardPrintBody(jobs, month, employee)}</body></html>`);
-  popup.document.close();
-  popup.focus();
-  popup.setTimeout(() => popup.print(), 250);
-  return true;
+  return {
+    title: `Dashboard ${escape(month)} · ${escape(employee)}`,
+    style: `:root{${variables}}
+      body{font-family:Arial,sans-serif;background:var(--card);color:var(--foreground);margin:16px;font-size:12pt;line-height:1.45;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+      h1{font-size:20pt;margin:0 0 8px}
+      h2{font-size:15pt;padding:8px 0}
+      h3{font-size:12.5pt;margin:14px 0 6px}
+      table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12pt}
+      td,th{padding:7px;border-bottom:1px solid var(--border);text-align:left;overflow-wrap:anywhere}
+      th{font-size:11pt;text-transform:uppercase;letter-spacing:.03em}
+      th:first-child{width:12%}th:last-child{width:14%}
+      .amount{text-align:right;white-space:nowrap}
+      tr,h2,h3{break-inside:avoid}h3{break-after:avoid}
+      .tone-0{border-left:6px solid var(--info)}.tone-1{border-left:6px solid var(--success)}.tone-2{border-left:6px solid var(--warning)}.tone-3{border-left:6px solid var(--primary)}.tone-4{border-left:6px solid var(--destructive)}
+      section>h2{padding-left:8px}
+      @page{size:A4;margin:12mm}
+      @media print{body{margin:0}}`,
+    body: dashboardPrintBody(jobs, month, employee),
+  };
 }
