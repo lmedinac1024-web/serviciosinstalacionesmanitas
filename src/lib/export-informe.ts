@@ -1,4 +1,5 @@
 import { formatEUR, jobTotal, type Job } from "@/lib/jobs";
+import type { ReportDoc } from "@/lib/report-view";
 
 export type InformeFila = {
   empleado: string;
@@ -107,34 +108,16 @@ export function semanas(detalle: InformeData["detalle"]) {
   return [...grupos.values()];
 }
 
-export function exportarPDF(data: InformeData) {
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
-<title>${data.titulo} ${data.desde} a ${data.hasta}</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;margin:32px;}
-  h1{font-size:20px;margin:0 0 4px}
-  .sub{color:#64748b;font-size:12px;margin-bottom:20px}
-  table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:12px}
-  th,td{border-bottom:1px solid #e2e8f0;padding:6px 8px;text-align:left}
-  th{background:#f1f5f9;text-transform:uppercase;font-size:10px;letter-spacing:.04em}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-  tr.total td{font-weight:700;border-top:2px solid #0f172a}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin:0 0 8px}
-  .sem{border-left:6px solid;padding:8px 10px;margin-bottom:14px;break-inside:avoid}
-  .semh{display:flex;justify-content:space-between;font-weight:700;font-size:13px;margin-bottom:6px}
-  .sem table{margin-bottom:0}
-  .gran{border:2px solid #16a34a;background:#f0fdf4;color:#166534;padding:12px;font-size:16px;font-weight:800;text-align:right}
-  body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  @media print{body{margin:12mm}}
-</style></head><body>
-<h1>${data.titulo}</h1>
+/** Documento PDF del informe, para mostrar dentro de la app en /reporte. */
+export function informePDFDoc(data: InformeData): ReportDoc {
+  const body = `<h1>${data.titulo}</h1>
 <div class="sub">Periodo: ${data.desde} → ${data.hasta}</div>
 <h2>Resumen por empleado</h2>
 <table><thead><tr><th>Empleado</th><th class="num">Trabajos</th><th class="num">Realizados</th><th class="num">Cancelados</th><th class="num">Total</th></tr></thead><tbody>
 ${data.filas
   .map(
     (f) =>
-      `<tr><td>${f.empleado}</td><td class="num">${f.trabajos}</td><td class="num">${f.realizados}</td><td class="num">${f.cancelados}</td><td class="num">${formatEUR(f.total)}</td></tr>`,
+      `<tr><td>${h(f.empleado)}</td><td class="num">${f.trabajos}</td><td class="num">${f.realizados}</td><td class="num">${f.cancelados}</td><td class="num">${formatEUR(f.total)}</td></tr>`,
   )
   .join("")}
 <tr class="total"><td>TOTAL</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">${formatEUR(data.total)}</td></tr>
@@ -150,13 +133,26 @@ ${s.filas.map((d) => `<tr><td>${fmt(d.fecha)}</td><td>${h(d.empleado)}</td><td>$
 </tbody></table></div>`,
   )
   .join("")}
-<div class="gran">GRAN TOTAL DEL MES · ${data.detalle.length} servicios · ${formatEUR(data.total)}</div>
-<script>window.onload=function(){window.print();}</script>
-</body></html>`;
+<div class="gran">GRAN TOTAL DEL MES · ${data.detalle.length} servicios · ${formatEUR(data.total)}</div>`;
 
-  const w = window.open("", "_blank");
-  if (!w) return false;
-  w.document.write(html);
-  w.document.close();
-  return true;
+  return {
+    title: `${data.titulo} ${data.desde} a ${data.hasta}`,
+    style: `body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;margin:32px;font-size:12pt;line-height:1.45}
+  h1{font-size:20pt;margin:0 0 4px}
+  .sub{color:#64748b;font-size:11pt;margin-bottom:20px}
+  table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:12pt}
+  th,td{border-bottom:1px solid #e2e8f0;padding:7px 9px;text-align:left}
+  th{background:#f1f5f9;text-transform:uppercase;font-size:10.5pt;letter-spacing:.04em}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.total td{font-weight:700;border-top:2px solid #0f172a}
+  h2{font-size:13pt;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin:0 0 8px}
+  .sem{border-left:6px solid;padding:10px 12px;margin-bottom:14px;break-inside:avoid}
+  .semh{display:flex;justify-content:space-between;gap:12px;font-weight:700;font-size:13pt;margin-bottom:6px}
+  .sem table{margin-bottom:0}
+  .gran{border:2px solid #16a34a;background:#f0fdf4;color:#166534;padding:14px;font-size:15pt;font-weight:800;text-align:right}
+  body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  @page{size:A4;margin:12mm}
+  @media print{body{margin:12mm}}`,
+    body,
+  };
 }
