@@ -13,4 +13,4 @@
 - OCR address fields pass through the shared deterministic address normalizer before returning to forms; this expands known street-type abbreviations without changing destination identity.
 - All job map views use JobsMap's browser geolocation watch, cleaned up on unmount; the worker location stays local and separate from service coordinates.
 - Weekly dashboard totals use the shared pure weekly-visits aggregator over employee-scoped, offline-patched jobs; Monday–Sunday weeks are numbered from the first Monday, with leading days grouped separately and all groups bounded by the selected month.
-- Dashboard printing uses the same weekly aggregator and scoped jobs as the screen in an isolated print window, with escaped service fields and copied theme tokens to preserve totals and colors.
+- Printable reports (dashboard and ganancias PDF) are built as ReportDoc {title, style, body}, handed over via `src/lib/report-view.ts` (sessionStorage) and rendered on the in-app `/reporte` route with a print button — never via window.open popups, which standalone PWAs on mobile block.
