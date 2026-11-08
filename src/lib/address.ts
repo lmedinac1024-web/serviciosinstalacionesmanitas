@@ -29,6 +29,8 @@ const TIPO_VIA: Record<string, string> = {
   pl: "Plaza",
   plz: "Plaza",
   placa: "Plaça",
+  // "PA PROVENÇANA" en órdenes de L'Hospitalet = Plaça de Provençana.
+  pa: "Plaça",
   rbla: "Rambla",
   rb: "Rambla",
   trav: "Travessera",
