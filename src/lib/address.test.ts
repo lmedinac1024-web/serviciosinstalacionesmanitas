@@ -26,7 +26,7 @@ describe("abreviaturas de la dirección de la orden", () => {
   });
 });
 describe("abreviatura PA", () => {
-  it("PA PROVENÇANA se expande a Plaça", () => {
+  test("PA PROVENÇANA se expande a Plaça", () => {
     expect(expandirTipoVia("PA PROVENÇANA")).toBe("Plaça PROVENÇANA");
   });
 });
