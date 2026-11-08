@@ -18,6 +18,7 @@ import {
 import {
   CANCEL_REASONS, STATUS_LABELS, TIPO_SERVICIO_OPCIONES, formatEUR, googleMapsUrl, isCancelled,
   jobTotal, telUrl, whatsappUrl, type Job, type JobStatus,
+  MIN_SERVICE_PRICE, SERVICE_PRICE_ERROR, isValidServicePrice,
 } from "@/lib/jobs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnline } from "@/hooks/useOnline";
@@ -58,7 +59,16 @@ const FINISH_CHECKLIST = [
   "Otros",
 ];
 
-export const Route = createFileRoute("/_authenticated/trabajo/$id")({ component: Detalle });
+export const Route = createFileRoute("/_authenticated/trabajo/$id")({
+  component: Detalle,
+  head: () => ({ meta: [
+    { title: "Detalle del servicio | ServiHogar" },
+    { name: "description", content: "Datos, precio y estado del servicio asignado en ServiHogar." },
+    { property: "og:title", content: "Detalle del servicio | ServiHogar" },
+    { property: "og:description", content: "Datos, precio y estado del servicio asignado en ServiHogar." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
+});
 
 async function uploadPhoto(jobId: string, fase: Fase, file: File, cachedUserId?: string) {
   let userId = cachedUserId;
@@ -323,7 +333,7 @@ function Detalle() {
     if (fase === "final" && me?.isAdmin) {
       if (importeFinal.trim() !== "") {
         const n = Number(importeFinal);
-        if (!Number.isNaN(n) && n >= 0) statusPatch.importe = n;
+        if (isValidServicePrice(n)) statusPatch.importe = n;
       }
       if (direccionFinal.trim() !== "") statusPatch.direccion = direccionFinal.trim();
       if (pisoFinal.trim() !== "") statusPatch.piso = pisoFinal.trim();
@@ -521,6 +531,10 @@ function Detalle() {
 
   async function finalizarTareaDirecta() {
     if (working) return;
+    if (me?.isAdmin && importeFinal.trim() !== "" && !isValidServicePrice(importeFinal)) {
+      toast.error(SERVICE_PRICE_ERROR);
+      return;
+    }
     const selected = FINISH_CHECKLIST.filter((k) => finishItems[k]);
     const extra = finishExtra.trim();
     const otrosSel = finishItems["Otros"] === true;
@@ -863,7 +877,7 @@ function Detalle() {
                     <div>
                       <label className="text-xs font-medium">Importe final (€)</label>
                       <input
-                        type="number" step="0.01" min="0"
+                        type="number" step="0.01" min={MIN_SERVICE_PRICE}
                         value={importeFinal}
                         onChange={(e) => setImporteFinal(e.target.value)}
                         placeholder={String(job.importe ?? 0)}
@@ -1192,6 +1206,7 @@ function AdminOverride({
   const cancelled = estado.startsWith("cancelado");
 
   async function save() {
+    if (!isValidServicePrice(importe)) return toast.error(SERVICE_PRICE_ERROR);
     setSaving(true);
     try {
       const importeNum = Number(importe) || 0;
@@ -1319,7 +1334,7 @@ function AdminOverride({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-xs font-medium">Importe (€)</label>
-          <input type="number" step="0.01" min="0" value={importe} onChange={(e) => setImporte(e.target.value)}
+          <input type="number" step="0.01" min={MIN_SERVICE_PRICE} value={importe} onChange={(e) => setImporte(e.target.value)}
             className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
         </div>
         {!cancelled && (
