@@ -10,9 +10,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Image as ImageIcon } from "lucide-react";
-import { TIPO_SERVICIO_OPCIONES, type Job, type JobStatus, displayStatus, statusColorClass, formatEUR, jobTotal } from "@/lib/jobs";
+import { TIPO_SERVICIO_OPCIONES, type Job, type JobStatus, displayStatus, statusColorClass, formatEUR, jobTotal, MIN_SERVICE_PRICE, SERVICE_PRICE_ERROR, isValidServicePrice } from "@/lib/jobs";
 
-export const Route = createFileRoute("/_authenticated/admin/obras/$id")({ component: EditarObra });
+export const Route = createFileRoute("/_authenticated/admin/obras/$id")({
+  component: EditarObra,
+  head: () => ({ meta: [
+    { title: "Editar obra | ServiHogar" },
+    { name: "description", content: "Administrar la asignación, precio y estado de una obra en ServiHogar." },
+    { property: "og:title", content: "Editar obra | ServiHogar" },
+    { property: "og:description", content: "Administrar la asignación, precio y estado de una obra en ServiHogar." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
+});
 
 type Empleado = { user_id: string; username: string; display_name: string | null };
 
@@ -78,6 +87,7 @@ function EditarObra() {
 
   async function guardar() {
     if (!form) return;
+    if (!isValidServicePrice(form.importe)) return toast.error(SERVICE_PRICE_ERROR);
     setSaving(true);
     try {
       const importeNum = Number(form.importe) || 0;
@@ -177,7 +187,7 @@ function EditarObra() {
 
           <Section title="Precios y notas">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Importe (€)"><Input type="number" step="0.01" value={String(form.importe ?? 0)} onChange={(e) => set("importe", Number(e.target.value))} /></Field>
+              <Field label="Importe (€)"><Input type="number" step="0.01" min={MIN_SERVICE_PRICE} value={String(form.importe ?? 0)} onChange={(e) => set("importe", Number(e.target.value))} /></Field>
               {(form.estado ?? "").toString().startsWith("cancelado") ? (
                 <Field label="Cobro por cancelación (€)">
                   <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">

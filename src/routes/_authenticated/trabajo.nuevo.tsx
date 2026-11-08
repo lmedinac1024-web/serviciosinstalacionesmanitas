@@ -16,11 +16,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { sendJobUpdateToTelegram } from "@/lib/telegram.functions";
 import { parseOrdenImagen } from "@/lib/ocr-orden.functions";
-import { TIPO_SERVICIO_OPCIONES } from "@/lib/jobs";
+import { TIPO_SERVICIO_OPCIONES, MIN_SERVICE_PRICE, SERVICE_PRICE_ERROR, isValidServicePrice } from "@/lib/jobs";
 import { MapPin, AlertCircle, Navigation, Camera, Upload, X, ScanText, Loader2 } from "lucide-react";
 import { haversineMeters } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/trabajo/nuevo")({
+  head: () => ({ meta: [
+    { title: "Nuevo servicio | ServiHogar" },
+    { name: "description", content: "Crear un servicio y asignar su horario, asegurado y precio en ServiHogar." },
+    { property: "og:title", content: "Nuevo servicio | ServiHogar" },
+    { property: "og:description", content: "Crear un servicio y asignar su horario, asegurado y precio en ServiHogar." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   component: NuevoServicio,
   errorComponent: NuevoServicioError,
 });
@@ -362,6 +369,7 @@ function NuevoServicio() {
     if (!form.ciudad.trim()) return toast.error("Falta ciudad");
     if (!form.hora && !form.hora_inicio) return toast.error("Falta hora");
     if (!form.importe) return toast.error("Falta precio del servicio");
+    if (!isValidServicePrice(form.importe)) return toast.error(SERVICE_PRICE_ERROR);
 
     setSaving(true);
     try {
@@ -593,7 +601,7 @@ function NuevoServicio() {
 
 
         <Field label="Precio del servicio (€) *">
-          <Input type="number" step="0.01" min="0" required value={form.importe} onChange={(e) => set("importe", e.target.value)} />
+          <Input type="number" step="0.01" min={MIN_SERVICE_PRICE} required value={form.importe} onChange={(e) => set("importe", e.target.value)} />
         </Field>
         <div className="text-xs text-muted-foreground">
           El trabajador cobra el <b>precio del servicio</b> tanto si lo realiza como si se cancela por cualquier motivo tras validar la llegada por GPS. Al cancelar, el importe se registra automáticamente como cobro por llegada.

@@ -5,6 +5,15 @@ export type Job = Database["public"]["Tables"]["servicios"]["Row"];
 export type JobInsert = Database["public"]["Tables"]["servicios"]["Insert"];
 export type JobStatus = Database["public"]["Enums"]["job_status"];
 
+export const MIN_SERVICE_PRICE = 10;
+export const SERVICE_PRICE_ERROR = "El precio del servicio debe ser mayor o igual a 10 €";
+
+export function isValidServicePrice(value: number | string | null | undefined): boolean {
+  if (value == null || (typeof value === "string" && value.trim() === "")) return false;
+  const price = Number(value);
+  return Number.isFinite(price) && price >= MIN_SERVICE_PRICE;
+}
+
 export const STATUS_LABELS: Record<JobStatus, string> = {
   pendiente: "Pendiente",
   en_proceso: "En curso",

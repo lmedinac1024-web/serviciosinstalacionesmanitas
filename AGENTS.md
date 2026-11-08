@@ -14,3 +14,4 @@
 - All job map views use JobsMap's browser geolocation watch, cleaned up on unmount; the worker location stays local and separate from service coordinates.
 - Weekly dashboard totals use the shared pure weekly-visits aggregator over employee-scoped, offline-patched jobs; Monday–Sunday weeks are numbered from the first Monday, with leading days grouped separately and all groups bounded by the selected month.
 - Printable reports (dashboard and ganancias PDF) are built as ReportDoc {title, style, body}, handed over via `src/lib/report-view.ts` (sessionStorage) and rendered on the in-app `/reporte` route with a print button — never via window.open popups, which standalone PWAs on mobile block.
+- Service price validation is shared in jobs.ts and enforced on inserts and price changes in the database; unrelated updates preserve historical prices to avoid blocking offline task completion.
