@@ -25,3 +25,8 @@ describe("abreviaturas de la dirección de la orden", () => {
     expect(result.direccion_completa).toBe("Calle ARAGO 155, 08035 Barcelona, España");
   });
 });
+describe("abreviatura PA", () => {
+  it("PA PROVENÇANA se expande a Plaça", () => {
+    expect(expandirTipoVia("PA PROVENÇANA")).toBe("Plaça PROVENÇANA");
+  });
+});
